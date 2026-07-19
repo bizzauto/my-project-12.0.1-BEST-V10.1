@@ -1124,3 +1124,146 @@ body {
   @apply focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500;
 }
 
+/* ==================== ENTERPRISE APP SHELL ==================== */
+/* Corporate, trustworthy, dense-but-breathable. Reuses existing
+   --color-* tokens so the 7 themes + dark mode keep working. */
+
+/* Sidebar surface — deep, near-black navy with a whisper of gradient.
+   Solid (no backdrop-filter) so Android scroll stays smooth. */
+.shell-sidebar {
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 1) 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Brand mark container — subtle sheen behind the logo */
+.shell-brand {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(249, 115, 22, 0.06));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Nav item base — calm, no hard fills until active */
+.shell-nav-item {
+  color: #94a3b8;
+  transition: color 0.18s ease, background-color 0.18s ease;
+}
+.shell-nav-item:hover {
+  color: #f1f5f9;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Active nav item — refined gradient pill + animated left indicator.
+   Uses --color-primary so themes tint it. */
+.shell-nav-item-active {
+  color: #ffffff;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-primary) 22%, transparent),
+    color-mix(in srgb, var(--color-primary) 8%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+.shell-nav-item-active .shell-nav-icon {
+  color: var(--color-primary-light);
+}
+.shell-nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 18%;
+  height: 64%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--color-primary);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-primary) 60%, transparent);
+  animation: shell-indicator-in 0.25s ease;
+}
+@keyframes shell-indicator-in {
+  from { opacity: 0; transform: scaleY(0.4); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+/* Section label — crisp uppercase, slightly tighter tracking */
+.shell-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+.shell-section-rule {
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Global search — inset, quiet until focused */
+.shell-search {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+.shell-search::placeholder { color: #64748b; }
+.shell-search:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+/* Plan upgrade CTA — premium gradient card, no animated orbs */
+.shell-cta {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-primary) 90%, #000 0%),
+    color-mix(in srgb, var(--color-primary-dark) 90%, #000 0%));
+  border: 1px solid color-mix(in srgb, var(--color-primary-light) 30%, transparent);
+}
+.shell-cta:hover {
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+/* Top bar — clean, light, sits above content */
+.shell-topbar {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+.dark .shell-topbar {
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+/* Mobile top bar: solid (no blur) for scroll perf */
+.shell-topbar-mobile {
+  background: #0f172a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Pill / chip — role + plan */
+.shell-pill {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Icon button in top bar */
+.shell-icon-btn {
+  color: #475569;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+.shell-icon-btn:hover { background-color: rgba(15, 23, 42, 0.06); color: #0f172a; }
+.dark .shell-icon-btn { color: #cbd5e1; }
+.dark .shell-icon-btn:hover { background-color: rgba(255, 255, 255, 0.08); color: #f8fafc; }
+
+/* Sidebar scrollbar — slim, theme-neutral */
+.shell-sidebar ::-webkit-scrollbar { width: 6px; }
+.shell-sidebar ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+.shell-sidebar ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .shell-nav-indicator { animation: none; }
+}
+

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Home, MessageSquare, Users, Palette, Star,
@@ -8,7 +8,7 @@ import {
   ShoppingCart, FileText, Clock, MoreVertical, Share2, Moon, Sun, Menu, X, Mail,
   Workflow, Link, GraduationCap, MessageCircle, FormInput, PenTool,
   CreditCard, Building2, PhoneOff, Camera, Upload, Store, Calculator,
-  Globe, QrCode
+  Globe, QrCode, Search
 } from 'lucide-react';
 import { useAuthStore } from '../lib/authStore';
 import { useThemeStore } from '../lib/themeStore';
@@ -124,6 +124,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
   const isNative = MobileApp.isNative();
@@ -165,6 +168,46 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     (item) => !item.roles || item.roles.includes(userRole)
   );
 
+  // Flat, searchable list of every navigable item (respecting role filters)
+  const allNavItems = useMemo(() => {
+    const base = [
+      ...filteredMenuItems,
+      ...menuSections.flatMap((s) => s.items),
+      ...filteredSettingsMenuItems,
+    ];
+    const seen = new Set<string>();
+    return base.filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }, [filteredMenuItems, filteredSettingsMenuItems]);
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return allNavItems
+      .filter((item) => item.label.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [searchQuery, allNavItems]);
+
+  const handleSearchSelect = (id: string) => {
+    setSearchQuery('');
+    setShowSearchResults(false);
+    navigate(id);
+  };
+
+  // Close search dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+    if (showSearchResults) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showSearchResults]);
+
   const handleBottomNavClick = (id: string) => {
     if (id === '/more') {
       setShowMobileMenu(!showMobileMenu);
@@ -191,7 +234,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       {/* Tablet (md-lg): slide-out drawer with w-72 (fixed position) */}
       {/* Desktop (lg+): always visible, collapsible w-64/w-20 (flex item, not fixed) */}
       <div
-        className={`bg-slate-900 flex-col transition-all duration-300 ${
+        className={`shell-sidebar flex-col transition-all duration-300 ${
           isMobile ? 'hidden' :
           isTablet ? `fixed left-0 top-0 z-50 ${sidebarOpen ? 'flex w-72 shadow-2xl' : 'hidden'}` :
           `flex flex-shrink-0 ${collapsed ? 'w-20' : 'w-64'}`
@@ -199,93 +242,165 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
       >
         {/* Logo */}
-        <div className="p-5 border-b border-white/10">
+        <div className="shell-brand p-5">
           <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="BizzAuto Ai Logo" className="h-20 w-auto flex-shrink-0" />
+            <img src="/logo.svg" alt="BizzAuto Ai Logo" className="h-9 w-auto flex-shrink-0" />
+            {!collapsed && (
+              <div className="min-w-0">
+                <p className="text-white font-semibold text-[15px] leading-tight truncate">BizzAuto</p>
+                <p className="text-[10px] text-slate-400 leading-tight truncate">Business OS</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-3 overflow-y-auto space-y-1" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-          {filteredMenuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group ${
-                isActive(item.id)
-                  ? 'bg-blue-600 text-white shadow-sm font-medium relative'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-              title={collapsed ? item.label : undefined}
-            >
-              <div className="flex items-center gap-3">
-                <span className={`transition-transform duration-200 ${isActive(item.id) ? 'scale-110' : 'group-hover:scale-105'}`}>
-                  {item.icon}
-                </span>
-                {!collapsed && <span className="text-sm">{item.label}</span>}
-              </div>
-              {!collapsed && item.badge && (
-                <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 pulse-dot">
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          ))}
+        {/* Global search */}
+        {!collapsed && (
+          <div className="px-3 pt-3" ref={searchRef}>
+            <div className="relative">
+              <Search
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSearchResults(true);
+                }}
+                onFocus={() => searchQuery && setShowSearchResults(true)}
+                placeholder="Search…"
+                className="shell-search w-full rounded-lg pl-9 pr-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none"
+                aria-label="Search"
+              />
 
-          {menuSections.map((section) => (
-            <div key={section.label}>
-              <div className="my-3 border-t border-white/10" />
-              {!collapsed && (
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-3 mb-1">
-                  {section.label}
-                </p>
+              {/* Results dropdown */}
+              {showSearchResults && searchQuery.trim() && (
+                <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl border border-white/10 bg-slate-800 shadow-2xl overflow-hidden">
+                  {searchResults.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-slate-400">No matches found</p>
+                  ) : (
+                    <ul className="max-h-72 overflow-y-auto py-1">
+                      {searchResults.map((item) => (
+                        <li key={item.id}>
+                          <button
+                            onClick={() => handleSearchSelect(item.id)}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-white/5 transition-colors"
+                          >
+                            <span className="text-slate-400">{item.icon}</span>
+                            <span className="truncate">{item.label}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               )}
-              {section.items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => navigate(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
-                    isActive(item.id)
-                      ? 'bg-blue-600 text-white shadow-sm font-medium relative'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <span className={`transition-transform duration-200 ${isActive(item.id) ? 'scale-110' : 'group-hover:scale-105'}`}>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-1" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+          {filteredMenuItems.map((item) => {
+            const active = isActive(item.id);
+            return (
+              <button
+                key={item.id}
+                onClick={() => navigate(item.id)}
+                className={`shell-nav-item relative w-full flex items-center justify-between px-3 py-2.5 rounded-xl group ${
+                  active ? 'shell-nav-item-active font-medium' : ''
+                }`}
+                title={collapsed ? item.label : undefined}
+              >
+                {active && <span className="shell-nav-indicator" />}
+                <div className="flex items-center gap-3">
+                  <span className={`shell-nav-icon transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-105'}`}>
                     {item.icon}
                   </span>
                   {!collapsed && <span className="text-sm">{item.label}</span>}
-                </button>
-              ))}
+                </div>
+                {!collapsed && item.badge && (
+                  <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 pulse-dot">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+
+          {menuSections.map((section) => (
+            <div key={section.label}>
+              <hr className="shell-section-rule my-3" />
+              {!collapsed && (
+                <p className="shell-section-label px-3 mb-1">{section.label}</p>
+              )}
+              {section.items.map((item) => {
+                const active = isActive(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate(item.id)}
+                    className={`shell-nav-item relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl group ${
+                      active ? 'shell-nav-item-active font-medium' : ''
+                    }`}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    {active && <span className="shell-nav-indicator" />}
+                    <span className={`shell-nav-icon transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-105'}`}>
+                      {item.icon}
+                    </span>
+                    {!collapsed && <span className="text-sm">{item.label}</span>}
+                  </button>
+                );
+              })}
             </div>
           ))}
 
-          <div className="my-3 border-t border-white/10" />
+          <hr className="shell-section-rule my-3" />
 
-          {filteredSettingsMenuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
-                isActive(item.id)
-                  ? 'bg-blue-600 text-white shadow-sm font-medium relative'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-              title={collapsed ? item.label : undefined}
-            >
-              <span className={`transition-transform duration-200 ${isActive(item.id) ? 'scale-110' : 'group-hover:scale-105'}`}>
-                {item.icon}
-              </span>
-              {!collapsed && <span className="text-sm">{item.label}</span>}
-            </button>
-          ))}
+          {filteredSettingsMenuItems.map((item) => {
+            const active = isActive(item.id);
+            return (
+              <button
+                key={item.id}
+                onClick={() => navigate(item.id)}
+                className={`shell-nav-item relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl group ${
+                  active ? 'shell-nav-item-active font-medium' : ''
+                }`}
+                title={collapsed ? item.label : undefined}
+              >
+                {active && <span className="shell-nav-indicator" />}
+                <span className={`shell-nav-icon transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-105'}`}>
+                  {item.icon}
+                </span>
+                {!collapsed && <span className="text-sm">{item.label}</span>}
+              </button>
+            );
+          })}
         </nav>
+
+        {/* Plan upgrade CTA (free/low tiers only) */}
+        {!collapsed && businessPlan === 'FREE' && (
+          <div className="px-3">
+            <button
+              onClick={() => navigate('/resorpay')}
+              className="shell-cta w-full rounded-xl p-3 text-left transition-all duration-200 hover-lift"
+            >
+              <p className="text-white text-sm font-semibold">Unlock Pro</p>
+              <p className="text-white/70 text-[11px] leading-tight mt-0.5">
+                Automations, CRM & more
+              </p>
+            </button>
+          </div>
+        )}
 
         {/* User Profile */}
         <div className="p-3 border-t border-white/10">
           <button
             onClick={() => navigate('/profile')}
-            className="flex items-center gap-3 w-full hover:bg-white/5 rounded-xl p-2.5 transition-colors"
+            className="shell-nav-item flex items-center gap-3 w-full hover:bg-white/5 rounded-xl p-2.5"
             title={collapsed ? 'Profile' : undefined}
           >
             <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
@@ -317,8 +432,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         ''
       }`}>
         {/* ===== MOBILE TOP BAR (visible only on mobile) =====
-            backdrop-blur removed on mobile — kills Android scroll perf. */}
-        <div className="md:hidden bg-slate-800 border-b border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between sticky top-0 z-40 ios-status-bar" style={{ transform: 'translateZ(0)' }}>
+            Solid bg (no backdrop-blur) — kills Android scroll perf. */}
+        <div className="shell-topbar-mobile md:hidden px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between sticky top-0 z-40 ios-status-bar" style={{ transform: 'translateZ(0)' }}>
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Zap size={14} className="text-white sm:w-4 sm:h-4" />
@@ -333,16 +448,18 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
               onClick={toggleTheme}
-              className="p-1.5 sm:p-2 text-slate-300 hover:bg-white/10 rounded-lg transition-colors"
+              className="shell-icon-btn p-1.5 sm:p-2 rounded-lg"
+              aria-label="Toggle theme"
             >
-              {isDark ? <Sun size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Moon size={16} className="sm:w-[18px] sm:h-[18px]" />}
+              {isDark ? <Sun size={16} className="sm:w-[18px] sm:h-[18px] text-slate-300" /> : <Moon size={16} className="sm:w-[18px] sm:h-[18px] text-slate-300" />}
             </button>
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-1.5 sm:p-2 text-slate-300 hover:bg-white/10 rounded-lg transition-colors"
+                className="shell-icon-btn relative p-1.5 sm:p-2 rounded-lg"
+                aria-label="Notifications"
               >
-                <Bell size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <Bell size={16} className="sm:w-[18px] sm:h-[18px] text-slate-300" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               {showNotifications && (
@@ -361,38 +478,35 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
 
         {/* ===== TABLET TOP BAR ===== */}
-        <div className="hidden md:flex lg:hidden bg-slate-800 border-b border-white/10 px-4 sm:px-6 py-3 items-center justify-between sticky top-0 z-40">
+        <div className="shell-topbar hidden md:flex lg:hidden px-4 sm:px-6 py-3 items-center justify-between sticky top-0 z-40">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="p-2 text-slate-300 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+              className="shell-icon-btn p-2 rounded-lg flex-shrink-0"
               title="Toggle sidebar"
+              aria-label="Toggle sidebar"
             >
               <Menu size={20} />
             </button>
-            <div className="text-base font-semibold text-white capitalize truncate">
-              {location.pathname.split('/')[1]?.replace('-', ' ') || 'Dashboard'}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-slate-400 text-sm">/</span>
+              <div className="text-base font-semibold text-slate-900 dark:text-white capitalize truncate">
+                {location.pathname.split('/')[1]?.replace('-', ' ') || 'Dashboard'}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <div className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium ${
-              userRole === 'SUPER_ADMIN' || userRole === 'OWNER'
-                ? 'bg-white/15 text-white'
-                : userRole === 'ADMIN'
-                ? 'bg-white/15 text-white'
-                : userRole === 'MEMBER'
-                ? 'bg-white/15 text-white'
-                : 'bg-white/15 text-white'
-            }`}>
+            <span className="shell-pill hidden sm:inline-flex px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium">
               {userRole}
-            </div>
-            <button onClick={toggleTheme} className="p-2 text-slate-300 hover:bg-white/10 rounded-lg transition-colors">
+            </span>
+            <button onClick={toggleTheme} className="shell-icon-btn p-2 rounded-lg" aria-label="Toggle theme">
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 text-slate-300 hover:bg-white/10 rounded-lg transition-colors"
+                className="shell-icon-btn relative p-2 rounded-lg"
+                aria-label="Notifications"
               >
                 <Bell size={18} />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -409,47 +523,44 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 </div>
               )}
             </div>
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg">
-              <span className="text-sm font-medium text-slate-200 whitespace-nowrap">{businessPlan} Plan</span>
-            </div>
+            <span className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
+              {businessPlan} Plan
+            </span>
           </div>
         </div>
 
         {/* ===== DESKTOP TOP BAR ===== */}
-        <div className="hidden lg:flex bg-slate-800 border-b border-white/10 px-6 xl:px-8 py-3.5 items-center justify-between sticky top-0 z-40">
+        <div className="shell-topbar hidden lg:flex px-6 xl:px-8 py-3.5 items-center justify-between sticky top-0 z-40">
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="p-2 text-slate-300 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+              className="shell-icon-btn p-2 rounded-lg flex-shrink-0"
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label="Toggle sidebar"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={collapsed ? 'M13 5l7 7-7 7M5 5l7 7-7 7' : 'M11 19l-7-7 7-7m8 14l-7-7 7-7'} />
               </svg>
             </button>
-            <div className="text-lg font-semibold text-white capitalize truncate">
-              {location.pathname.split('/')[1]?.replace('-', ' ') || 'Dashboard'}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-slate-400 text-lg">/</span>
+              <div className="text-lg font-semibold text-slate-900 dark:text-white capitalize truncate">
+                {location.pathname.split('/')[1]?.replace('-', ' ') || 'Dashboard'}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-4 flex-shrink-0">
-            <div className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              userRole === 'SUPER_ADMIN' || userRole === 'OWNER'
-                ? 'bg-white/15 text-white'
-                : userRole === 'ADMIN'
-                ? 'bg-white/15 text-white'
-                : userRole === 'MEMBER'
-                ? 'bg-white/15 text-white'
-                : 'bg-white/15 text-white'
-            }`}>
+            <span className="shell-pill px-3 py-1.5 rounded-lg text-sm font-medium">
               {userRole}
-            </div>
-            <button onClick={toggleTheme} className="p-2 text-slate-300 hover:bg-white/10 rounded-lg transition-colors">
+            </span>
+            <button onClick={toggleTheme} className="shell-icon-btn p-2 rounded-lg" aria-label="Toggle theme">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 text-slate-300 hover:bg-white/10 rounded-lg transition-colors"
+                className="shell-icon-btn relative p-2 rounded-lg"
+                aria-label="Notifications"
               >
                 <Bell size={20} />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -466,9 +577,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg">
-              <span className="text-sm font-medium text-slate-200">{businessPlan} Plan</span>
-            </div>
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/10 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
+              {businessPlan} Plan
+            </span>
           </div>
         </div>
 
