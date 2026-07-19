@@ -9,7 +9,7 @@ import QRCode from 'qrcode';
 import { encrypt, decrypt } from '../utils/auth.js';
 import rateLimit from 'express-rate-limit';
 import { validate } from '../middleware/validate.js';
-import { forgotPasswordSchema, passwordOnlySchema, verifyOtpSchema } from '../validations/schemas.js';
+import { forgotPasswordSchema, passwordOnlySchema, resetPasswordSchema, verifyOtpSchema } from '../validations/schemas.js';
 import { registerSchema, loginSchema, changePasswordSchema } from '../validations/schemas.js';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
@@ -1240,16 +1240,21 @@ router.post('/forgot-password', forgotPasswordLimiter, validate(forgotPasswordSc
     const attempts = (existing?.attempts || 0) + 1;
     otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000, attempts });
 
-    // Send OTP via email (fire-and-forget)
+    // Send OTP via email (failures are surfaced, not swallowed)
     try {
       const { EmailService } = await import('../services/email.service.js');
-      await EmailService.sendEmail(
+      const result = await EmailService.sendEmail(
         email,
         'Password Reset OTP - BizzAuto',
         `<h2>Password Reset</h2><p>Your OTP for password reset is: <strong>${otp}</strong></p><p>This OTP expires in 10 minutes.</p><p>If you did not request this, please ignore this email.</p>`
       );
+      if (!result.success) {
+        console.error('Failed to send OTP email:', result.error);
+        return res.status(502).json({ success: false, error: 'Unable to send OTP email. Please try again later or contact support.' });
+      }
     } catch (emailErr: any) {
       console.error('Failed to send OTP email:', emailErr.message);
+      return res.status(502).json({ success: false, error: 'Unable to send OTP email. Please try again later or contact support.' });
     }
 
     // Log the request for audit trail
@@ -1295,7 +1300,7 @@ router.post('/verify-otp', verifyOtpLimiter, validate(verifyOtpSchema), async (r
   }
 });
 
-router.post('/reset-password', resetPasswordLimiter, validate(passwordOnlySchema), async (req: Request, res: Response) => {
+router.post('/reset-password', resetPasswordLimiter, validate(resetPasswordSchema), async (req: Request, res: Response) => {
   try {
     const { email, otp, newPassword } = req.body;
 
