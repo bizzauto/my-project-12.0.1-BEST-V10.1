@@ -43,6 +43,8 @@ const GoogleBusinessPage: React.FC = () => {
   const [editingTemplate, setEditingTemplate] = useState<AutoPostTemplate | null>(null);
   const [templateForm, setTemplateForm] = useState({ name: '', content: '', mediaUrl: '' });
   const [savingConfig, setSavingConfig] = useState(false);
+  const [diagnosticResults, setDiagnosticResults] = useState<any>(null);
+  const [diagnosticLoading, setDiagnosticLoading] = useState(false);
 
   const toast_ = (m: string, t = 'success') => { setToast({ m, t }); setTimeout(() => setToast(null), 3000); };
 
@@ -70,6 +72,7 @@ const GoogleBusinessPage: React.FC = () => {
       toast_('Google Business connected successfully!', 'success');
       setSearchParams({});
     } else if (error) {
+      const detailedMsg = searchParams.get('msg');
       const errorMessages: Record<string, string> = {
         'missing_params': 'Missing authentication parameters. Please try again.',
         'invalid_state': 'Session expired. Please try again.',
@@ -77,9 +80,11 @@ const GoogleBusinessPage: React.FC = () => {
         'access_denied': 'Access denied. You must grant all required permissions when prompted.',
         'api_not_enabled': 'Google Business Profile APIs are not enabled. Go to console.cloud.google.com → APIs & Services → Enable: Business Information API + Google My Business API.',
         'token_expired': 'Authentication expired. Please try again.',
-        'callback_failed': 'Connection failed. Check that GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and redirect URI are correctly configured. See Setup Guide below.'
+        'redirect_uri_mismatch': 'Redirect URI mismatch! The redirect URI in Google Cloud Console must EXACTLY match: https://bizzautoai.com/api/google-business/auth/callback',
+        'invalid_client': 'Invalid client credentials. Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file.',
+        'callback_failed': `Connection failed: ${detailedMsg || 'Check GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and redirect URI in Google Cloud Console.'} See Setup Guide below.`
       };
-      toast_(errorMessages[error] || `Connection failed: ${error}`, 'error');
+      toast_(errorMessages[error] || `Connection failed: ${detailedMsg || error}`, 'error');
       setSearchParams({});
     }
   }, [searchParams, setSearchParams]);
@@ -248,6 +253,19 @@ const GoogleBusinessPage: React.FC = () => {
     }
   };
 
+  // Run diagnostics to check configuration
+  const handleRunDiagnostics = async () => {
+    setDiagnosticLoading(true);
+    try {
+      const res = await googleBusinessAPI.setupCheck();
+      setDiagnosticResults(res.data?.data || null);
+    } catch (err: any) {
+      setDiagnosticResults({ error: err?.response?.data?.error || 'Failed to run diagnostics' });
+    } finally {
+      setDiagnosticLoading(false);
+    }
+  };
+
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '0';
   const repliedCount = reviews.filter(r => r.replied).length;
 
@@ -293,7 +311,17 @@ const GoogleBusinessPage: React.FC = () => {
 
           {/* Setup Guide */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Setup Guide</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Setup Guide</h3>
+              <button
+                onClick={handleRunDiagnostics}
+                disabled={diagnosticLoading}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+              >
+                {diagnosticLoading ? <Loader2 size={14} className="animate-spin" /> : <AlertCircle size={14} />}
+                Run Diagnostics
+              </button>
+            </div>
             <div className="space-y-3 text-sm">
               <div className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold">1</span>
@@ -317,21 +345,29 @@ const GoogleBusinessPage: React.FC = () => {
               <div className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold">3</span>
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Add Redirect URI</p>
-                  <p className="text-gray-500 dark:text-gray-400">In <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Credentials</a>, add this redirect URI to your OAuth 2.0 Client:</p>
-                  <code className="block mt-1 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-300 break-all">{window.location.origin}/api/google-business/auth/callback</code>
+                  <p className="font-medium text-gray-900 dark:text-white">Add Redirect URIs (must match EXACTLY)</p>
+                  <p className="text-gray-500 dark:text-gray-400">In <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Credentials</a>, add <strong>both</strong> redirect URIs:</p>
+                  <code className="block mt-1 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-300 break-all">https://bizzautoai.com/api/google-business/auth/callback<br/>https://bizzautoai.com/api/auth/google/callback</code>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold">4</span>
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Set Environment Variables</p>
-                  <p className="text-gray-500 dark:text-gray-400">Ensure these are set in your <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">.env</code> file:</p>
-                  <code className="block mt-1 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-300">GOOGLE_CLIENT_ID=...<br/>GOOGLE_CLIENT_SECRET=...<br/>GOOGLE_BUSINESS_REDIRECT_URL=.../api/google-business/auth/callback</code>
+                  <p className="font-medium text-gray-900 dark:text-white">Add JavaScript Origin</p>
+                  <p className="text-gray-500 dark:text-gray-400">Add to "Authorized JavaScript origins":</p>
+                  <code className="block mt-1 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-300 break-all">https://bizzautoai.com</code>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-xs font-bold">5</span>
+                <span className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold">5</span>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Set Environment Variables</p>
+                  <p className="text-gray-500 dark:text-gray-400">Ensure these are set in your <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">.env</code> file:</p>
+                  <code className="block mt-1 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-300">GOOGLE_CLIENT_ID=...<br/>GOOGLE_CLIENT_SECRET=...<br/>GOOGLE_BUSINESS_REDIRECT_URL=https://bizzautoai.com/api/google-business/auth/callback</code>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-xs font-bold">6</span>
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white">Click Connect!</p>
                   <p className="text-gray-500 dark:text-gray-400">Make sure you have a Google Business Profile for your business at <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">business.google.com</a>.</p>
@@ -339,6 +375,32 @@ const GoogleBusinessPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Diagnostic Results */}
+          {diagnosticResults && !diagnosticResults.error && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <BarChart3 size={18} /> Diagnostic Results
+              </h3>
+              <div className="space-y-3">
+                {Object.entries(diagnosticResults.checks || {}).map(([key, check]: [string, any]) => (
+                  <div key={key} className={`p-3 rounded-lg border ${check.ok ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'}`}>
+                    <div className="flex items-start gap-2">
+                      {check.ok ? <CheckCircle size={16} className="text-green-500 mt-0.5 shrink-0" /> : <XCircle size={16} className="text-red-500 mt-0.5 shrink-0" />}
+                      <div>
+                        <p className={`text-sm font-medium ${check.ok ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>{key}</p>
+                        <p className={`text-xs ${check.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{check.message}</p>
+                        {check.fix && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{check.fix}</p>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">These are the EXACT values your server is using. Copy the redirect URIs above and paste them into Google Cloud Console → Credentials → OAuth 2.0 Client → Authorized redirect URIs.</p>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="mb-6 p-4 rounded-xl flex items-center gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">

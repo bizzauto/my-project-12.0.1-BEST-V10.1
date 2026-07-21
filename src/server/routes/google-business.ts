@@ -140,13 +140,29 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     oauthStates.delete(state as string);
 
     // Exchange code for tokens (with retry/timeout on transient network failures)
-    const tokenResponse = await exchangeGoogleToken({
-      code: code as string,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: process.env.GOOGLE_BUSINESS_REDIRECT_URL || `https://bizzautoai.com/api/google-business/auth/callback`,
-      grant_type: 'authorization_code',
-    });
+    const redirectUri = process.env.GOOGLE_BUSINESS_REDIRECT_URL || `https://bizzautoai.com/api/google-business/auth/callback`;
+    console.log('[GBP] Exchanging code for tokens — redirect_uri:', redirectUri, 'client_id:', process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...');
+    let tokenResponse: any;
+    try {
+      tokenResponse = await exchangeGoogleToken({
+        code: code as string,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      });
+    } catch (tokenErr: any) {
+      const googleErr = tokenErr?.response?.data || {};
+      console.error('[GBP] Token exchange FAILED:', {
+        status: tokenErr?.response?.status,
+        error: googleErr.error || tokenErr?.message,
+        error_description: googleErr.error_description,
+        redirect_uri: redirectUri,
+        code: (code as string)?.substring(0, 10) + '...',
+      });
+      // Re-throw so the outer catch handles the redirect
+      throw tokenErr;
+    }
 
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
@@ -214,15 +230,21 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     // Redirect to frontend with success
     res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?connected=true`);
   } catch (error: any) {
-    console.error('GBP callback error:', error?.message || error);
-    console.error('GBP callback error stack:', error?.stack);
-    console.error('GBP callback query:', JSON.stringify(req.query));
+    console.error('[GBP] callback error:', error?.message || error);
+    console.error('[GBP] callback error stack:', error?.stack);
+    console.error('[GBP] callback query:', JSON.stringify(req.query));
+    console.error('[GBP] callback env check:', {
+      clientIdSet: !!process.env.GOOGLE_CLIENT_ID,
+      clientSecretSet: !!process.env.GOOGLE_CLIENT_SECRET,
+      redirectUrlSet: !!process.env.GOOGLE_BUSINESS_REDIRECT_URL,
+      clientIdPrefix: process.env.GOOGLE_CLIENT_ID?.substring(0, 20),
+    });
     if (error?.response?.status === 403) {
       res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=api_not_enabled`);
     } else if (error?.response?.status === 401) {
       res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_expired`);
     } else {
-      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=callback_failed&msg=${encodeURIComponent(error?.message || 'unknown')}`);
+      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=callback_failed&msg=${encodeURIComponent(error?.response?.data?.error_description || error?.message || 'unknown')}`);
     }
   }
 });
@@ -232,9 +254,11 @@ router.get('/setup-check', authenticate, async (req: AuthRequest, res: Response)
   const checks: Record<string, { ok: boolean; message: string; fix?: string }> = {};
 
   // 1. Check env vars
+  const redirectUri = process.env.GOOGLE_BUSINESS_REDIRECT_URL || 'https://bizzautoai.com/api/google-business/auth/callback';
+  const authRedirectUri = process.env.GOOGLE_AUTH_REDIRECT_URL || 'https://bizzautoai.com/api/auth/google/callback';
   checks.clientId = {
     ok: !!process.env.GOOGLE_CLIENT_ID,
-    message: process.env.GOOGLE_CLIENT_ID ? 'GOOGLE_CLIENT_ID is set' : 'GOOGLE_CLIENT_ID is missing',
+    message: process.env.GOOGLE_CLIENT_ID ? `GOOGLE_CLIENT_ID is set (${process.env.GOOGLE_CLIENT_ID.substring(0, 20)}...)` : 'GOOGLE_CLIENT_ID is missing',
     fix: 'Set GOOGLE_CLIENT_ID in your .env file',
   };
   checks.clientSecret = {
@@ -243,8 +267,19 @@ router.get('/setup-check', authenticate, async (req: AuthRequest, res: Response)
     fix: 'Set GOOGLE_CLIENT_SECRET in your .env file',
   };
   checks.redirectUri = {
-    ok: !!process.env.GOOGLE_BUSINESS_REDIRECT_URL,
-    message: process.env.GOOGLE_BUSINESS_REDIRECT_URL || 'GOOGLE_BUSINESS_REDIRECT_URL not set (will use default)',
+    ok: true,
+    message: `Google Business redirect URI: ${redirectUri}`,
+    fix: 'Make sure this EXACT URI is in Google Cloud Console → Credentials → OAuth 2.0 Client → Authorized redirect URIs',
+  };
+  checks.authRedirectUri = {
+    ok: true,
+    message: `Google Sign-In redirect URI: ${authRedirectUri}`,
+    fix: 'Make sure this EXACT URI is also in Google Cloud Console → Authorized redirect URIs',
+  };
+  checks.jsOrigin = {
+    ok: true,
+    message: 'Authorized JavaScript origin should be: https://bizzautoai.com',
+    fix: 'Add this to Google Cloud Console → Credentials → OAuth 2.0 Client → Authorized JavaScript origins',
   };
 
   // 2. Check if connected
