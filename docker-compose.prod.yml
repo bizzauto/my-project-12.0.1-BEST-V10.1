@@ -47,7 +47,7 @@ services:
 
   # ==================== BIZZAUTO APP ====================
   app:
-    image: ghcr.io/infoledbrighter-boop/bizzauto:latest
+    build: .
     container_name: bizzauto-app
     restart: always
     expose:
