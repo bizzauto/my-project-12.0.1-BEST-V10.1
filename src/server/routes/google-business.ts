@@ -461,22 +461,12 @@ router.get('/reviews', authenticate, async (req: AuthRequest, res: Response) => 
 
     const accessToken = await getValidAccessToken(req.user.businessId);
 
-    // Try new API first, fallback to v4
-    let reviews: any[] = [];
-    try {
-      const response = await axios.get(
-        `https://mybusinessreviews.googleapis.com/v1/accounts/${business.gbpAccountId}/locations/${business.gbpLocationId}/reviews`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      reviews = response.data.reviews || [];
-    } catch (newApiErr: any) {
-      console.log('[GBP] New reviews API failed, trying v4:', newApiErr?.response?.status);
-      const response = await axios.get(
-        `https://mybusiness.googleapis.com/v4/accounts/${business.gbpAccountId}/locations/${business.gbpLocationId}/reviews`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      reviews = response.data.reviews || [];
-    }
+    // Reviews API — use v4 (v1 equivalent not available)
+    const response = await axios.get(
+      `https://mybusiness.googleapis.com/v4/accounts/${business.gbpAccountId}/locations/${business.gbpLocationId}/reviews`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const reviews = response.data.reviews || [];
 
     res.json({ success: true, data: reviews });
   } catch (error: any) {
