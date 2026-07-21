@@ -57,7 +57,6 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(1, 'Password is required'),
-  twoFactorToken: z.string().length(6, '2FA token must be 6 digits').optional(),
 }).strict();
 
 export const changePasswordSchema = z.object({

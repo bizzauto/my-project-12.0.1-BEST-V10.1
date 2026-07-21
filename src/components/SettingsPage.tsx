@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../lib/authStore';
 import { useToast } from '../components/Toast';
 import { businessAPI, authAPI, settingsAPI } from '../lib/api';
-import TwoFactorSetupModal from './TwoFactorSetupModal';
-import { Save, Building, Phone, Mail, MapPin, Globe, Clock, Palette, Image, Shield, Lock, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
+import { Save, Building, Phone, Mail, MapPin, Globe, Clock, Palette, Image, Lock, Loader2, ArrowRight, ExternalLink } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -13,11 +12,6 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [show2FAModal, setShow2FAModal] = useState(false);
-  const [twoFactorStatus, setTwoFactorStatus] = useState<{ enabled: boolean; setupPending: boolean }>({ enabled: false, setupPending: false });
-  const [loading2FA, setLoading2FA] = useState(true);
-  const [disablePassword, setDisablePassword] = useState('');
-  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
   const [connectingGoogle, setConnectingGoogle] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -39,22 +33,8 @@ export default function SettingsPage() {
     logoUrl: business?.logoUrl || '',
   });
 
-  // Fetch 2FA status
+  // Fetch white-label status
   useEffect(() => {
-    const fetch2FAStatus = async () => {
-      try {
-        const response = await authAPI.get2FAStatus();
-        if (response.data.success) {
-          setTwoFactorStatus(response.data.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch 2FA status:', error);
-      } finally {
-        setLoading2FA(false);
-      }
-    };
-
-    fetch2FAStatus();
     fetchWhiteLabelStatus();
   }, []);
 
@@ -68,30 +48,6 @@ export default function SettingsPage() {
       // silently fail — status indicator is non-critical
     } finally {
       setLoadingWhiteLabel(false);
-    }
-  };
-
-  const handle2FASetupComplete = () => {
-    setTwoFactorStatus({ enabled: true, setupPending: false });
-    toast.success('Two-factor authentication enabled');
-  };
-
-  const handleDisable2FA = async () => {
-    setLoading(true);
-    try {
-      const response = await authAPI.disable2FA(disablePassword);
-      if (response.data.success) {
-        setTwoFactorStatus({ enabled: false, setupPending: false });
-        setShowDisableConfirm(false);
-        setDisablePassword('');
-        toast.success('Two-factor authentication disabled');
-      } else {
-        toast.error(response.data.error || 'Failed to disable 2FA');
-      }
-    } catch (error) {
-      toast.error('Failed to disable 2FA');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -453,70 +409,14 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Security - 2FA Section */}
+        {/* Security - Password Section */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-5 md:p-6 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-            <Shield className="text-green-600" size={20} />
+            <Lock className="text-green-600" size={20} />
             Security
           </h3>
 
           <div className="space-y-6">
-            {/* Two-Factor Authentication */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-medium text-gray-900 dark:text-white">Two-Factor Authentication</h4>
-                    {twoFactorStatus.enabled ? (
-                      <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full font-medium">
-                        Enabled
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full font-medium">
-                        Disabled
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Add an extra layer of security by requiring a code from your authenticator app.
-                  </p>
-                </div>
-                <div className="ml-4">
-                  {loading2FA ? (
-                    <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                  ) : twoFactorStatus.enabled ? (
-                    <button
-                      onClick={() => setShowDisableConfirm(true)}
-                      className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors text-sm font-medium"
-                    >
-                      Disable
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setShow2FAModal(true)}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
-                    >
-                      Enable
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {twoFactorStatus.enabled && (
-                <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-start gap-3">
-                  <Shield className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                      <strong>Your account is protected.</strong> You'll need your authenticator app to log in.
-                    </p>
-                    <p className="text-xs text-green-600 dark:text-green-300 mt-1">
-                      Supported apps: Google Authenticator, Authy, 1Password, Microsoft Authenticator
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Password Change */}
             <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
               <div className="flex items-center justify-between">
@@ -539,58 +439,6 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-
-        {/* 2FA Setup Modal */}
-        <TwoFactorSetupModal
-          isOpen={show2FAModal}
-          onClose={() => setShow2FAModal(false)}
-          onComplete={handle2FASetupComplete}
-        />
-
-        {/* Disable 2FA Confirm Modal */}
-        {showDisableConfirm && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-5 md:p-6">
-              <div className="flex items-center gap-3 text-red-600 mb-4">
-                <Shield className="w-8 h-8" />
-                <h3 className="text-xl font-bold">Disable Two-Factor Authentication?</h3>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                This will remove the extra layer of security from your account. You'll only need your password to log in.
-              </p>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Enter your password to confirm
-                </label>
-                <input
-                  type="password"
-                  value={disablePassword}
-                  onChange={(e) => setDisablePassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                  placeholder="Your current password"
-                />
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowDisableConfirm(false);
-                    setDisablePassword('');
-                  }}
-                  className="flex-1 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDisable2FA}
-                  disabled={!disablePassword || loading}
-                  className="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-                >
-                  {loading ? 'Disabling...' : 'Disable 2FA'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {showPasswordModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">

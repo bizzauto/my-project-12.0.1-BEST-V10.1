@@ -23,9 +23,6 @@ model User {
   lastLoginAt          DateTime?
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
-  twoFactorSecret      String?
-  twoFactorEnabled     Boolean           @default(false)
-  twoFactorBackupCodes String?
   resetToken           String?
   csrfToken            String?
   csrfTokenExpiresAt   DateTime?

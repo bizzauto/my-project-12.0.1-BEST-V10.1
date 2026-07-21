@@ -9,7 +9,7 @@
  *
  * Auth endpoints tested:
  *   POST /api/auth/register  — user registration with business creation
- *   POST /api/auth/login     — email/password login with optional 2FA
+ *   POST /api/auth/login     — email/password login
  *   GET  /api/auth/me        — authenticated profile retrieval (via JWT)
  */
 
@@ -26,7 +26,6 @@ const mockUserFixture = {
   password: 'hashed_password_xyz',
   role: 'OWNER',
   businessId: 'biz-456',
-  twoFactorEnabled: false,
   isActive: true,
   image: null,
   googleId: null,
@@ -35,8 +34,6 @@ const mockUserFixture = {
   phone: null,
   emailVerified: null,
   isVerified: false,
-  twoFactorSecret: null,
-  twoFactorBackupCodes: null,
   createdAt: new Date('2025-01-01'),
   updatedAt: new Date('2025-01-01'),
 };
@@ -110,17 +107,6 @@ jest.mock('jsonwebtoken', () => ({
   decode: jest.fn(),
 }));
 
-// ── TwoFactorService mock (dynamically imported in login handler) ─────────────
-jest.mock('../src/server/services/twoFactor.service', () => ({
-  TwoFactorService: {
-    verifyToken: jest.fn().mockResolvedValue(true),
-    generateSecret: jest.fn(),
-    verifyAndEnable: jest.fn(),
-    getStatus: jest.fn(),
-    disable: jest.fn(),
-  },
-}));
-
 // ── CSRF Service mock (dynamically imported in authenticate middleware) ──────
 jest.mock('../src/server/services/csrf.service', () => ({
   CSRFService: {
@@ -166,10 +152,6 @@ function resetMocks(): void {
     businessId: 'biz-456',
     role: 'OWNER',
   });
-
-  const { TwoFactorService } =
-    jest.requireMock('../src/server/services/twoFactor.service');
-  TwoFactorService.verifyToken.mockResolvedValue(true);
 
   const { CSRFService } =
     jest.requireMock('../src/server/services/csrf.service');
@@ -397,7 +379,6 @@ describe('POST /api/auth/login', () => {
     expect(res.body.data.user).toMatchObject({
       email: 'test@example.com',
       role: 'OWNER',
-      twoFactorEnabled: false,
     });
     expect(res.body.data.business).toMatchObject({
       name: mockBusinessFixture.name,
@@ -474,74 +455,6 @@ describe('POST /api/auth/login', () => {
 
     expect(res.body.success).toBe(false);
     expect(res.body.error).toBe('Invalid email or password');
-  });
-
-  it('should require 2FA when user has twoFactorEnabled', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue({
-      ...mockUserFixture,
-      twoFactorEnabled: true,
-      business: mockBusinessFixture,
-    });
-
-    const res = await request(app)
-      .post('/api/auth/login')
-      .send({ email: 'test@example.com', password: 'CorrectPass1' })
-      .expect(202);
-
-    expect(res.body.success).toBe(true);
-    expect(res.body.requiresTwoFactor).toBe(true);
-    expect(res.body).toHaveProperty('userId');
-    expect(res.body.message).toContain('Two-factor authentication required');
-    // Token should NOT be issued when 2FA is pending
-    expect(res.body.data).toBeUndefined();
-  });
-
-  it('should proceed with login when valid 2FA token is provided', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue({
-      ...mockUserFixture,
-      twoFactorEnabled: true,
-      business: mockBusinessFixture,
-    });
-
-    const res = await request(app)
-      .post('/api/auth/login')
-      .send({
-        email: 'test@example.com',
-        password: 'CorrectPass1',
-        twoFactorToken: '123456',
-      })
-      .expect(200);
-
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveProperty('token');
-
-    const { TwoFactorService } =
-      jest.requireMock('../src/server/services/twoFactor.service');
-    expect(TwoFactorService.verifyToken).toHaveBeenCalledWith('user-abc-123', '123456');
-  });
-
-  it('should reject login with invalid 2FA token', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue({
-      ...mockUserFixture,
-      twoFactorEnabled: true,
-      business: mockBusinessFixture,
-    });
-
-    const { TwoFactorService } =
-      jest.requireMock('../src/server/services/twoFactor.service');
-    TwoFactorService.verifyToken.mockResolvedValueOnce(false);
-
-    const res = await request(app)
-      .post('/api/auth/login')
-      .send({
-        email: 'test@example.com',
-        password: 'CorrectPass1',
-        twoFactorToken: '000000',
-      })
-      .expect(401);
-
-    expect(res.body.success).toBe(false);
-    expect(res.body.error).toContain('Invalid two-factor');
   });
 
   it('should handle suspended/blocked accounts at the authn level', async () => {

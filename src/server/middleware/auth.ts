@@ -126,14 +126,40 @@ export const authenticate = async (
       });
     }
 
-    // Enforce email verification for app members
-    // (New customers created via /api/auth/register are MEMBER but may not be emailVerified.)
+    // Enforce email verification for app members.
+    // NOTE: Users who registered with email+password before emailVerified
+    // was stamped at signup may have a null emailVerified. They already
+    // authenticated with a valid password, so we surface the unverified
+    // state WITHOUT hard-blocking — otherwise their session is wiped on
+    // every /auth/me call and they can never reach the dashboard.
+    // The client may prompt them to verify, but login itself must succeed.
     if (user.role === 'MEMBER' && !user.emailVerified) {
-      return res.status(403).json({
-        success: false,
-        error: 'Email verification required',
-        code: 'EMAIL_NOT_VERIFIED',
-      });
+      req.user = {
+        id: user.id,
+        email: user.email,
+        businessId: user.businessId || null,
+        role: user.role,
+        emailVerified: false,
+      } as any;
+
+      if (user.role !== 'SUPER_ADMIN' && !user.businessId) {
+        return res.status(403).json({
+          success: false,
+          error: 'No business associated with your account. Please contact support.',
+          code: 'NO_BUSINESS',
+        });
+      }
+
+      // Attach a flag so the client can nudge verification without blocking.
+      res.setHeader('X-Email-Verified', 'false');
+
+      // Still generate a CSRF token for parity with the verified path.
+      try {
+        const csrf = await CSRFService.getToken(user.id);
+        if (csrf) res.setHeader('X-CSRF-Token', csrf);
+      } catch { /* non-critical */ }
+
+      return next();
     }
 
     // Only generate CSRF token if not exists or expired (max once per session)

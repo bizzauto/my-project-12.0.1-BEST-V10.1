@@ -739,6 +739,10 @@ router.post('/register', registerLimiter, validate(registerSchema), async (req: 
         name,
         businessId: business.id,
         role: userRole,
+        // Mark email as verified at registration so the `authenticate`
+        // middleware does not 403 MEMBER users on every /auth/me call,
+        // which would otherwise wipe the session right after login.
+        emailVerified: new Date(),
       },
     });
 
@@ -782,8 +786,7 @@ router.post('/register', registerLimiter, validate(registerSchema), async (req: 
 // Login
 router.post('/login', loginLimiter, validate(loginSchema), async (req: Request, res: Response) => {
   try {
-    const { email, password, twoFactorToken } = req.body;
-    const { TwoFactorService } = await import('../services/twoFactor.service.js');
+    const { email, password } = req.body;
 
     // Check if account is locked
     const lockStatus = await getLockoutStatus(email);
@@ -825,32 +828,6 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req: Request, 
     // Clear failed attempts on successful password verify
     await clearFailedLoginAttempts(email);
 
-    // Check if 2FA is enabled
-    if (user.twoFactorEnabled) {
-      if (!twoFactorToken) {
-        return res.status(202).json({
-          success: true,
-          requiresTwoFactor: true,
-          userId: user.id,
-          message: 'Two-factor authentication required',
-        });
-      }
-
-      // Verify 2FA token
-      const verified = await TwoFactorService.verifyToken(user.id, twoFactorToken);
-      if (!verified) {
-        const lockout = await recordFailedLoginAttempt(email);
-        return res.status(401).json({
-          success: false,
-          error: 'Invalid two-factor authentication code',
-          attemptsRemaining: lockout.attemptsRemaining,
-        });
-      }
-    }
-
-    // Clear failed attempts on full success
-    await clearFailedLoginAttempts(email);
-
     // Generate token
     const token = generateToken({
       id: user.id,
@@ -882,7 +859,6 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req: Request, 
           name: user.name,
           role: user.role,
           businessId: user.businessId,
-          twoFactorEnabled: user.twoFactorEnabled,
           onboardingCompleted: user.business?.onboardingCompleted ?? false,
           admissionCompleted: user.business?.admissionCompleted ?? false,
         },

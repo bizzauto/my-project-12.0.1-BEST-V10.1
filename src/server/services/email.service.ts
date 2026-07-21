@@ -83,26 +83,6 @@ export class EmailService {
   }
 
   /**
-   * Send 2FA backup codes email
-   */
-  static async sendBackupCodesEmail(
-    to: string,
-    name: string,
-    backupCodes: string[]
-  ): Promise<void> {
-    const transporter = this.getTransporter();
-    const appName = process.env.APP_NAME || 'BizzAuto';
-    const appUrl = process.env.APP_URL || 'https://bizzauto.com';
-
-    await transporter.sendMail({
-      from: `"${appName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-      to,
-      subject: 'Your 2FA Backup Codes',
-      html: this.getBackupCodesTemplate(name, backupCodes, appName, appUrl),
-    });
-  }
-
-  /**
    * Send email verification link
    */
   static async sendVerificationEmail(
@@ -213,13 +193,21 @@ export class EmailService {
       try {
         const transporter = this.getTransporter();
         const appName = process.env.APP_NAME || 'BizzAuto';
-        await transporter.sendMail({
+        const info = await transporter.sendMail({
           from: from || `"${appName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
           to,
           subject,
           html,
         });
-        return { success: true };
+        // Some providers (e.g. Brevo) accept the SMTP call but silently drop
+        // mail when the FROM sender is not verified. Surface that as a failure
+        // instead of pretending the email was delivered.
+        if (info.rejected && info.rejected.length > 0) {
+          lastError = `Recipient rejected by mail server: ${info.rejected.join(', ')}`;
+          console.warn(`[EmailService] Attempt ${attempt}/${retries} rejected for ${to}: ${lastError}`);
+        } else {
+          return { success: true };
+        }
       } catch (error: any) {
         lastError = error.message;
         console.warn(`[EmailService] Attempt ${attempt}/${retries} failed for ${to}: ${error.message}`);
@@ -227,10 +215,10 @@ export class EmailService {
         if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
           this.transporter = null;
         }
-        if (attempt < retries) {
-          // Exponential backoff: 1s, 2s, 4s
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
-        }
+      }
+      if (attempt < retries) {
+        // Exponential backoff: 1s, 2s, 4s
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
       }
     }
     return { success: false, error: `Failed after ${retries} attempts: ${lastError}` };
@@ -363,58 +351,6 @@ export class EmailService {
         <strong>Security Alert:</strong> If you did not make this change, please contact support immediately.
       </div>
       <p>If you have any concerns about your account security, please contact us.</p>
-      <p>Best regards,<br>The ${appName} Team</p>
-    </div>
-    <div class="footer">
-      <p>${appUrl}</p>
-    </div>
-  </div>
-</body>
-</html>
-    `;
-  }
-
-  private static getBackupCodesTemplate(
-    name: string,
-    backupCodes: string[],
-    appName: string,
-    appUrl: string
-  ): string {
-    const codesHtml = backupCodes
-      .map(code => `<code style="background:#f0f0f0;padding:5px 10px;margin:5px;display:inline-block;border-radius:3px;">${code}</code>`)
-      .join(' ');
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #4267B2; padding: 30px; text-align: center; }
-    .header h1 { color: white; margin: 0; }
-    .content { background: #f9f9f9; padding: 30px; }
-    .codes { background: #fff; padding: 20px; border-radius: 5px; border: 1px solid #ddd; margin: 20px 0; }
-    .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Your 2FA Backup Codes</h1>
-    </div>
-    <div class="content">
-      <h2>Hello ${name},</h2>
-      <p>Here are your backup codes for two-factor authentication. Keep these in a safe place!</p>
-      <div class="codes">
-        <h3>Backup Codes:</h3>
-        ${codesHtml}
-      </div>
-      <div class="warning">
-        <strong>Important:</strong> Each code can only be used once. Save these securely and never share them with anyone.
-      </div>
       <p>Best regards,<br>The ${appName} Team</p>
     </div>
     <div class="footer">

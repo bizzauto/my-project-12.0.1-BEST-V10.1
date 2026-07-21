@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Shield, Zap, AlertCircle, ArrowLeft, TrendingUp, Users, MessageSquare, BarChart3, CheckCircle, Star, Brain, ShoppingCart, Phone, Share2, Activity, Sparkles, Wand2, Crown, Rocket, Bot, Globe, Target, FileText, Calendar, CreditCard, Heart, Megaphone, Layers, Send, Instagram, Facebook, Twitter, Youtube, Image as ImageIcon, Mic, Briefcase, ChevronRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Shield, Zap, AlertCircle, TrendingUp, Users, MessageSquare, BarChart3, CheckCircle, Star, Brain, ShoppingCart, Phone, Share2, Activity, Sparkles, Wand2, Crown, Rocket, Bot, Globe, Target, FileText, Calendar, CreditCard, Heart, Megaphone, Layers, Send, Instagram, Facebook, Twitter, Youtube, Image as ImageIcon, Mic, Briefcase, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../lib/authStore';
 import { useTranslation } from 'react-i18next';
 import GoogleLoginButton from './GoogleLoginButton';
@@ -11,9 +11,6 @@ const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [twoFactorCode, setTwoFactorCode] = useState('');
-  const [showTwoFactor, setShowTwoFactor] = useState(false);
-  const [tempUserId, setTempUserId] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -59,20 +56,6 @@ const LoginPage: React.FC = () => {
       setIsLoading(false);
       debug.step += ' | finally_ran';
     }
-  };
-
-  const handleTwoFactorSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-    setError('2FA verification not implemented in this view');
-    setIsLoading(false);
-  };
-
-  const backToLogin = () => {
-    setShowTwoFactor(false);
-    setTwoFactorCode('');
-    setError('');
   };
 
   return (
@@ -279,8 +262,7 @@ const LoginPage: React.FC = () => {
 
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12 bg-gray-50 dark:bg-gray-900">
         <div className="w-full max-w-md">
-          {!showTwoFactor ? (
-            <>
+          <>
               <div className="mb-6 sm:mb-8 text-center sm:text-left">
                 <div className="flex items-center gap-2 justify-center sm:justify-start mb-3 lg:hidden">
                   <Zap className="w-6 h-6 text-blue-600" />
@@ -394,31 +376,6 @@ const LoginPage: React.FC = () => {
                 </p>
               </div>
             </>
-          ) : (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <button onClick={backToLogin} className="flex items-center gap-2 text-gray-500 mb-6">
-                <ArrowLeft size={18} /> {t('common.back', 'Back')}
-              </button>
-              <h2 className="text-xl sm:text-2xl font-bold mb-2">{t('login.verify', 'Verification')}</h2>
-              <p className="text-sm sm:text-base text-gray-500 mb-6">{t('login.verifyDesc', 'Enter 6-digit code')}</p>
-              <form onSubmit={handleTwoFactorSubmit} className="space-y-5">
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  value={twoFactorCode}
-                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full text-center text-2xl tracking-widest p-3 border rounded-lg"
-                  placeholder="000000"
-                  maxLength={6}
-                  required
-                />
-                <button type="submit" className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium">
-                  {t('login.verifyBtn', 'Verify')}
-                </button>
-              </form>
-            </div>
-          )}
         </div>
       </div>
     </div>

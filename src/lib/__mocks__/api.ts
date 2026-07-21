@@ -28,7 +28,6 @@ module.exports = {
     register: jest.fn(), login: jest.fn(), googleLogin: jest.fn(), appleLogin: jest.fn(),
     getProfile: jest.fn(), updateProfile: jest.fn(), changePassword: jest.fn(),
     sendOtp: jest.fn(), verifyOtp: jest.fn(), resetPassword: jest.fn(),
-    setupTwoFactor: jest.fn(), verifyTwoFactor: jest.fn(),
   },
   contactsAPI: createMockAPI({
     list: { success: true, data: { contacts: [] } },

@@ -68,7 +68,6 @@ import socialAccountsRoutes from './routes/social-accounts.js';
 import subscriptionsRoutes from './routes/subscriptions.js';
 import superAdminRoutes from './routes/super-admin.js';
 import teamRoutes from './routes/team.js';
-import twoFactorRoutes from './routes/twoFactor.js';
 import webhooksRoutes from './routes/webhooks.js';
 import surveysRoutes from './routes/surveys.js';
 import whatsappRoutes from './routes/whatsapp.js';
@@ -386,7 +385,7 @@ app.use('/api/surveys', surveysRoutes);
 app.use('/api/subscriptions', authenticatedCsrf, subscriptionsRoutes);
 app.use('/api/super-admin', authenticatedCsrf, superAdminRoutes);
 app.use('/api/team', authenticatedCsrf, teamRoutes);
-app.use('/api/two-factor', twoFactorRoutes);
+// 2FA routes removed — two-step authentication disabled at user request.
 app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/whatsapp', authenticatedCsrf, whatsappRoutes);
 app.use('/api/whatsapp-media/cleanup', whatsappMediaCleanupRoutes);

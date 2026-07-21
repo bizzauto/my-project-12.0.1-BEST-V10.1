@@ -139,8 +139,6 @@ jest.mock('../../src/lib/api', () => ({
     sendOtp: jest.fn(),
     verifyOtp: jest.fn(),
     resetPassword: jest.fn(),
-    setupTwoFactor: jest.fn(),
-    verifyTwoFactor: jest.fn(),
   },
   contactsAPI: {
     list: jest.fn().mockResolvedValue({ data: { success: true, data: { contacts: [] } } }),
