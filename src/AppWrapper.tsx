@@ -129,6 +129,10 @@ const WebsiteBuilderProductPage = lazy(() => import('./components/WebsiteBuilder
 const ResellerDashboardPage = lazy(() => import('./components/ResellerDashboardPage'));
 const ResellerAuthPage = lazy(() => import('./components/ResellerAuthPage'));
 const WhiteLabelSettingsPage = lazy(() => import('./components/WhiteLabelSettingsPage'));
+const WaveSettings = lazy(() => import('./components/WaveSettings'));
+const PostHogSettings = lazy(() => import('./components/PostHogSettings'));
+const OneSignalSettings = lazy(() => import('./components/OneSignalSettings'));
+const BrevoEmailSettings = lazy(() => import('./components/BrevoEmailSettings'));
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -856,6 +860,54 @@ function AppRoutes() {
           <ProtectedRoute>
             <AuthLayout>
               <WhiteLabelSettingsPage />
+            </AuthLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Wave Accounting Settings */}
+      <Route
+        path="/settings/wave"
+        element={
+          <ProtectedRoute>
+            <AuthLayout>
+              <WaveSettings />
+            </AuthLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* PostHog Analytics Settings */}
+      <Route
+        path="/settings/posthog"
+        element={
+          <ProtectedRoute>
+            <AuthLayout>
+              <PostHogSettings />
+            </AuthLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* OneSignal Push Notifications Settings */}
+      <Route
+        path="/settings/onesignal"
+        element={
+          <ProtectedRoute>
+            <AuthLayout>
+              <OneSignalSettings />
+            </AuthLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Brevo Email Settings */}
+      <Route
+        path="/settings/brevo-email"
+        element={
+          <ProtectedRoute>
+            <AuthLayout>
+              <BrevoEmailSettings />
             </AuthLayout>
           </ProtectedRoute>
         }

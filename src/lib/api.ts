@@ -582,6 +582,43 @@ export const paymentLinksAPI = {
     apiClient.post('/payments/verify', { transactionId }),
 };
 
+export const waveAPI = {
+  getStatus: () => apiClient.get('/wave/status'),
+  getAuthUrl: () => apiClient.get('/wave/auth-url'),
+  disconnect: () => apiClient.post('/wave/disconnect'),
+  getAccounts: () => apiClient.get('/wave/accounts'),
+  syncInvoice: (invoiceId: string) => apiClient.post(`/wave/sync-invoice/${invoiceId}`),
+  syncAll: () => apiClient.post('/wave/sync-all'),
+  getLastSync: () => apiClient.get('/wave/last-sync'),
+};
+
+export const posthogAnalyticsAPI = {
+  getStatus: () => apiClient.get('/analytics/posthog/status'),
+  configure: (data: { apiKey: string; host?: string }) => apiClient.post('/analytics/posthog/config', data),
+  test: () => apiClient.post('/analytics/posthog/test'),
+  disconnect: () => apiClient.post('/analytics/posthog/disconnect'),
+  getDashboardUrl: () => apiClient.get('/analytics/posthog/dashboard-url'),
+};
+
+export const oneSignalAPI = {
+  getStatus: () => apiClient.get('/push/onesignal/status'),
+  connect: (data: { appId: string; restApiKey: string }) => apiClient.post('/push/onesignal/connect', data),
+  disconnect: () => apiClient.post('/push/onesignal/disconnect'),
+  send: (data: { title: string; body: string; segment?: string; url?: string }) => apiClient.post('/push/onesignal/send', data),
+  getSegments: () => apiClient.get('/push/onesignal/segments'),
+};
+
+export const brevoEmailAPI = {
+  getStatus: () => apiClient.get('/email/brevo/status'),
+  connect: (data: { apiKey: string; defaultFromEmail?: string; defaultFromName?: string }) => apiClient.post('/email/brevo/connect', data),
+  disconnect: () => apiClient.post('/email/brevo/disconnect'),
+  send: (data: { to: string; subject: string; htmlContent: string }) => apiClient.post('/email/brevo/send', data),
+  test: (data: { to: string }) => apiClient.post('/email/brevo/test', data),
+  getLists: () => apiClient.get('/email/brevo/lists'),
+  createList: (data: { name: string }) => apiClient.post('/email/brevo/lists', data),
+  syncContacts: (data: { listId: number; limit?: number }) => apiClient.post('/email/brevo/contacts/sync', data),
+};
+
 // Live Chat API
 export const liveChatAPI = {
   // Public (no auth)

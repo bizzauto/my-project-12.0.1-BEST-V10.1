@@ -18,6 +18,20 @@ function getNvidiaClient(): OpenAI {
   return _nvidiaClient;
 }
 
+// Groq (FREE — fast inference, second priority)
+let _groqClient: OpenAI | null = null;
+function getGroqClient(): OpenAI {
+  if (!_groqClient) {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) throw new Error('Groq API key not configured');
+    _groqClient = new OpenAI({
+      baseURL: 'https://api.groq.com/openai/v1',
+      apiKey,
+    });
+  }
+  return _groqClient;
+}
+
 // OpenRouter (fallback)
 let _openrouterClient: OpenAI | null = null;
 function getOpenRouterClient(): OpenAI {
@@ -33,6 +47,13 @@ function getOpenRouterClient(): OpenAI {
 }
 
 const providers = {
+  groq: {
+    get client() { return getGroqClient(); },
+    models: {
+      text: 'llama-3.3-70b-versatile',
+      code: 'llama-3.3-70b-versatile',
+    },
+  },
   openrouter: {
     get client() { return getOpenRouterClient(); },
     models: {
@@ -60,7 +81,7 @@ const providers = {
 
 /**
  * AI Service with automatic fallback
- * Priority: OpenRouter (Free) → Ollama (Local) → Replicate (Fallback)
+ * Priority: Nvidia NIM (Free) → Groq (Free/Fast) → OpenRouter (Free) → Ollama (Local)
  */
 export class AIService {
   /**
@@ -90,10 +111,21 @@ export class AIService {
         temperature,
       });
     } catch (error: any) {
-      console.warn('Nvidia NIM failed, trying OpenRouter:', error.message);
+      console.warn('[AI] Nvidia NIM failed, trying Groq:', error.message);
     }
 
-    // 2) Fallback: OpenRouter
+    // 2) Try Groq (FREE — insane speed, Llama 3.3 70B)
+    try {
+      return await this.tryGroq(prompt, {
+        model: model || providers.groq.models.text,
+        maxTokens,
+        temperature,
+      });
+    } catch (error: any) {
+      console.warn('[AI] Groq failed, trying OpenRouter:', error.message);
+    }
+
+    // 3) Fallback: OpenRouter
     try {
       return await this.tryOpenRouter(prompt, {
         model: model || providers.openrouter.models.free,
@@ -101,19 +133,19 @@ export class AIService {
         temperature,
       });
     } catch (error: any) {
-      console.warn('OpenRouter failed, trying Ollama:', error.message);
-      
-      try {
-        // 3) Fallback: Ollama (local)
-        return await this.tryOllama(prompt, {
-          model: model || providers.ollama.models.text,
-          maxTokens,
-          temperature,
-        });
-      } catch (ollamaError: any) {
-        console.error('Ollama also failed:', ollamaError.message);
-        throw new Error('AI generation failed: All providers unavailable');
-      }
+      console.warn('[AI] OpenRouter failed, trying Ollama:', error.message);
+    }
+
+    // 4) Fallback: Ollama (local)
+    try {
+      return await this.tryOllama(prompt, {
+        model: model || providers.ollama.models.text,
+        maxTokens,
+        temperature,
+      });
+    } catch (ollamaError: any) {
+      console.error('[AI] Ollama also failed:', ollamaError.message);
+      throw new Error('AI generation failed: All providers unavailable');
     }
   }
 
@@ -184,6 +216,27 @@ export class AIService {
     }
 
     const response = await getNvidiaClient().chat.completions.create({
+      model: options.model,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: options.maxTokens,
+      temperature: options.temperature,
+    });
+
+    return response.choices[0]?.message?.content || '';
+  }
+
+  /**
+   * Try Groq (FREE — ultra-fast inference, Llama 3.3 70B)
+   */
+  private static async tryGroq(
+    prompt: string,
+    options: { model: string; maxTokens: number; temperature: number }
+  ): Promise<string> {
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error('Groq API key not configured');
+    }
+
+    const response = await getGroqClient().chat.completions.create({
       model: options.model,
       messages: [{ role: 'user', content: prompt }],
       max_tokens: options.maxTokens,

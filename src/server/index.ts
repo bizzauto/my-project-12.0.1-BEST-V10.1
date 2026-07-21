@@ -142,13 +142,19 @@ import customRolesRoutes from './routes/custom-roles.js';
 import uploadRoutes from './routes/upload.js';
 import { razorpayWebhook, verifyPayment as verifyPaymentHandler } from './services/whatsapp-payment.service.js';
 import razorpayCheckoutRoutes from './routes/razorpay-checkout.js';
+import waveRoutes from './routes/wave.js';
+import posthogAnalyticsRoutes from './routes/posthog-analytics.js';
+import onesignalRoutes from './routes/onesignal.js';
+import brevoEmailRoutes from './routes/brevo-email.js';
 import { authenticate } from './middleware/auth.js';
 
 dotenv.config();
 
 // Initialize Sentry error tracking BEFORE any other imports
 import { initSentry } from './services/sentry.js';
+import { PostHogAnalyticsService } from './services/posthog-analytics.service.js';
 initSentry();
+PostHogAnalyticsService.init();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -416,6 +422,10 @@ app.use('/api/dograh/webhook', dograhWebhookRoutes);
 app.post('/api/payments/webhook', razorpayWebhook);
 app.post('/api/payments/verify', authenticate, verifyPaymentHandler);
 app.use('/api/razorpay', razorpayCheckoutRoutes);
+app.use('/api/wave', waveRoutes);
+app.use('/api/analytics/posthog', posthogAnalyticsRoutes);
+app.use('/api/push/onesignal', onesignalRoutes);
+app.use('/api/email/brevo', brevoEmailRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/ledger', ledgerRoutes);
