@@ -192,12 +192,12 @@ export class GBPAutoPostService {
             refresh_token: decrypt(business.gbpRefreshToken),
             grant_type: 'refresh_token',
           });
-          accessToken = refreshRes.data.access_token;
+          accessToken = refreshRes.access_token;
           await prisma.business.update({
             where: { id: businessId },
             data: {
               gbpAccessToken: encrypt(accessToken),
-              gbpTokenExpiry: new Date(Date.now() + (refreshRes.data.expires_in || 3600) * 1000),
+              gbpTokenExpiry: new Date(Date.now() + (refreshRes.expires_in || 3600) * 1000),
             },
           });
         } catch (refreshErr: any) {

@@ -39,7 +39,7 @@ async function refreshGBPToken(businessId: string): Promise<string | null> {
       grant_type: 'refresh_token',
     });
 
-    const { access_token, expires_in } = tokenResponse.data;
+    const { access_token, expires_in } = tokenResponse;
     await prisma.business.update({
       where: { id: businessId },
       data: {
@@ -164,7 +164,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       throw tokenErr;
     }
 
-    const { access_token, refresh_token, expires_in } = tokenResponse.data;
+    const { access_token, refresh_token, expires_in } = tokenResponse;
 
     // Get user info
     const userInfo = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
