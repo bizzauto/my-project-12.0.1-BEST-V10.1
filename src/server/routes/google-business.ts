@@ -39,7 +39,8 @@ async function refreshGBPToken(businessId: string): Promise<string | null> {
       grant_type: 'refresh_token',
     });
 
-    const { access_token, expires_in } = tokenResponse;
+    const refreshData = tokenResponse?.access_token ? tokenResponse : tokenResponse?.data;
+    const { access_token, expires_in } = refreshData;
     await prisma.business.update({
       where: { id: businessId },
       data: {
@@ -164,8 +165,14 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       throw tokenErr;
     }
 
-    console.log('[GBP] Token exchange OK — has access_token:', !!tokenResponse?.access_token, 'has refresh_token:', !!tokenResponse?.refresh_token, 'expires_in:', tokenResponse?.expires_in);
-    const { access_token, refresh_token, expires_in } = tokenResponse;
+    // Handle both formats: direct data or wrapped in .data
+    const tokenData = tokenResponse?.access_token ? tokenResponse : tokenResponse?.data;
+    if (!tokenData?.access_token) {
+      console.error('[GBP] Token exchange returned no access_token:', JSON.stringify(tokenResponse)?.substring(0, 200));
+      throw new Error('Token exchange failed: no access_token in response');
+    }
+    console.log('[GBP] Token exchange OK — has access_token:', !!tokenData.access_token, 'has refresh_token:', !!tokenData.refresh_token, 'expires_in:', tokenData.expires_in);
+    const { access_token, refresh_token, expires_in } = tokenData;
 
     // Get user info
     console.log('[GBP] Fetching user info...');

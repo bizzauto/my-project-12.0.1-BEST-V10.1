@@ -119,7 +119,11 @@ export default function MissedCallSettings() {
       });
       const data = await res.json();
       if (data.success && data.data) {
-        setStats(data.data);
+        setStats({
+          totalMissedCalls: data.data.missedCalls ?? data.data.totalMissedCalls ?? 0,
+          autoRepliesSent: data.data.autoRepliesSent ?? 0,
+          responseRate: data.data.responseRate ?? 0,
+        });
       }
     } catch {
       // use defaults
@@ -205,7 +209,7 @@ export default function MissedCallSettings() {
             </div>
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Missed</span>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{stats.totalMissedCalls.toLocaleString()}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{(stats.totalMissedCalls ?? 0).toLocaleString()}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3 mb-3">
@@ -214,7 +218,7 @@ export default function MissedCallSettings() {
             </div>
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Auto-Replies Sent</span>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{stats.autoRepliesSent.toLocaleString()}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{(stats.autoRepliesSent ?? 0).toLocaleString()}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3 mb-3">
@@ -223,7 +227,7 @@ export default function MissedCallSettings() {
             </div>
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Response Rate</span>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{stats.responseRate}%</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{(stats.responseRate ?? 0)}%</p>
         </div>
       </div>
 
