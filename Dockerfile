@@ -49,7 +49,7 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:${PORT:-3000}/health || exit 1
 
-# Ensure DB schema is in sync before the server starts. This creates any missing
-# tables (e.g. AuditLog) that `migrate deploy` may have skipped due to drift.
-# Runs regardless of start.sh being used or bypassed by the orchestrator.
-CMD npx prisma db push --skip-generate --accept-data-loss && ./start.sh
+# Ensure DB schema is in sync before the server starts. Apply pending migrations
+# first (handles drift fixes like ApiKey columns), then push any remaining schema
+# changes that migrations may have skipped (e.g. AuditLog, missing tables).
+CMD npx prisma migrate deploy && npx prisma db push --skip-generate --accept-data-loss && ./start.sh
