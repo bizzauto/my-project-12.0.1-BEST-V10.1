@@ -11,19 +11,7 @@ import PublicNavbar from './PublicNavbar';
 import { useAuthStore } from '../lib/authStore';
 import { useThemeStore } from '../lib/themeStore';
 import { useLanguage, languages } from '../contexts/LanguageContext';
-
-const useInView = (threshold = 0.15) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setInView(true); obs.unobserve(el); } }, { threshold });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [threshold]);
-  return { ref, inView };
-};
+import { useInView } from '../hooks/useInView';
 
 const useCounter = (end: number, duration = 2000, start = false) => {
   const [count, setCount] = useState(0);

@@ -1262,6 +1262,74 @@ body {
 }
 .shell-sidebar ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
 
+/* ===== MOTION DESIGN SYSTEM ===== */
+
+/* Bounce-in (for SuccessCelebration) */
+@keyframes bounce-in {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.animate-bounce-in {
+  animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Skeleton shimmer overlay (light + dark aware) */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  animation: skeleton-shimmer 1.5s infinite;
+}
+.dark .skeleton-shimmer::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+}
+
+/* Button press-down micro-interaction */
+.btn-press {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.btn-press:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+@media (hover: none) {
+  .btn-press:active { transform: none; }
+}
+
+/* Card hover elevation */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: rgba(37, 99, 235, 0.15);
+}
+.dark .card-hover:hover {
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.3), 0 4px 10px -5px rgba(0, 0, 0, 0.2);
+  border-color: rgba(37, 99, 235, 0.25);
+}
+@media (hover: none) {
+  .card-hover:hover { transform: none; box-shadow: none; border-color: inherit; }
+}
+
+/* Page transition — fade up on route change */
+.page-enter {
+  animation: fadeInUp 0.3s ease-out both;
+}
+/* Extended stagger for up to 12 children */
+.ai-stagger > *:nth-child(9) { animation-delay: 0.45s; }
+.ai-stagger > *:nth-child(10) { animation-delay: 0.5s; }
+.ai-stagger > *:nth-child(11) { animation-delay: 0.55s; }
+.ai-stagger > *:nth-child(12) { animation-delay: 0.6s; }
+
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .shell-nav-indicator { animation: none; }

@@ -383,7 +383,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               <button
                 key={item.id}
                 onClick={() => navigate(item.id)}
-                className={`shell-nav-item relative w-full flex items-center justify-between px-3 py-2.5 rounded-xl group ${
+                className={`shell-nav-item btn-press relative w-full flex items-center justify-between px-3 py-2.5 rounded-xl group ${
                   active ? 'shell-nav-item-active font-medium' : ''
                 }`}
                 title={collapsed ? item.label : undefined}
@@ -416,7 +416,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   <button
                     key={item.id}
                     onClick={() => navigate(item.id)}
-                    className={`shell-nav-item relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl group ${
+                    className={`shell-nav-item btn-press relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl group ${
                       active ? 'shell-nav-item-active font-medium' : ''
                     }`}
                     title={collapsed ? item.label : undefined}
@@ -445,7 +445,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   <button
                     key={item.id}
                     onClick={() => navigate(item.id)}
-                    className={`shell-nav-item relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl group ${
+                    className={`shell-nav-item btn-press relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl group ${
                       active ? 'shell-nav-item-active font-medium' : ''
                     }`}
                     title={collapsed ? item.label : undefined}

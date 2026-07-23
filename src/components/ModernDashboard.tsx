@@ -70,7 +70,47 @@ const ModernDashboard: React.FC = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // aiInsights are now set from API data in fetchData
+  // Loading state — show skeleton shimmer
+  if (loading) {
+    return (
+      <div className="relative min-h-screen p-4 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 page-enter">
+        {/* Hero skeleton */}
+        <div className="rounded-3xl p-5 sm:p-6 md:p-8 lg:p-10 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
+          <div className="skeleton-shimmer h-8 w-56 bg-gray-200 rounded-lg mb-4" />
+          <div className="skeleton-shimmer h-4 w-80 bg-gray-200 rounded-lg" />
+        </div>
+        {/* Stats grid skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-2xl p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="skeleton-shimmer h-10 w-10 bg-gray-200 rounded-lg mb-3" />
+              <div className="skeleton-shimmer h-5 w-20 bg-gray-200 rounded mb-2" />
+              <div className="skeleton-shimmer h-3 w-16 bg-gray-200 rounded" />
+            </div>
+          ))}
+        </div>
+        {/* Charts skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="rounded-2xl p-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <div className="skeleton-shimmer h-5 w-32 bg-gray-200 rounded mb-6" />
+            <div className="flex items-end gap-3 h-48">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="flex-1 skeleton-shimmer bg-gray-200 rounded-t" style={{ height: `${30 + Math.random() * 70}%` }} />
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl p-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <div className="skeleton-shimmer h-5 w-32 bg-gray-200 rounded mb-6" />
+            <div className="flex items-end gap-3 h-48">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="flex-1 skeleton-shimmer bg-gray-200 rounded-t" style={{ height: `${30 + Math.random() * 70}%` }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen p-4 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6">

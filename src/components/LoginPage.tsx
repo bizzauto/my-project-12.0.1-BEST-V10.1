@@ -275,7 +275,7 @@ const LoginPage: React.FC = () => {
                   {t('login.subtitle', 'Platform Automation')}
                 </p>
               </div>
-              <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
+              <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5 ai-stagger">
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input

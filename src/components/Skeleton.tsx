@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 
 export const Skeleton: React.FC<{ className?: string; style?: React.CSSProperties }> = ({ className = '', style }) => (
-  <div className={`animate-pulse bg-gray-200 rounded ${className}`} style={style} />
+  <div className={`skeleton-shimmer bg-gray-200 rounded ${className}`} style={style} />
 );
 
 export const SkeletonCard: React.FC = () => (
