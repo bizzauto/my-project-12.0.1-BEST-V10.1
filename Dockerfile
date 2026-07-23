@@ -49,6 +49,5 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:${PORT:-3000}/health || exit 1
 
-# Ensure DB schema is in sync before the server starts.
-# migrate deploy applies pending migrations, db push syncs any remaining drift.
-CMD npx prisma migrate deploy --schema ./prisma/schema.prisma 2>/dev/null; npx prisma db push --skip-generate --accept-data-loss --schema ./prisma/schema.prisma && ./start.sh
+# start.sh handles: preflight cleanup → migrate deploy → db push → start server
+CMD ["./start.sh"]

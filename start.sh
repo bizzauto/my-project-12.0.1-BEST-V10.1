@@ -46,6 +46,12 @@ fi
 
 echo "Redis URL present: $([ -n \"$REDIS_URL\" ] && echo 'YES' || echo 'NO')"
 echo "Running Prisma generate + db push..."
+
+# Remove orphaned rows that block Prisma migrations
+# The ApiKey table may have 1 stale row from dev that lacks required columns
+echo "Running preflight cleanup..."
+node ./scripts/prisma-preflight.mjs 2>&1 || echo "Warning: preflight cleanup failed, continuing..."
+
 # Prisma generate is already done during Docker build (RUN step)
 # Only retry if .prisma/client is missing (e.g. volume mount overwrote node_modules)
 if [ ! -f node_modules/.prisma/client/index.js ]; then
