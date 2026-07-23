@@ -1511,14 +1511,14 @@ model Webhook {
 model ApiKey {
   id          String    @id @default(cuid())
   businessId  String
-  name        String
+  name        String    @default("API Key")
   key         String    @unique
   keyHash     String?   @unique
-  permissions Json
+  permissions Json      @default("[]")
   lastUsedAt  DateTime?
   expiresAt   DateTime?
   isActive    Boolean   @default(true)
-  createdBy   String
+  createdBy   String    @default("system")
   createdAt   DateTime  @default(now())
   prefix      String?
   business    Business  @relation(fields: [businessId], references: [id])
