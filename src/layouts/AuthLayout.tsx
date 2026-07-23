@@ -4,11 +4,11 @@ import {
   Home, MessageSquare, Users, Palette, Star,
   BarChart3, Settings, Bell,
   Shield, LogOut,
-  Zap, UserPlus, MapPin, Bot, PhoneCall, Send,
-  ShoppingCart, FileText, Clock, MoreVertical, Share2, Moon, Sun, Menu, X, Mail,
+  Zap, UserPlus, MapPin, Bot,
+  FileText, Clock, Moon, Sun, Menu, X, Mail,
   Workflow, Link, GraduationCap, MessageCircle, FormInput, PenTool,
-  CreditCard, Building2, PhoneOff, Camera, Upload, Store, Calculator,
-  Globe, QrCode, Search
+  CreditCard, Building2, PhoneOff, Camera, Upload, Store,
+  Globe, QrCode, Search, Key
 } from 'lucide-react';
 import { useAuthStore } from '../lib/authStore';
 import { useThemeStore } from '../lib/themeStore';
@@ -26,55 +26,23 @@ interface MenuItem {
   isExternal?: boolean;
 }
 
+// ── Primary navigation (clean, grouped, no duplicates) ──
 const menuItems: MenuItem[] = [
   { id: '/dashboard', label: 'Dashboard', icon: <Home size={20} /> },
   { id: '/whatsapp', label: 'WhatsApp', icon: <MessageSquare size={20} />, badge: 6 },
-  { id: '/crm', label: 'CRM', icon: <Users size={20} /> },
-  { id: '/leads', label: 'Leads', icon: <UserPlus size={20} /> },
+  { id: '/crm', label: 'CRM & Leads', icon: <Users size={20} /> },
   { id: '/appointments', label: 'Appointments', icon: <Clock size={20} /> },
-  { id: '/ecommerce', label: 'E-Commerce', icon: <ShoppingCart size={20} /> },
   { id: '/store', label: 'Store', icon: <Store size={20} /> },
   { id: '/email-marketing', label: 'Email Marketing', icon: <Mail size={20} /> },
-  { id: '/documents', label: 'Documents', icon: <FileText size={20} /> },
-  { id: '/social', label: 'Social Media', icon: <span className="text-xl">📱</span> },
-  { id: '/google-business', label: 'Google Profile', icon: <MapPin size={20} /> },
+  { id: '/social', label: 'Social Media', icon: <Globe size={20} /> },
+  { id: '/google-business', label: 'Google Business', icon: <MapPin size={20} /> },
   { id: '/ai-chatbot', label: 'AI Chatbot', icon: <Bot size={20} /> },
-  { id: '/voice-call', label: 'Voice Call', icon: <PhoneCall size={20} /> },
-  { id: '/creative', label: 'Creative', icon: <Palette size={20} /> },
-  { id: '/reviews', label: 'Reviews', icon: <Star size={20} /> },
-  { id: '/automation', label: 'Automation', icon: <Zap size={20} /> },
+  { id: '/creative', label: 'AI Content', icon: <Palette size={20} /> },
   { id: '/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
-  { id: '/reports', label: 'Reports', icon: <Share2 size={20} /> },
-  { id: '/bulk-import', label: 'Import', icon: <Users size={20} /> },
-  { id: '/import-leads', label: 'Import Leads', icon: <Upload size={20} /> },
-  { id: '/ca-copilot', label: 'CA Copilot', icon: <Calculator size={20} /> },
 ];
 
+// ── Secondary sections (collapsed by default, expandable) ──
 const menuSections: { label: string; items: MenuItem[] }[] = [
-  {
-    label: 'Products',
-    items: [
-      { id: '/google-reviews-qr', label: 'Reviews QR', icon: <QrCode size={20} /> },
-      { id: '/vcard-maker', label: 'V-Card Maker', icon: <CreditCard size={20} /> },
-
-    ],
-  },
-  {
-    label: 'Automation & AI',
-    items: [
-      { id: '/workflows', label: 'Workflows', icon: <Workflow size={20} /> },
-      { id: '/trigger-links', label: 'Trigger Links', icon: <Link size={20} /> },
-    ],
-  },
-  {
-    label: 'Marketing',
-    items: [
-      { id: '/surveys', label: 'Surveys & Forms', icon: <FormInput size={20} /> },
-      { id: '/blog', label: 'Blog', icon: <PenTool size={20} /> },
-      { id: '/review-requests', label: 'Review Requests', icon: <Star size={20} /> },
-      { id: '/payment-links', label: 'Payment Links', icon: <CreditCard size={20} /> },
-    ],
-  },
   {
     label: 'Growth',
     items: [
@@ -83,23 +51,72 @@ const menuSections: { label: string; items: MenuItem[] }[] = [
       { id: '/conversations', label: 'Conversations', icon: <MessageSquare size={20} /> },
     ],
   },
+  {
+    label: 'Marketing',
+    items: [
+      { id: '/surveys', label: 'Surveys & Forms', icon: <FormInput size={20} /> },
+      { id: '/blog', label: 'Blog', icon: <PenTool size={20} /> },
+      { id: '/review-requests', label: 'Review Requests', icon: <Star size={20} /> },
+      { id: '/reviews', label: 'Reviews', icon: <Star size={20} /> },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { id: '/documents', label: 'Documents', icon: <FileText size={20} /> },
+      { id: '/payment-links', label: 'Payment Links', icon: <CreditCard size={20} /> },
+      { id: '/automation', label: 'Automation', icon: <Zap size={20} /> },
+      { id: '/workflows', label: 'Workflows', icon: <Workflow size={20} /> },
+    ],
+  },
+  {
+    label: 'Tools',
+    items: [
+      { id: '/google-reviews-qr', label: 'Reviews QR', icon: <QrCode size={20} /> },
+      { id: '/vcard-maker', label: 'V-Card Maker', icon: <CreditCard size={20} /> },
+      { id: '/trigger-links', label: 'Trigger Links', icon: <Link size={20} /> },
+      { id: '/reports', label: 'Reports', icon: <BarChart3 size={20} /> },
+      { id: '/import-leads', label: 'Import', icon: <Upload size={20} /> },
+    ],
+  },
 ];
 
-const settingsMenuItems: MenuItem[] = [
-  { id: '/custom-fields', label: 'Custom Fields', icon: <FormInput size={20} /> },
-  { id: '/client-portal', label: 'Client Portal', icon: <Building2 size={20} /> },
-  { id: '/agency', label: 'Agency', icon: <Users size={20} /> },
-  { id: '/admin/users', label: 'User Management', icon: <Users size={20} />, roles: ['SUPER_ADMIN', 'OWNER', 'ADMIN'] },
-  { id: '/reseller-hub', label: 'Reseller Hub', icon: <Store size={20} /> },
-  { id: '/missed-call-settings', label: 'Missed Call', icon: <PhoneOff size={20} /> },
-  { id: '/dograh-settings', label: 'Voice AI', icon: <Bot size={20} /> },
-  { id: '/snapshots', label: 'Snapshots', icon: <Camera size={20} /> },
-  { id: '/profile', label: 'Profile', icon: <Shield size={20} /> },
-  { id: '/settings', label: 'Settings', icon: <Settings size={20} /> },
-  { id: '/billing', label: 'Billing', icon: <MoreVertical size={20} />, roles: ['OWNER', 'ADMIN'] },
-  { id: '/team', label: 'Team', icon: <Users size={20} />, roles: ['OWNER', 'ADMIN'] },
-  { id: '/api-keys', label: 'API Keys', icon: <MoreVertical size={20} />, roles: ['OWNER', 'ADMIN'] },
-  { id: '/audit-log', label: 'Audit Log', icon: <Shield size={20} />, roles: ['OWNER', 'ADMIN'] },
+// ── Settings (grouped into logical sections) ──
+const settingsSections: { label: string; items: MenuItem[] }[] = [
+  {
+    label: 'Account',
+    items: [
+      { id: '/profile', label: 'Profile', icon: <Shield size={20} /> },
+      { id: '/settings', label: 'Settings', icon: <Settings size={20} /> },
+    ],
+  },
+  {
+    label: 'Business',
+    items: [
+      { id: '/billing', label: 'Billing', icon: <CreditCard size={20} />, roles: ['OWNER', 'ADMIN'] },
+      { id: '/team', label: 'Team', icon: <Users size={20} />, roles: ['OWNER', 'ADMIN'] },
+      { id: '/api-keys', label: 'API Keys', icon: <Key size={20} />, roles: ['OWNER', 'ADMIN'] },
+      { id: '/admin/users', label: 'User Management', icon: <Users size={20} />, roles: ['SUPER_ADMIN', 'OWNER', 'ADMIN'] },
+    ],
+  },
+  {
+    label: 'Product',
+    items: [
+      { id: '/custom-fields', label: 'Custom Fields', icon: <FormInput size={20} /> },
+      { id: '/client-portal', label: 'Client Portal', icon: <Building2 size={20} /> },
+      { id: '/agency', label: 'Agency', icon: <Building2 size={20} /> },
+      { id: '/reseller-hub', label: 'Reseller Hub', icon: <Store size={20} /> },
+    ],
+  },
+  {
+    label: 'Tools',
+    items: [
+      { id: '/missed-call-settings', label: 'Missed Call', icon: <PhoneOff size={20} /> },
+      { id: '/dograh-settings', label: 'Voice AI', icon: <Bot size={20} /> },
+      { id: '/snapshots', label: 'Snapshots', icon: <Camera size={20} /> },
+      { id: '/audit-log', label: 'Audit Log', icon: <Shield size={20} />, roles: ['OWNER', 'ADMIN'] },
+    ],
+  },
 ];
 
 // Bottom nav items for mobile (5 main items)
@@ -153,27 +170,84 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     setShowMobileMenu(false);
   }, [location.pathname]);
 
+  // Keyboard shortcut: Ctrl+K to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setCollapsed(false);
+        const searchInput = document.querySelector('.shell-search') as HTMLInputElement;
+        if (searchInput) searchInput.focus();
+      }
+      if (e.key === 'Escape') {
+        setShowSearchResults(false);
+        setShowMobileMenu(false);
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === '/dashboard') return location.pathname === '/dashboard' || location.pathname === '/';
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
+
+  // Friendly page title from path
+  const getPageTitle = () => {
+    const segments = location.pathname.split('/').filter(Boolean);
+    if (segments.length === 0 || segments[0] === 'dashboard') return 'Dashboard';
+    const nameMap: Record<string, string> = {
+      'crm': 'CRM & Leads',
+      'google-business': 'Google Business',
+      'ai-chatbot': 'AI Chatbot',
+      'email-marketing': 'Email Marketing',
+      'social': 'Social Media',
+      'billing': 'Billing & Plans',
+      'team': 'Team Management',
+      'api-keys': 'API Keys',
+      'client-portal': 'Client Portal',
+      'reseller-hub': 'Reseller Hub',
+      'missed-call-settings': 'Missed Call Settings',
+      'dograh-settings': 'Voice AI',
+      'custom-fields': 'Custom Fields',
+      'audit-log': 'Audit Log',
+      'admin': 'Admin',
+      'import-leads': 'Import Leads',
+      'payment-links': 'Payment Links',
+      'review-requests': 'Review Requests',
+      'trigger-links': 'Trigger Links',
+      'google-reviews-qr': 'Reviews QR',
+      'vcard-maker': 'V-Card Maker',
+    };
+    const segment = segments[segments.length - 1];
+    if (nameMap[segment]) return nameMap[segment];
+    return segment.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  };
 
   const filteredMenuItems = menuItems.filter(
     (item) => !item.roles || item.roles.includes(userRole)
   );
 
-  const filteredSettingsMenuItems = settingsMenuItems.filter(
-    (item) => !item.roles || item.roles.includes(userRole)
-  );
+  const filteredSettingsSections = settingsSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.roles || item.roles.includes(userRole)),
+    }))
+    .filter((section) => section.items.length > 0);
 
   // Flat, searchable list of every navigable item (respecting role filters)
   const allNavItems = useMemo(() => {
     const base = [
       ...filteredMenuItems,
       ...menuSections.flatMap((s) => s.items),
-      ...filteredSettingsMenuItems,
+      ...filteredSettingsSections.flatMap((s) => s.items),
     ];
     const seen = new Set<string>();
     return base.filter((item) => {
@@ -181,7 +255,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       seen.add(item.id);
       return true;
     });
-  }, [filteredMenuItems, filteredSettingsMenuItems]);
+  }, [filteredMenuItems, filteredSettingsSections]);
 
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -270,7 +344,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                   setShowSearchResults(true);
                 }}
                 onFocus={() => searchQuery && setShowSearchResults(true)}
-                placeholder="Search…"
+                placeholder="Search… (Ctrl+K)"
                 className="shell-search w-full rounded-lg pl-9 pr-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none"
                 aria-label="Search"
               />
@@ -360,32 +434,39 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
           <hr className="shell-section-rule my-3" />
 
-          {filteredSettingsMenuItems.map((item) => {
-            const active = isActive(item.id);
-            return (
-              <button
-                key={item.id}
-                onClick={() => navigate(item.id)}
-                className={`shell-nav-item relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl group ${
-                  active ? 'shell-nav-item-active font-medium' : ''
-                }`}
-                title={collapsed ? item.label : undefined}
-              >
-                {active && <span className="shell-nav-indicator" />}
-                <span className={`shell-nav-icon transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-105'}`}>
-                  {item.icon}
-                </span>
-                {!collapsed && <span className="text-sm">{item.label}</span>}
-              </button>
-            );
-          })}
+          {filteredSettingsSections.map((section) => (
+            <div key={section.label}>
+              {!collapsed && (
+                <p className="shell-section-label px-3 mb-1 mt-1">{section.label}</p>
+              )}
+              {section.items.map((item) => {
+                const active = isActive(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate(item.id)}
+                    className={`shell-nav-item relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl group ${
+                      active ? 'shell-nav-item-active font-medium' : ''
+                    }`}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    {active && <span className="shell-nav-indicator" />}
+                    <span className={`shell-nav-icon transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-105'}`}>
+                      {item.icon}
+                    </span>
+                    {!collapsed && <span className="text-sm">{item.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Plan upgrade CTA (free/low tiers only) */}
         {!collapsed && businessPlan === 'FREE' && (
           <div className="px-3">
             <button
-              onClick={() => navigate('/resorpay')}
+              onClick={() => navigate('/billing')}
               className="shell-cta w-full rounded-xl p-3 text-left transition-all duration-200 hover-lift"
             >
               <p className="text-white text-sm font-semibold">Unlock Pro</p>
@@ -440,8 +521,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="text-xs sm:text-sm font-bold text-white truncate">BizzAuto</h1>
-              <p className="text-[10px] text-slate-300 capitalize truncate">
-                {location.pathname.split('/')[1]?.replace('-', ' ') || 'Dashboard'}
+              <p className="text-[10px] text-slate-300 truncate">
+                {getPageTitle()}
               </p>
             </div>
           </div>
@@ -490,8 +571,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             </button>
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-slate-400 text-sm">/</span>
-              <div className="text-base font-semibold text-slate-900 dark:text-white capitalize truncate">
-                {location.pathname.split('/')[1]?.replace('-', ' ') || 'Dashboard'}
+              <div className="text-base font-semibold text-slate-900 dark:text-white truncate">
+                {getPageTitle()}
               </div>
             </div>
           </div>
@@ -523,9 +604,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 </div>
               )}
             </div>
-            <span className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
-              {businessPlan} Plan
-            </span>
+            {businessPlan === 'FREE' && (
+              <button onClick={() => navigate('/billing')} className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors">
+                ⚡ Upgrade Plan
+              </button>
+            )}
           </div>
         </div>
 
@@ -544,8 +627,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             </button>
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-slate-400 text-lg">/</span>
-              <div className="text-lg font-semibold text-slate-900 dark:text-white capitalize truncate">
-                {location.pathname.split('/')[1]?.replace('-', ' ') || 'Dashboard'}
+              <div className="text-lg font-semibold text-slate-900 dark:text-white truncate">
+                {getPageTitle()}
               </div>
             </div>
           </div>
@@ -577,9 +660,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 </div>
               )}
             </div>
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/10 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
-              {businessPlan} Plan
-            </span>
+            {businessPlan === 'FREE' && (
+              <button onClick={() => navigate('/billing')} className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg text-sm font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors">
+                ⚡ Upgrade Plan
+              </button>
+            )}
           </div>
         </div>
 
@@ -704,25 +789,30 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               </div>
             ))}
 
-            {/* Settings items */}
+            {/* Settings sections */}
             <div className="px-4 pb-4 border-t border-gray-200 dark:border-gray-700 pt-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">Settings</p>
-              <div className="space-y-1">
-                {filteredSettingsMenuItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => navigate(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                      isActive(item.id)
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    {item.icon}
-                    <span className="text-sm">{item.label}</span>
-                  </button>
-                ))}
-              </div>
+              {filteredSettingsSections.map((section) => (
+                <div key={section.label} className="mb-3 last:mb-0">
+                  <p className="text-[10px] font-semibold text-gray-300 dark:text-gray-600 uppercase tracking-wider mb-1 px-1">{section.label}</p>
+                  <div className="space-y-1">
+                    {section.items.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => navigate(item.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                          isActive(item.id)
+                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        {item.icon}
+                        <span className="text-sm">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Version Badge */}
