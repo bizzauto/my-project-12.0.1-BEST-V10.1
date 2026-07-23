@@ -54,8 +54,11 @@ if [ ! -f node_modules/.prisma/client/index.js ]; then
 else
   echo "Prisma client already generated, skipping."
 fi
-output=$(timeout 60 npx prisma migrate deploy 2>&1) || true
+# Run migrations first - they handle data transformations properly
+output=$(timeout 120 npx prisma migrate deploy 2>&1) || true
 echo "$output"
+
+# Handle P3005: database schema is empty
 if echo "$output" | grep -q "P3005"; then
   echo "Baselining existing migration..."
   npx prisma migrate resolve --applied 20260624_init 2>&1 || true
