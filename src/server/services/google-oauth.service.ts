@@ -41,7 +41,8 @@ export async function exchangeGoogleToken(params: Record<string, string>): Promi
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const res = await axios.post(GOOGLE_TOKEN_URL, params, {
+      const formBody = new URLSearchParams(params).toString();
+      const res = await axios.post(GOOGLE_TOKEN_URL, formBody, {
         timeout: BASE_TIMEOUT_MS,
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
