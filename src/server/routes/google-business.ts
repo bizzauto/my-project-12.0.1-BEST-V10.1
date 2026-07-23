@@ -164,12 +164,15 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       throw tokenErr;
     }
 
+    console.log('[GBP] Token exchange OK — has access_token:', !!tokenResponse?.access_token, 'has refresh_token:', !!tokenResponse?.refresh_token, 'expires_in:', tokenResponse?.expires_in);
     const { access_token, refresh_token, expires_in } = tokenResponse;
 
     // Get user info
+    console.log('[GBP] Fetching user info...');
     const userInfo = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${access_token}` },
     });
+    console.log('[GBP] User info OK:', userInfo.data?.email);
 
     // Get Business accounts
     let accountsResponse;
@@ -199,6 +202,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     // Use first account (or let user select)
     const account = accounts[0];
     const accountId = account.name?.replace('accounts/', '') || account.accountId;
+    console.log('[GBP] Found account:', accountId, 'total accounts:', accounts.length);
 
     // Get locations for this account
     let locationId = null;
@@ -216,6 +220,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     }
 
     // Save to database
+    console.log('[GBP] Saving to database — businessId:', stateData.businessId, 'accountId:', accountId, 'locationId:', locationId);
     await prisma.business.update({
       where: { id: stateData.businessId },
       data: {
@@ -227,6 +232,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       },
     });
 
+    console.log('[GBP] ✅ Database saved successfully! Redirecting to frontend...');
     // Redirect to frontend with success
     res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?connected=true`);
   } catch (error: any) {
