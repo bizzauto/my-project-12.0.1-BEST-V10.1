@@ -17,7 +17,7 @@ const RegisterPage: React.FC = () => {
     agreeTerms: false, receiveUpdates: true,
   });
 
-  const handleChange = (key: string, value: any) => { setError(''); setForm({ ...form, [key]: value }); };
+  const handleChange = (key: string, value: string | boolean) => { setError(''); setForm({ ...form, [key]: value }); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +33,9 @@ const RegisterPage: React.FC = () => {
       });
       // Redirect to ResorPay board for plan selection after registration
       navigate('/resorpay', { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Registration failed');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Registration failed';
+      setError(message);
     }
   };
 
@@ -51,7 +52,12 @@ const RegisterPage: React.FC = () => {
 
           <div className="flex items-center gap-2 mb-6 sm:mb-8">
             {[1, 2, 3].map(s => (
-              <div key={s} className={`flex-1 h-1.5 sm:h-2 rounded-full transition-colors ${s <= step ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`} />
+              <div key={s} className="flex-1 flex flex-col items-center gap-1">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  s <= step ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                }`}>{s}</div>
+                <div className={`h-1.5 sm:h-2 w-full rounded-full transition-all ${s <= step ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`} />
+              </div>
             ))}
           </div>
 
@@ -68,51 +74,52 @@ const RegisterPage: React.FC = () => {
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">Start your 7-day free trial</p>
 
               <form className="space-y-3 sm:space-y-4">
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                <div className="group">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Full Name</label>
                   <div className="relative">
-                    <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     <input type="text" value={form.name} onChange={(e) => handleChange('name', e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                      className="w-full pl-10 pr-4 py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all dark:bg-gray-800 dark:text-white placeholder:text-gray-400"
                       placeholder="Rahul Sharma" required />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+                <div className="group">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email Address</label>
                   <div className="relative">
-                    <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     <input type="email" value={form.email} onChange={(e) => handleChange('email', e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                      className="w-full pl-10 pr-4 py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all dark:bg-gray-800 dark:text-white placeholder:text-gray-400"
                       placeholder="you@company.com" required />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                <div className="group">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Phone Number</label>
                   <div className="relative">
-                    <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     <input type="tel" value={form.phone} onChange={(e) => handleChange('phone', e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                      className="w-full pl-10 pr-4 py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all dark:bg-gray-800 dark:text-white placeholder:text-gray-400"
                       placeholder="+91 98765 43210" />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                <div className="group">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
                   <div className="relative">
-                    <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     <input type={showPassword ? 'text' : 'password'} value={form.password} onChange={(e) => handleChange('password', e.target.value)}
-                      className="w-full pl-10 pr-12 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                      className="w-full pl-10 pr-12 py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all dark:bg-gray-800 dark:text-white placeholder:text-gray-400"
                       placeholder="Min. 8 characters" required />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1">
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                   {form.password && (
                     <div className="mt-2 flex items-center gap-2">
                       <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all ${
-                          form.password.length >= 12 ? 'w-full bg-green-500' :
-                          form.password.length >= 8 ? 'w-2/3 bg-yellow-500' : 'w-1/3 bg-red-500'
+                        <div className={`h-full rounded-full transition-all duration-500 ${
+                          form.password.length >= 12 ? 'w-full bg-gradient-to-r from-green-400 to-green-600' :
+                          form.password.length >= 8 ? 'w-2/3 bg-gradient-to-r from-yellow-400 to-yellow-600' : 'w-1/3 bg-gradient-to-r from-red-400 to-red-600'
                         }`} />
                       </div>
                       <span className={`text-xs font-medium ${passwordColor}`}>{passwordStrength}</span>
@@ -121,7 +128,7 @@ const RegisterPage: React.FC = () => {
                 </div>
 
                 <button type="button" onClick={() => setStep(2)}
-                  className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm sm:text-base font-semibold rounded-lg hover:opacity-90 flex items-center justify-center gap-2">
+                  className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm sm:text-base font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all active:translate-y-0">
                   Continue <ArrowRight size={18} />
                 </button>
               </form>
@@ -159,19 +166,19 @@ const RegisterPage: React.FC = () => {
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">This helps us customize your experience</p>
 
               <form className="space-y-3 sm:space-y-4">
-                <div>
+                <div className="group">
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Business Name</label>
                   <div className="relative">
-                    <Building2 size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Building2 size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     <input type="text" value={form.businessName} onChange={(e) => handleChange('businessName', e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                      className="w-full pl-10 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all dark:bg-gray-800 dark:text-white placeholder:text-gray-400"
                       placeholder="Your Business Name" required />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Business Type</label>
                   <select value={form.businessType} onChange={(e) => handleChange('businessType', e.target.value)}
-                    className="w-full px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white">
+                    className="w-full px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all dark:bg-gray-800 dark:text-white">
                     <option value="general">General Business</option>
                     <option value="salon">Salon & Spa</option>
                     <option value="restaurant">Restaurant</option>
@@ -186,7 +193,7 @@ const RegisterPage: React.FC = () => {
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
                   <input type="text" value={form.city} onChange={(e) => handleChange('city', e.target.value)}
-                    className="w-full px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                    className="w-full px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all dark:bg-gray-800 dark:text-white placeholder:text-gray-400"
                     placeholder="Mumbai" />
                 </div>
 

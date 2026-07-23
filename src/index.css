@@ -79,13 +79,6 @@
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
 }
 
-/* Dark mode overrides */
-.dark {
-  --color-bg-primary: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-tertiary: #334155;
-}
-
 /* Theme transition for smooth color changes (scoped — NOT universal, breaks mobile scroll) */
 .theme-transition,
 .theme-transition * {
@@ -184,6 +177,20 @@
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
+}
+
+/* Skeleton shimmer — smooth loading state */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, var(--color-bg-tertiary) 25%, var(--color-bg-secondary) 50%, var(--color-bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* Professional button style */

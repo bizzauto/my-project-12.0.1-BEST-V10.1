@@ -5,14 +5,16 @@ import { Check, Loader2, CreditCard } from 'lucide-react';
 import PublicNavbar from './PublicNavbar';
 import Footer from './Footer';
 
+interface Plan {
+  id: string;
+  name: string;
+  price: { month: number; year: number };
+  features: string[];
+  popular?: boolean;
+}
+
 interface PricingCardProps {
-  plan: {
-    id: string;
-    name: string;
-    price: { month: number; year: number };
-    features: string[];
-    popular?: boolean;
-  };
+  plan: Plan;
   onSelect: (plan: string, period: 'month' | 'year') => void;
   loading?: boolean;
 }
@@ -25,41 +27,41 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, onSelect, loading }) =>
 
   return (
     <div
-      className={`relative bg-white dark:bg-gray-800 rounded-2xl border-2 transition-all hover:shadow-xl ${
+      className={`relative bg-white dark:bg-gray-800 rounded-2xl border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${
         plan.popular
-          ? 'border-blue-500 shadow-lg lg:scale-105'
-          : 'border-gray-200 dark:border-gray-700'
+          ? 'border-blue-500 shadow-xl shadow-blue-500/10 lg:scale-105'
+          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-500/50'
       }`}
     >
       {plan.popular && (
         <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2">
-          <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-[10px] sm:text-xs font-bold px-3 py-1 sm:px-4 sm:py-1.5 rounded-full whitespace-nowrap">
-            Most Popular
+          <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-[10px] sm:text-xs font-bold px-3 py-1 sm:px-4 sm:py-1.5 rounded-full whitespace-nowrap shadow-lg shadow-blue-500/25">
+            ✨ Most Popular
           </span>
         </div>
       )}
 
-      <div className="p-4 sm:p-6">
+      <div className="p-5 sm:p-6">
         <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h3>
 
         {/* Period toggle */}
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-1 mb-4 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-xl">
           <button
             onClick={() => setPeriod('month')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
               period === 'month'
-                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             Monthly
           </button>
           <button
             onClick={() => setPeriod('year')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
               period === 'year'
-                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             Yearly
@@ -75,17 +77,19 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, onSelect, loading }) =>
             <span className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">/{period}</span>
           </div>
           {savings > 0 && (
-            <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 mt-1">
-              Save {savings}% with yearly billing
+            <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 mt-1 font-medium">
+              🎉 Save {savings}% with yearly billing
             </p>
           )}
         </div>
 
         {/* Features */}
-        <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+        <ul className="space-y-2.5 sm:space-y-3 mb-5 sm:mb-6">
           {plan.features.map((feature, index) => (
-            <li key={index} className="flex items-start gap-2 text-xs sm:text-sm">
-              <Check size={14} className="sm:w-4 sm:h-4 text-green-500 mt-0.5 flex-shrink-0" />
+            <li key={index} className="flex items-start gap-2.5 text-xs sm:text-sm">
+              <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Check size={12} className="text-green-600 dark:text-green-400" />
+              </div>
               <span className="text-gray-700 dark:text-gray-300">{feature}</span>
             </li>
           ))}
@@ -95,9 +99,9 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, onSelect, loading }) =>
         <button
           onClick={() => onSelect(plan.id, period)}
           disabled={loading}
-          className={`w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
             plan.popular
-              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
+              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 active:translate-y-0'
               : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
           } disabled:opacity-50`}
         >
@@ -125,7 +129,7 @@ interface PricingPageProps {
 export default function PricingPage({ onNavigate }: PricingPageProps) {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [plans, setPlans] = useState<any[]>([
+  const [plans] = useState<Plan[]>([
     {
       id: 'FREE',
       name: 'Free',
@@ -244,7 +248,7 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
         name: 'BizzAuto',
         description: `${planId} Plan - ${period === 'month' ? 'Monthly' : 'Yearly'}`,
         order_id: orderId,
-        handler: async (response: any) => {
+        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
           try {
             // Verify payment on backend
             const verifyResponse = await subscriptionsAPI.verify({
@@ -263,8 +267,9 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
             } else {
               toast.error('Payment verification failed');
             }
-          } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Payment verification failed');
+          } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'Payment verification failed';
+            toast.error(msg);
           }
         },
         prefill: {
@@ -283,8 +288,8 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
 
       const razorpay = new (window as any).Razorpay(options);
       razorpay.open();
-    } catch (error: any) {
-      const msg = error.response?.data?.error || error.message || 'Failed to create checkout';
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Failed to create checkout';
       toast.error(msg);
     } finally {
       setLoading(false);

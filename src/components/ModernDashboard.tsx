@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   TrendingUp, TrendingDown, ArrowUpRight, Sparkles, Brain, MessageSquare,
-  Users, DollarSign, Target, Calendar, Star, Zap, Bot, Activity, BarChart3,
-  Rocket, ArrowRight, Check, X as XIcon, Phone, Mail, Send, Eye, Heart,
-  Lightbulb, AlertTriangle, Award, Flame, Crown, Diamond, ChevronRight, RefreshCw,
+  Users, DollarSign, Target, Calendar, Zap, BarChart3,
+  Rocket, Check, Eye, Flame, Crown, Diamond, ChevronRight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../lib/authStore';
@@ -75,35 +74,39 @@ const ModernDashboard: React.FC = () => {
     return (
       <div className="relative min-h-screen p-4 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 page-enter">
         {/* Hero skeleton */}
-        <div className="rounded-3xl p-5 sm:p-6 md:p-8 lg:p-10 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
-          <div className="skeleton-shimmer h-8 w-56 bg-gray-200 rounded-lg mb-4" />
-          <div className="skeleton-shimmer h-4 w-80 bg-gray-200 rounded-lg" />
+        <div className="rounded-3xl p-5 sm:p-6 md:p-8 lg:p-10 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+          <div className="skeleton-shimmer h-8 w-56 bg-gray-200/80 rounded-xl mb-4" />
+          <div className="skeleton-shimmer h-4 w-80 bg-gray-200/80 rounded-xl" />
         </div>
         {/* Stats grid skeleton */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="rounded-2xl p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="skeleton-shimmer h-10 w-10 bg-gray-200 rounded-lg mb-3" />
-              <div className="skeleton-shimmer h-5 w-20 bg-gray-200 rounded mb-2" />
-              <div className="skeleton-shimmer h-3 w-16 bg-gray-200 rounded" />
+            <div key={i} className="rounded-2xl p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" style={{ animationDelay: `${i * 0.1}s` }} />
+              <div className="skeleton-shimmer h-10 w-10 bg-gray-200/80 rounded-xl mb-3" />
+              <div className="skeleton-shimmer h-5 w-20 bg-gray-200/80 rounded-lg mb-2" />
+              <div className="skeleton-shimmer h-3 w-16 bg-gray-200/80 rounded-lg" />
             </div>
           ))}
         </div>
         {/* Charts skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="rounded-2xl p-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-            <div className="skeleton-shimmer h-5 w-32 bg-gray-200 rounded mb-6" />
+          <div className="rounded-2xl p-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" style={{ animationDelay: '0.5s' }} />
+            <div className="skeleton-shimmer h-5 w-32 bg-gray-200/80 rounded-lg mb-6" />
             <div className="flex items-end gap-3 h-48">
               {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="flex-1 skeleton-shimmer bg-gray-200 rounded-t" style={{ height: `${30 + Math.random() * 70}%` }} />
+                <div key={i} className="flex-1 skeleton-shimmer bg-gray-200/80 rounded-t-lg" style={{ height: `${30 + Math.random() * 70}%` }} />
               ))}
             </div>
           </div>
-          <div className="rounded-2xl p-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-            <div className="skeleton-shimmer h-5 w-32 bg-gray-200 rounded mb-6" />
+          <div className="rounded-2xl p-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" style={{ animationDelay: '0.6s' }} />
+            <div className="skeleton-shimmer h-5 w-32 bg-gray-200/80 rounded-lg mb-6" />
             <div className="flex items-end gap-3 h-48">
               {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="flex-1 skeleton-shimmer bg-gray-200 rounded-t" style={{ height: `${30 + Math.random() * 70}%` }} />
+                <div key={i} className="flex-1 skeleton-shimmer bg-gray-200/80 rounded-t-lg" style={{ height: `${30 + Math.random() * 70}%` }} />
               ))}
             </div>
           </div>
@@ -122,7 +125,7 @@ const ModernDashboard: React.FC = () => {
 
         <div className="relative grid lg:grid-cols-2 gap-5 sm:gap-6 items-center">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-semibold mb-3 text-white">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-semibold mb-3 text-white shadow-sm shadow-white/10">
               <Sparkles size={12} className="animate-pulse" />
               AI-Powered Dashboard
             </div>
@@ -133,10 +136,10 @@ const ModernDashboard: React.FC = () => {
               Track your business performance in real-time. Here's your dashboard overview.
             </p>
             <div className="mt-5 flex flex-wrap gap-2.5">
-              <button onClick={() => navigate('/whatsapp')} className="ai-btn-primary flex items-center gap-1.5 text-sm">
+              <button onClick={() => navigate('/whatsapp')} className="ai-btn-primary flex items-center gap-1.5 text-sm shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 transition-all active:translate-y-0">
                 <Rocket size={16} /> Launch AI Campaign
               </button>
-              <button onClick={() => navigate('/crm')} className="px-4 py-2.5 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-1.5 border border-white/20">
+              <button onClick={() => navigate('/crm')} className="px-4 py-2.5 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white text-sm font-semibold rounded-xl transition-all flex items-center gap-1.5 border border-white/20 hover:border-white/30 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">
                 <Eye size={16} /> View Pipeline
               </button>
             </div>

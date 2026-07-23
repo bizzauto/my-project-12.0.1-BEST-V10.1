@@ -30,15 +30,16 @@ const useCounter = (end: number, duration = 2000, start = false) => {
 };
 
 const Particles: React.FC = () => {
-  const ps = Array.from({ length: 30 }, (_, i) => ({
+  const ps = Array.from({ length: 25 }, (_, i) => ({
     id: i, x: Math.random() * 100, y: Math.random() * 100,
-    size: Math.random() * 3 + 1, dur: Math.random() * 20 + 10, delay: Math.random() * 5,
+    size: Math.random() * 4 + 2, dur: Math.random() * 15 + 15, delay: Math.random() * 8,
+    opacity: Math.random() * 0.3 + 0.1,
   }));
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {ps.map(p => (
-        <div key={p.id} className="absolute rounded-full bg-emerald-400/20 particle-float"
-          style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, animationDuration: `${p.dur}s`, animationDelay: `${p.delay}s` }} />
+        <div key={p.id} className="absolute rounded-full bg-gradient-to-br from-emerald-400/30 to-teal-400/20 particle-float"
+          style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, animationDuration: `${p.dur}s`, animationDelay: `${p.delay}s`, opacity: p.opacity }} />
       ))}
     </div>
   );
@@ -223,6 +224,7 @@ const LandingPage: React.FC = () => {
           <button
             onClick={() => setShowLangMenu(!showLangMenu)}
             className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg text-sm cursor-pointer"
+            aria-label="Select language"
           >
             <Globe size={16} />
             <span>{languages.find(l => l.code === language)?.native}</span>
@@ -249,7 +251,11 @@ const LandingPage: React.FC = () => {
 
       {/* Hero */}
       <section className="relative overflow-hidden pt-12 pb-16 sm:pt-16 sm:pb-20 lg:pt-24 lg:pb-32">
-        <div className="absolute inset-0"><div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 dark:bg-emerald-500/8 rounded-full blur-[150px] animate-float-delayed" /><div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-teal-500/10 dark:bg-teal-500/8 rounded-full blur-[150px] animate-float-slow" /></div>
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 dark:bg-emerald-500/8 rounded-full blur-[150px] animate-float-delayed" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-teal-500/10 dark:bg-teal-500/8 rounded-full blur-[150px] animate-float-slow" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/5 dark:bg-cyan-500/3 rounded-full blur-[200px]" />
+        </div>
         <Particles />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <div className="max-w-4xl mx-auto animate-fade-in-up">
@@ -307,10 +313,10 @@ const LandingPage: React.FC = () => {
             <div key={`p-${activeSlide}`} className="animate-fade-in-up order-1 lg:order-2" style={{ animationDelay: '0.1s' }}>{slides[activeSlide].preview}</div>
           </div>
           <div className="flex items-center justify-between mt-8 sm:mt-10">
-            <div className="flex items-center gap-2 sm:gap-3">{slides.map((_, i) => (<button key={i} onClick={() => setActiveSlide(i)} className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${i === activeSlide ? 'w-6 sm:w-8 bg-emerald-500' : 'w-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'}`} />))}</div>
+            <div className="flex items-center gap-2 sm:gap-3">{slides.map((_, i) => (<button key={i} onClick={() => setActiveSlide(i)} aria-label={`Go to slide ${i + 1}: ${slides[i].title}`} className={`h-2 rounded-full transition-all duration-500 cursor-pointer ${i === activeSlide ? 'w-8 bg-gradient-to-r from-emerald-500 to-teal-500 shadow-sm shadow-emerald-500/30' : 'w-2.5 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 hover:scale-125'}`} />))}</div>
             <div className="flex items-center gap-2">
-              <button onClick={prevSlide} className="p-2.5 sm:p-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"><ChevronLeft size={18} className="sm:w-5 sm:h-5" /></button>
-              <button onClick={nextSlide} className="p-2.5 sm:p-3 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-pointer"><ChevronRight size={18} className="sm:w-5 sm:h-5" /></button>
+              <button onClick={prevSlide} aria-label="Previous feature" className="p-2.5 sm:p-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-300 dark:hover:border-white/20 hover:shadow-md transition-all cursor-pointer active:scale-95"><ChevronLeft size={18} className="sm:w-5 sm:h-5" /></button>
+              <button onClick={nextSlide} aria-label="Next feature" className="p-2.5 sm:p-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 hover:border-gray-300 dark:hover:border-white/20 hover:shadow-md transition-all cursor-pointer active:scale-95"><ChevronRight size={18} className="sm:w-5 sm:h-5" /></button>
             </div>
           </div>
         </div>
