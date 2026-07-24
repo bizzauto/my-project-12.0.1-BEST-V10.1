@@ -16,17 +16,51 @@ export class EmailService {
       this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT || '587'),
+        ignoreTLS: process.env.SMTP_SECURE !== 'true',
         secure: process.env.SMTP_SECURE === 'true',
         auth: {
           user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
+          pass: process.env.SMTP_PASS,
         },
         tls: {
           rejectUnauthorized: false,
+          ciphers: 'SSLv3',
         },
       });
     }
     return this.transporter;
+  }
+
+  /**
+   * Resolve the "from" address for outbound email.
+   *
+   * Priority:
+   *   1. Explicit `from` parameter passed to sendEmail()
+   *   2. `SMTP_FROM` env var (set this to a sender your SMTP provider allows)
+   *   3. `SMTP_USER` env var (works for providers that allow auth-user as sender,
+   *      e.g. Brevo relay, Gmail app-password)
+   *   4. Hardcoded fallback
+   *
+   * IMPORTANT: The FROM address MUST be allowed by your SMTP provider.
+   * - Brevo: use the SMTP login email or a verified sender in Brevo dashboard
+   * - Gmail app-password: use the same Gmail address as SMTP_USER
+   * - Custom SMTP: use a domain/addr you own and have verified
+   */
+  private static getDefaultFromAddress(appName: string): string {
+    const configuredFrom = process.env.SMTP_FROM?.trim();
+    if (configuredFrom) {
+      // If it already contains angle brackets, use as-is (e.g. "Name <email>")
+      if (configuredFrom.includes('<')) return configuredFrom;
+      return `"${appName}" <${configuredFrom}>`;
+    }
+
+    const smtpUser = process.env.SMTP_USER?.trim();
+    if (smtpUser) {
+      return `"${appName}" <${smtpUser}>`;
+    }
+
+    // Last resort — should never reach here in production
+    return `"${appName}" <noreply@bizzautoai.com>`;
   }
 
   /**
@@ -38,7 +72,7 @@ export class EmailService {
     const appUrl = process.env.APP_URL || 'https://bizzauto.com';
 
     await transporter.sendMail({
-      from: `"${appName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      from: this.getDefaultFromAddress(appName),
       to,
       subject: `Welcome to ${appName}!`,
       html: this.getWelcomeTemplate(name, appName, appUrl),
@@ -59,7 +93,7 @@ export class EmailService {
     const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
 
     await transporter.sendMail({
-      from: `"${appName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      from: this.getDefaultFromAddress(appName),
       to,
       subject: 'Password Reset Request',
       html: this.getPasswordResetTemplate(name, resetUrl, appName, appUrl),
@@ -75,7 +109,7 @@ export class EmailService {
     const appUrl = process.env.APP_URL || 'https://bizzauto.com';
 
     await transporter.sendMail({
-      from: `"${appName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      from: this.getDefaultFromAddress(appName),
       to,
       subject: 'Your password has been changed',
       html: this.getPasswordChangedTemplate(name, appName, appUrl),
@@ -96,7 +130,7 @@ export class EmailService {
     const verifyUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
     await transporter.sendMail({
-      from: `"${appName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      from: this.getDefaultFromAddress(appName),
       to,
       subject: `Verify your email - ${appName}`,
       html: this.getVerificationTemplate(name, verifyUrl, appName, appUrl),
@@ -194,7 +228,7 @@ export class EmailService {
         const transporter = this.getTransporter();
         const appName = process.env.APP_NAME || 'BizzAuto';
         const info = await transporter.sendMail({
-          from: from || `"${appName}" <${process.env.SMTP_FROM !== 'aa0ed6001@smtp-brevo.com' ? process.env.SMTP_FROM : 'bizzautoai@gmail.com'}>`,
+          from: from || this.getDefaultFromAddress(appName),
           to,
           subject,
           html,
@@ -204,7 +238,8 @@ export class EmailService {
         // instead of pretending the email was delivered.
         if (info.rejected && info.rejected.length > 0) {
           lastError = `Recipient rejected by mail server: ${info.rejected.join(', ')}`;
-          console.warn(`[EmailService] Attempt ${attempt}/${retries} rejected for ${to}: ${lastError}`);
+          console.warn(`[EmailService] Recipient rejected ${info.rejected.join(', ')} - not retrying`);
+          return { success: false, error: lastError };
         } else {
           return { success: true };
         }
