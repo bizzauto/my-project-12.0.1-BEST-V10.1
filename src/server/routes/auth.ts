@@ -1225,14 +1225,16 @@ router.post('/forgot-password', forgotPasswordLimiter, validate(forgotPasswordSc
         'Password Reset OTP - BizzAuto',
         `<h2>Password Reset</h2><p>Your OTP for password reset is: <strong>${otp}</strong></p><p>This OTP expires in 10 minutes.</p><p>If you did not request this, please ignore this email.</p>`
       );
-      if (!result.success) {
-        console.error('Failed to send OTP email:', result.error);
-        return res.status(502).json({ success: false, error: 'Unable to send OTP email. Please try again later or contact support.' });
-      }
-    } catch (emailErr: any) {
-      console.error('Failed to send OTP email:', emailErr.message);
-      return res.status(502).json({ success: false, error: 'Unable to send OTP email. Please try again later or contact support.' });
-    }
+       if (!result.success) {
+         console.error(`[OTP] Failed to send OTP email for ${email}: ${result.error}`);
+         console.log(`[OTP DEBUG] OTP for ${email}: ${otp}`);
+         return res.status(502).json({ success: false, error: 'Unable to send OTP email. Please try again later or contact support.' });
+       }
+     } catch (emailErr: any) {
+       console.error(`[OTP] Failed to send OTP email for ${email}: ${emailErr.message}`);
+       console.log(`[OTP DEBUG] OTP for ${email}: ${otp}`);
+       return res.status(502).json({ success: false, error: 'Unable to send OTP email. Please try again later or contact support.' });
+     }
 
     // Log the request for audit trail
     try {
