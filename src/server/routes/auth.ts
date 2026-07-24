@@ -1217,7 +1217,10 @@ router.post('/forgot-password', forgotPasswordLimiter, validate(forgotPasswordSc
     const attempts = (existing?.attempts || 0) + 1;
     otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000, attempts });
 
+    const isDev = process.env.NODE_ENV !== 'production';
+
     // Send OTP via email (failures are surfaced, not swallowed)
+    let emailSent = false;
     try {
       const { EmailService } = await import('../services/email.service.js');
       const result = await EmailService.sendEmail(
@@ -1225,16 +1228,24 @@ router.post('/forgot-password', forgotPasswordLimiter, validate(forgotPasswordSc
         'Password Reset OTP - BizzAuto',
         `<h2>Password Reset</h2><p>Your OTP for password reset is: <strong>${otp}</strong></p><p>This OTP expires in 10 minutes.</p><p>If you did not request this, please ignore this email.</p>`
       );
-       if (!result.success) {
-         console.error(`[OTP] Failed to send OTP email for ${email}: ${result.error}`);
-         console.log(`[OTP DEBUG] OTP for ${email}: ${otp}`);
-         return res.status(502).json({ success: false, error: 'Unable to send OTP email. Please try again later or contact support.' });
-       }
-     } catch (emailErr: any) {
-       console.error(`[OTP] Failed to send OTP email for ${email}: ${emailErr.message}`);
-       console.log(`[OTP DEBUG] OTP for ${email}: ${otp}`);
-       return res.status(502).json({ success: false, error: 'Unable to send OTP email. Please try again later or contact support.' });
-     }
+      if (result.success) {
+        emailSent = true;
+      } else {
+        console.error(`[OTP] Failed to send OTP email for ${email}: ${result.error}`);
+      }
+    } catch (emailErr: any) {
+      console.error(`[OTP] Failed to send OTP email for ${email}: ${emailErr.message}`);
+    }
+
+    // In development, skip email and log OTP to console so the flow works
+    // even when SMTP is misconfigured or unreachable
+    if (isDev && !emailSent) {
+      console.log(`[OTP DEBUG] OTP for ${email}: ${otp}`);
+    }
+
+    if (!emailSent && !isDev) {
+      return res.status(502).json({ success: false, error: 'Unable to send OTP email. Please try again later or contact support.' });
+    }
 
     // Log the request for audit trail
     try {
