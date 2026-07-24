@@ -1271,6 +1271,9 @@ router.post('/verify-otp', verifyOtpLimiter, validate(verifyOtpSchema), async (r
       return res.status(400).json({ success: false, error: 'Invalid or expired OTP' });
     }
 
+    // Consume OTP after successful verification to prevent reuse
+    otpStore.delete(email);
+
     res.json({ success: true, message: 'OTP verified' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: 'Failed to verify OTP' });
@@ -1293,7 +1296,15 @@ router.post('/reset-password', resetPasswordLimiter, validate(resetPasswordSchem
     }
 
     const hashedPassword = await hashPassword(newPassword);
-    await prisma.user.update({ where: { email }, data: { password: hashedPassword } });
+    try {
+      await prisma.user.update({ where: { email }, data: { password: hashedPassword } });
+    } catch (dbErr: any) {
+      otpStore.delete(email);
+      if (dbErr.code === 'P2025') {
+        return res.status(404).json({ success: false, error: 'No account found with this email' });
+      }
+      return res.status(500).json({ success: false, error: 'Failed to reset password' });
+    }
     otpStore.delete(email);
 
     // Log successful password reset
