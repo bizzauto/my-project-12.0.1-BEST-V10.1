@@ -194,7 +194,7 @@ export class EmailService {
         const transporter = this.getTransporter();
         const appName = process.env.APP_NAME || 'BizzAuto';
         const info = await transporter.sendMail({
-          from: from || `"${appName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+          from: from || `"${appName}" <${process.env.SMTP_FROM !== 'aa0ed6001@smtp-brevo.com' ? process.env.SMTP_FROM : 'bizzautoai@gmail.com'}>`,
           to,
           subject,
           html,
