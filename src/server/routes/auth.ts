@@ -39,24 +39,25 @@ const registerLimiter = rateLimit({
 });
 
 const forgotPasswordLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3,
-  message: { success: false, error: 'Too many password reset requests. Please try again later.' },
+  windowMs: 5 * 60 * 1000, // 5 minutes (reduced from 15)
+  max: 5, // 5 requests per 5 minutes (increased from 3)
+  message: { success: false, error: 'Too many password reset requests. Please try again after a few minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: true,
 });
 
 const verifyOtpLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 3, // Reduced from 10 to prevent brute force attacks
-  message: { success: false, error: 'Too many OTP verification attempts. Please try again later.' },
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // 10 attempts per 5 minutes (increased from 3)
+  message: { success: false, error: 'Too many OTP verification attempts. Please try again after a few minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const resetPasswordLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3,
+  windowMs: 15 * 60 * 1000, // 15 minutes (reduced from 60)
+  max: 5, // 5 attempts per 15 minutes (increased from 3)
   message: { success: false, error: 'Too many password reset attempts. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
