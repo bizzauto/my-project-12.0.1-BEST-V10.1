@@ -42,6 +42,10 @@ RUN mkdir -p uploads logs && chown -R appuser:appgroup uploads logs
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV NODE_OPTIONS="--max-old-space-size=768"
+ENV SMTP_HOST=smtp.gmail.com
+ENV SMTP_PORT=587
+ENV SMTP_USER=bizzautoai@gmail.com
+ENV SMTP_FROM="BizzAuto CRM <bizzautoai@gmail.com>"
 EXPOSE 3000
 
 USER appuser
