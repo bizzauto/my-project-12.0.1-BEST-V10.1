@@ -304,21 +304,21 @@ const AppointmentsPage: React.FC = () => {
       {/* CALENDAR VIEW */}
       {view === 'calendar' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-5 md:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={prevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-5">
+              <button onClick={prevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
                 <ChevronLeft size={20} className="text-gray-600 dark:text-gray-400" />
               </button>
-              <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-base md:text-lg font-bold text-gray-900 dark:text-white">
                 {MONTHS[month]} {year}
               </h2>
-              <button onClick={nextMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+              <button onClick={nextMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
                 <ChevronRight size={20} className="text-gray-600 dark:text-gray-400" />
               </button>
             </div>
             <div className="grid grid-cols-7 gap-1">
               {DAYS.map(d => (
-                <div key={d} className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2">{d}</div>
+                <div key={d} className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 py-2 uppercase tracking-wider">{d}</div>
               ))}
               {calendarDays.map((day, i) => {
                 if (!day) return <div key={`e-${i}`} />;
@@ -327,7 +327,7 @@ const AppointmentsPage: React.FC = () => {
                 const sel = ds === selectedDate;
                 return (
                   <button key={day} onClick={() => setSelectedDate(ds)}
-                    className={`relative p-1.5 md:p-2 rounded-lg text-xs md:text-sm transition-colors ${sel ? 'bg-blue-600 text-white' : isToday(day) ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                    className={`relative p-1.5 md:p-2 rounded-xl text-xs md:text-sm transition-all ${sel ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25' : isToday(day) ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold ring-2 ring-blue-200 dark:ring-blue-800' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
                     {day}
                     {appts.length > 0 && (
                       <div className="flex justify-center gap-0.5 mt-0.5 md:mt-1">
@@ -343,58 +343,60 @@ const AppointmentsPage: React.FC = () => {
           </div>
 
           {/* Selected Day Appointments */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-5 md:p-6">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm md:text-base">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-sm md:text-base">
               {selectedDate ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Select a date'}
             </h3>
             {selectedAppts.length === 0 ? (
-              <div className="text-center py-4 sm:py-6 md:py-8">
-                <Calendar size={40} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
-                <p className="text-gray-500 dark:text-gray-400 text-sm">No appointments for this day</p>
-                <button onClick={() => setShowBookingModal(true)} className="mt-3 text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline">
+              <div className="text-center py-6 sm:py-8 md:py-10">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700/50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Calendar size={28} className="text-gray-300 dark:text-gray-600" />
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">No appointments</p>
+                <button onClick={() => setShowBookingModal(true)} className="mt-3 text-blue-600 dark:text-blue-400 text-sm font-semibold hover:underline">
                   + Book one now
                 </button>
               </div>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
                 {selectedAppts.map(appt => (
-                  <div key={appt.id} className="p-3 md:p-4 border border-gray-200 dark:border-gray-600 rounded-xl hover:shadow-md transition-shadow">
+                  <div key={appt.id} className="p-3 md:p-4 border border-gray-200 dark:border-gray-600 rounded-xl hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-500/30 transition-all group">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">{typeIcons[appt.type]}</span>
-                        <h4 className="font-medium text-gray-900 dark:text-white text-sm md:text-base">{appt.title}</h4>
+                        <span className="text-lg group-hover:scale-110 transition-transform">{typeIcons[appt.type]}</span>
+                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm md:text-base">{appt.title}</h4>
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium ${statusColors[appt.status]}`}>{appt.status}</span>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] md:text-xs font-semibold ${statusColors[appt.status]}`}>{appt.status}</span>
                     </div>
                     <div className="space-y-1.5 text-xs md:text-sm text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center gap-2"><User size={12} /> {appt.contactName}</div>
-                      <div className="flex items-center gap-2"><Clock size={12} /> {appt.time} • {appt.duration} min</div>
-                      {appt.location && <div className="flex items-center gap-2"><MapPin size={12} /> {appt.location}</div>}
+                      <div className="flex items-center gap-2"><User size={12} className="text-gray-400" /> {appt.contactName}</div>
+                      <div className="flex items-center gap-2"><Clock size={12} className="text-gray-400" /> {appt.time} • {appt.duration} min</div>
+                      {appt.location && <div className="flex items-center gap-2"><MapPin size={12} className="text-gray-400" /> {appt.location}</div>}
                       {appt.meetingUrl && (
-                        <a href={appt.meetingUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
+                        <a href={appt.meetingUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline font-medium">
                           <Video size={12} /> Join Meeting
                         </a>
                       )}
-                      <div className="flex items-center gap-2"><Phone size={12} /> {appt.phone}</div>
+                      <div className="flex items-center gap-2"><Phone size={12} className="text-gray-400" /> {appt.phone}</div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 mt-3">
+                    <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50">
                       {appt.status === 'scheduled' && (
                         <>
-                          <button onClick={() => handleStatusChange(appt.id, 'confirmed')} className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 text-white text-[10px] md:text-xs rounded-lg hover:bg-green-700">
+                          <button onClick={() => handleStatusChange(appt.id, 'confirmed')} className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-[10px] md:text-xs rounded-lg hover:from-green-600 hover:to-emerald-600 shadow-sm shadow-green-500/25 hover:shadow-md transition-all">
                             <Check size={12} /> Confirm
                           </button>
-                          <button onClick={() => handleStatusChange(appt.id, 'cancelled')} className="flex items-center gap-1 px-2.5 py-1.5 border border-red-200 text-red-600 text-[10px] md:text-xs rounded-lg hover:bg-red-50">
+                          <button onClick={() => handleStatusChange(appt.id, 'cancelled')} className="flex items-center gap-1 px-3 py-1.5 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-[10px] md:text-xs rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                             <X size={12} /> Cancel
                           </button>
                         </>
                       )}
                       {appt.status === 'confirmed' && (
-                        <button onClick={() => handleStatusChange(appt.id, 'completed')} className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-600 text-white text-[10px] md:text-xs rounded-lg hover:bg-gray-700">
+                        <button onClick={() => handleStatusChange(appt.id, 'completed')} className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-[10px] md:text-xs rounded-lg hover:from-blue-600 hover:to-indigo-600 shadow-sm shadow-blue-500/25 hover:shadow-md transition-all">
                           <Check size={12} /> Complete
                         </button>
                       )}
                       {!appt.reminderSent && appt.status !== 'cancelled' && (
-                        <button onClick={() => handleSendReminder(appt.id)} className="flex items-center gap-1 px-2.5 py-1.5 border border-blue-200 text-blue-600 text-[10px] md:text-xs rounded-lg hover:bg-blue-50">
+                        <button onClick={() => handleSendReminder(appt.id)} className="flex items-center gap-1 px-3 py-1.5 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-[10px] md:text-xs rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
                           <Bell size={12} /> Remind
                         </button>
                       )}

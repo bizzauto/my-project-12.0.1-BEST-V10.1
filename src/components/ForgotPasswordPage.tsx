@@ -191,49 +191,49 @@ const ForgotPasswordPage: React.FC<{ onNavigate?: (page: string) => void }> = ({
           )}
 
           {step === 1 && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 sm:p-6 md:p-8">
-              <button onClick={handleBack} className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 sm:mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 sm:p-6 md:p-8">
+              <button onClick={handleBack} className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 sm:mb-6 transition-colors">
                 <ArrowLeft size={16} /> Back to login
               </button>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Forgot Password?</h2>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-5 sm:mb-6">Enter your email and we'll send you a verification code.</p>
               <form onSubmit={handleSendOTP} className="space-y-3 sm:space-y-4">
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+                <div className="group">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email Address</label>
                   <div className="relative">
-                    <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className="w-full pl-10 pr-4 py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all dark:bg-gray-700 dark:text-white placeholder:text-gray-400"
                       placeholder="you@company.com" required />
                   </div>
                 </div>
                 <button type="submit" disabled={loading}
-                  className="w-full py-2.5 sm:py-3 bg-blue-600 text-white text-sm sm:text-base font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50">
-                  {loading ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>Send Code <ArrowRight size={18} /></>}
+                  className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm sm:text-base font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all active:translate-y-0">
+                  {loading ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Send Code <ArrowRight size={18} /></>}
                 </button>
               </form>
             </div>
           )}
 
           {step === 2 && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 sm:p-6 md:p-8">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 sm:p-6 md:p-8">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Enter Verification Code</h2>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-5 sm:mb-6">We sent a 6-digit code to <strong className="break-all">{email}</strong></p>
-              <form onSubmit={handleVerifyOTP} className="space-y-3 sm:space-y-4">
-                <div className="flex gap-1.5 sm:gap-2 justify-center">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-5 sm:mb-6">We sent a 6-digit code to <strong className="text-blue-600 dark:text-blue-400 break-all">{email}</strong></p>
+              <form onSubmit={handleVerifyOTP} className="space-y-4 sm:space-y-5">
+                <div className="flex gap-2 sm:gap-3 justify-center">
                   {otp.map((digit, i) => (
                     <input key={i} id={`otp-${i}`} type="text" inputMode="numeric" maxLength={1} value={digit}
                       onChange={(e) => handleOtpChange(e.target.value, i)}
                       onKeyDown={(e) => handleOtpKeyDown(e, i)}
-                      className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className="w-11 h-13 sm:w-13 sm:h-14 text-center text-xl sm:text-2xl font-bold border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all dark:bg-gray-700 dark:text-white"
                       required />
                   ))}
                 </div>
                 <button type="submit" disabled={loading}
-                  className="w-full py-2.5 sm:py-3 bg-blue-600 text-white text-sm sm:text-base font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50">
-                  {loading ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>Verify Code <ArrowRight size={18} /></>}
+                  className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm sm:text-base font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all active:translate-y-0">
+                  {loading ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Verify Code <ArrowRight size={18} /></>}
                 </button>
-                <p className="text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">Didn't receive code? <button type="button" onClick={handleSendOTP} className="text-blue-600 hover:underline font-medium">Resend</button></p>
+                <p className="text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">Didn't receive code? <button type="button" onClick={handleSendOTP} className="text-blue-600 dark:text-blue-400 hover:underline font-semibold transition-colors">Resend</button></p>
               </form>
             </div>
           )}
@@ -276,14 +276,14 @@ const ForgotPasswordPage: React.FC<{ onNavigate?: (page: string) => void }> = ({
           )}
 
           {step === 4 && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 sm:p-6 md:p-8 text-center">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                <CheckCircle size={32} className="sm:w-9 sm:h-9 text-green-500" />
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 sm:p-8 md:p-10 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5 shadow-lg shadow-green-500/25">
+                <CheckCircle size={36} className="sm:w-10 sm:h-10 text-white" />
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">Password Reset!</h2>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-5 sm:mb-6">Your password has been changed successfully.</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">Password Reset!</h2>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6 sm:mb-8">Your password has been changed successfully.</p>
               <button onClick={handleBack}
-                className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-blue-600 text-white text-sm sm:text-base font-semibold rounded-lg hover:bg-blue-700">
+                className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm sm:text-base font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all active:translate-y-0">
                 Back to Login
               </button>
             </div>

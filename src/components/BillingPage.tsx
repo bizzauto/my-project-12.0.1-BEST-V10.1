@@ -189,43 +189,45 @@ const BillingPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 sm:p-5 md:p-6 text-white mb-6">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-5 sm:p-6 md:p-8 text-white mb-6 shadow-xl shadow-blue-500/20 relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+        <div className="relative flex items-center justify-between">
           <div>
-            <p className="text-blue-100 text-sm mb-1">Current Plan</p>
+            <p className="text-blue-100 text-sm mb-1 font-medium">Current Plan</p>
             <h2 className="text-2xl sm:text-3xl font-bold mb-2">{currentPlan.name}</h2>
-            <p className="text-blue-100">{currentPlan.price}/month - Next billing: {currentPlan.nextBilling}</p>
+            <p className="text-blue-100">{currentPlan.price}/month — Next billing: {currentPlan.nextBilling}</p>
           </div>
-          <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
+          <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2.5 rounded-xl shadow-sm">
             <CheckCircle size={18} />
-            <span className="font-medium">{currentPlan.status}</span>
+            <span className="font-semibold">{currentPlan.status}</span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-6">
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-100 p-4 sm:p-5 md:p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Usage This Month</h3>
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-5 md:p-6 hover:shadow-md transition-shadow">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-5">Usage This Month</h3>
           {usage.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {usage.map((u, i) => (
                 <div key={i}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700">{u.label}</span>
-                    <span className="text-sm text-gray-500">{u.used.toLocaleString()} / {u.limit.toLocaleString()}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{u.label}</span>
+                    <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">{u.used.toLocaleString()} / {u.limit.toLocaleString()}</span>
                   </div>
-                  <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${u.pct > 80 ? 'bg-red-500' : u.pct > 60 ? 'bg-yellow-500' : 'bg-green-500'}`} style={{ width: `${Math.min(u.pct, 100)}%` }} />
+                  <div className="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-700 ${u.pct > 80 ? 'bg-gradient-to-r from-red-500 to-rose-500' : u.pct > 60 ? 'bg-gradient-to-r from-yellow-500 to-amber-500' : 'bg-gradient-to-r from-green-500 to-emerald-500'}`} style={{ width: `${Math.min(u.pct, 100)}%` }} />
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-400 text-center py-4">No usage data available</p>
+            <p className="text-gray-400 dark:text-gray-500 text-center py-6">No usage data available</p>
           )}
-          <div className="flex gap-3 mt-4">
-            <button onClick={() => handleUpgrade('PRO')} className="text-blue-600 text-sm font-medium hover:underline flex items-center gap-1">Upgrade Plan <ArrowUpRight size={14} /></button>
-            <button onClick={() => setCancelDialogOpen(true)} className="text-red-600 text-sm font-medium hover:underline">Cancel Subscription</button>
+          <div className="flex gap-4 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+            <button onClick={() => handleUpgrade('PRO')} className="text-blue-600 dark:text-blue-400 text-sm font-semibold hover:underline flex items-center gap-1 transition-colors">Upgrade Plan <ArrowUpRight size={14} /></button>
+            <button onClick={() => setCancelDialogOpen(true)} className="text-red-600 dark:text-red-400 text-sm font-semibold hover:underline transition-colors">Cancel Subscription</button>
           </div>
         </div>
 

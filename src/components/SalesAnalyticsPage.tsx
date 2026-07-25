@@ -134,7 +134,7 @@ const SalesAnalyticsPage: React.FC = () => {
         </div>
 
         {/* Period Selector */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-6 w-fit">
           {([
             { key: '7d', label: '7 Days' },
             { key: '30d', label: '30 Days' },
@@ -144,10 +144,10 @@ const SalesAnalyticsPage: React.FC = () => {
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 period === p.key
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               {p.label}
@@ -175,36 +175,22 @@ const SalesAnalyticsPage: React.FC = () => {
           <>
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Total Revenue</span>
-                  <DollarSign size={20} className="text-green-600" />
+              {[
+                { label: 'Total Revenue', value: formatCurrency(data.totalRevenue || 0), icon: <DollarSign size={20} />, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-500/10' },
+                { label: 'Total Orders', value: data.totalOrders, icon: <ShoppingCart size={20} />, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-500/10' },
+                { label: 'Avg Order Value', value: formatCurrency(data.averageOrderValue || 0), icon: <TrendingUp size={20} />, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-500/10' },
+                { label: 'Revenue Growth', value: `${(data.revenueGrowth || 0) >= 0 ? '+' : ''}${Number(data.revenueGrowth || 0).toFixed(1)}%`, icon: <TrendingUp size={20} />, color: (data.revenueGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600', bg: (data.revenueGrowth || 0) >= 0 ? 'bg-green-100 dark:bg-green-500/10' : 'bg-red-100 dark:bg-red-500/10' },
+              ].map((stat, i) => (
+                <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all group">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</span>
+                    <div className={`w-9 h-9 ${stat.bg} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                      <div className={stat.color}>{stat.icon}</div>
+                    </div>
+                  </div>
+                  <p className={`text-xl sm:text-2xl font-bold ${stat.color}`}>{stat.value}</p>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.totalRevenue || 0)}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Total Orders</span>
-                  <ShoppingCart size={20} className="text-blue-600" />
-                </div>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{data.totalOrders}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Avg Order Value</span>
-                  <TrendingUp size={20} className="text-purple-600" />
-                </div>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.averageOrderValue || 0)}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Revenue Growth</span>
-                  <TrendingUp size={20} className={data.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'} />
-                </div>
-                <p className={`text-xl sm:text-2xl font-bold ${(data.revenueGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {(data.revenueGrowth || 0) >= 0 ? '+' : ''}{Number(data.revenueGrowth || 0).toFixed(1)}%
-                </p>
-              </div>
+              ))}
             </div>
 
             {/* Revenue Chart */}

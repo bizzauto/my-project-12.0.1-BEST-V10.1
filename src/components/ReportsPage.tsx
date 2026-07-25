@@ -270,7 +270,7 @@ const ReportsPage: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-2 flex gap-2 mb-6 overflow-x-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-1.5 flex gap-1 mb-6 overflow-x-auto">
         {[
           { id: 'overview' as const, label: 'Overview', icon: <BarChart3 size={16} /> },
           { id: 'roi' as const, label: 'ROI Tracking', icon: <DollarSign size={16} /> },
@@ -281,7 +281,7 @@ const ReportsPage: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
           >
             {tab.icon}{tab.label}
@@ -295,20 +295,20 @@ const ReportsPage: React.FC = () => {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             {[
-              { label: 'New Contacts', value: overviewData?.contactsAdded || 0, icon: <Users size={20} />, color: 'bg-blue-50 text-blue-600', change: '+12%' },
-              { label: 'Messages Sent', value: (overviewData?.messagesSent || 0).toLocaleString(), icon: <MessageSquare size={20} />, color: 'bg-green-50 text-green-600', change: '+15%' },
-              { label: 'Revenue', value: formatCurrency(overviewData?.totalRevenue || 0), icon: <DollarSign size={20} />, color: 'bg-purple-50 text-purple-600', change: '+22%' },
-              { label: 'Conversion Rate', value: (overviewData?.conversionRate || 0) + '%', icon: <TrendingUp size={20} />, color: 'bg-orange-50 text-orange-600', change: '+5%' },
+              { label: 'New Contacts', value: overviewData?.contactsAdded || 0, icon: <Users size={20} />, color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600', change: '+12%' },
+              { label: 'Messages Sent', value: (overviewData?.messagesSent || 0).toLocaleString(), icon: <MessageSquare size={20} />, color: 'bg-green-50 dark:bg-green-500/10 text-green-600', change: '+15%' },
+              { label: 'Revenue', value: formatCurrency(overviewData?.totalRevenue || 0), icon: <DollarSign size={20} />, color: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600', change: '+22%' },
+              { label: 'Conversion Rate', value: (overviewData?.conversionRate || 0) + '%', icon: <TrendingUp size={20} />, color: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600', change: '+5%' },
             ].map((stat, i) => (
-              <div key={i} className="bg-white rounded-lg shadow-sm p-4 sm:p-5 md:p-6 border border-gray-100">
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 md:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600 transition-all group">
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-lg ${stat.color}`}>{stat.icon}</div>
-                  <span className="text-sm font-medium text-green-600 flex items-center gap-1">
+                  <div className={`p-3 rounded-xl group-hover:scale-110 transition-transform ${stat.color}`}>{stat.icon}</div>
+                  <span className="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-1">
                     <ArrowUpRight size={14} />{stat.change}
                   </span>
                 </div>
-                <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{stat.label}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
               </div>
             ))}
           </div>

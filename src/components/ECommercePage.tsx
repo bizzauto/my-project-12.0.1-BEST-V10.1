@@ -465,31 +465,33 @@ const ECommercePage: React.FC = () => {
         <>
           {filteredProducts.length === 0 ? (
             <div className="text-center py-12">
-              <Package size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500 dark:text-gray-400 mb-4">{searchQuery ? 'No products found' : 'No products yet'}</p>
-              <button onClick={() => { setEditingProduct(null); setShowProductModal(true); }} className="px-4 sm:px-5 md:px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">Add Your First Product</button>
+              <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Package size={36} className="text-gray-300 dark:text-gray-600" />
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 mb-4 font-medium">{searchQuery ? 'No products found' : 'No products yet'}</p>
+              <button onClick={() => { setEditingProduct(null); setShowProductModal(true); }} className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 hover:shadow-xl hover:-translate-y-0.5 font-semibold">Add Your First Product</button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredProducts.map(product => (
-                <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="relative h-40 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
+                <div key={product.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl hover:border-blue-200 dark:hover:border-blue-500/30 transition-all group">
+                  <div className="relative h-44 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
                     {(product.mainImage || (product.images && product.images.length > 0)) ? (
-                      <img src={product.mainImage || product.images?.[0]} alt={product.name} className="w-full h-full object-cover" />
+                      <img src={product.mainImage || product.images?.[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <Package size={40} className="text-gray-400" />
                     )}
                     {product.status && (
-                      <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-medium ${productStatusColors[product.status] || ''}`}>{product.status}</span>
+                      <span className={`absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-sm ${productStatusColors[product.status] || ''}`}>{product.status}</span>
                     )}
                   </div>
                   <div className="p-4">
                     <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{product.name}</h3>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">{product.name}</h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400">SKU: {product.sku}</p>
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${(product.stock || product.quantity || 0) === 0 ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' : 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ml-2 ${(product.stock || product.quantity || 0) === 0 ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' : 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400'}`}>
                         {(product.stock || product.quantity || 0) === 0 ? 'Out of stock' : `${product.stock || product.quantity || 0} in stock`}
                       </span>
                     </div>
@@ -499,7 +501,7 @@ const ECommercePage: React.FC = () => {
                         <span className="text-sm text-gray-400 line-through">₹{product.comparePrice || product.compareAtPrice}</span>
                       )}
                       {(product.comparePrice || product.compareAtPrice) && (
-                        <span className="text-xs bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400 px-2 py-0.5 rounded-full">
+                        <span className="text-xs bg-gradient-to-r from-green-500 to-emerald-500 text-white px-2 py-0.5 rounded-full font-semibold shadow-sm">
                           {Math.round((1 - product.price / (product.comparePrice || product.compareAtPrice || 1)) * 100)}% off
                         </span>
                       )}
@@ -507,17 +509,17 @@ const ECommercePage: React.FC = () => {
                     {product.variants && product.variants.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
                         {product.variants.map((v, i) => (
-                          <span key={i} className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{v.name || `${v.size || ''} ${v.color || ''}`}</span>
+                          <span key={i} className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-lg font-medium">{v.name || `${v.size || ''} ${v.color || ''}`}</span>
                         ))}
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => addToCart(product)} disabled={(product.stock || product.quantity || 0) <= 0 || cartLoading} className="flex-1 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                        {(product.stock || product.quantity || 0) <= 0 ? 'Out of Stock' : 'Add to Cart'}
+                    <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
+                      <button onClick={() => addToCart(product)} disabled={(product.stock || product.quantity || 0) <= 0 || cartLoading} className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold shadow-sm shadow-blue-500/20 hover:shadow-md">
+                        {(product.stock || product.quantity || 0) <= 0 ? 'Out of Stock' : '🛒 Add to Cart'}
                       </button>
-                      <button onClick={() => copyShareLink(product.id)} className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400" title="Share"><Share2 size={16} /></button>
-                      <button onClick={() => { setEditingProduct(product); setShowProductModal(true); }} className="p-2 text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400" title="Edit"><Edit size={16} /></button>
-                      <button onClick={() => handleDeleteProduct(product.id)} className="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-400" title="Delete"><Trash2 size={16} /></button>
+                      <button onClick={() => copyShareLink(product.id)} className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all" title="Share"><Share2 size={16} /></button>
+                      <button onClick={() => { setEditingProduct(product); setShowProductModal(true); }} className="p-2 text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg transition-all" title="Edit"><Edit size={16} /></button>
+                      <button onClick={() => handleDeleteProduct(product.id)} className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all" title="Delete"><Trash2 size={16} /></button>
                     </div>
                   </div>
                 </div>
@@ -532,24 +534,26 @@ const ECommercePage: React.FC = () => {
         <>
           {filteredOrders.length === 0 ? (
             <div className="text-center py-12">
-              <Package size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">No orders yet</p>
+              <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <ShoppingCart size={36} className="text-gray-300 dark:text-gray-600" />
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 font-medium">No orders yet</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {filteredOrders.map(order => (
-                <div key={order.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <div key={order.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5 hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-500/30 transition-all">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-gray-900 dark:text-white">#{order.orderNumber}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${orderStatusConfig[order.status]?.color || ''}`}>
+                        <span className="font-bold text-gray-900 dark:text-white">#{order.orderNumber}</span>
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 ${orderStatusConfig[order.status]?.color || ''}`}>
                           {orderStatusConfig[order.status]?.icon}
                           {orderStatusConfig[order.status]?.label || order.status}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{order.contact?.name || order.customerName || 'N/A'} • {order.contact?.phone || order.phone || ''}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
                         {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : order.date || ''}
                         {order.gateway && ` • ${order.gateway === 'cod' ? 'COD' : 'Online'}`}
                       </p>

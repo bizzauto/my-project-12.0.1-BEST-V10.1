@@ -355,22 +355,22 @@ export default function ConversationsPage() {
               <button
                 key={conv.contactId}
                 onClick={() => selectConversation(conv)}
-                className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors border-b border-gray-100 dark:border-gray-800 ${
+                className={`w-full flex items-start gap-3 px-4 py-3.5 text-left transition-all border-b border-gray-100 dark:border-gray-800/50 ${
                   isSelected
-                    ? 'bg-blue-50 dark:bg-blue-900/20'
-                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-l-blue-500'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 border-l-2 border-l-transparent'
                 }`}
               >
                 {/* Avatar */}
                 <div className="relative flex-shrink-0">
                   {conv.contactAvatar ? (
-                    <img src={conv.contactAvatar} alt={conv.contactName || "Contact avatar"} className="w-10 h-10 rounded-full object-cover" />
+                    <img src={conv.contactAvatar} alt={conv.contactName || "Contact avatar"} className="w-11 h-11 rounded-xl object-cover shadow-sm" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-md shadow-blue-500/20">
                       {getInitials(conv.contactName)}
                     </div>
                   )}
-                  <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center text-white ${chConf.bgColor}`}>
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-white shadow-sm ${chConf.bgColor}`}>
                     {chConf.icon}
                   </span>
                 </div>
@@ -381,21 +381,21 @@ export default function ConversationsPage() {
                     <span className={`text-sm font-semibold truncate ${conv.unreadCount > 0 ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                       {conv.contactName}
                     </span>
-                    <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2">
                       {formatTimeAgo(conv.lastMessageAt)}
                     </span>
                   </div>
                   <p className={`text-xs truncate mt-0.5 ${conv.unreadCount > 0 ? 'text-gray-700 dark:text-gray-300 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
                     {conv.lastMessage}
                   </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${chConf.color} bg-opacity-10`}
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${chConf.color}`}
                       style={{ backgroundColor: `${chConf.bgColor}15` }}>
                       {chConf.icon}
                       {chConf.label}
                     </span>
                     {conv.unreadCount > 0 && (
-                      <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-medium">
+                      <span className="text-[10px] bg-gradient-to-r from-red-500 to-rose-500 text-white px-2 py-0.5 rounded-full font-bold shadow-sm shadow-red-500/25">
                         {conv.unreadCount}
                       </span>
                     )}
@@ -439,10 +439,12 @@ export default function ConversationsPage() {
   const renderMessageThread = () => {
     if (!selectedConversation) {
       return (
-        <div className="flex flex-col items-center justify-center h-full bg-gray-50 dark:bg-gray-900/50 text-gray-400">
-          <MessageSquare className="w-16 h-16 mb-4 opacity-30" />
-          <p className="text-lg font-medium">Select a conversation</p>
-          <p className="text-sm mt-1">Choose from the inbox to start chatting</p>
+        <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 text-gray-400">
+          <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700/50 rounded-2xl flex items-center justify-center mb-4">
+            <MessageSquare className="w-10 h-10 opacity-40" />
+          </div>
+          <p className="text-lg font-semibold text-gray-600 dark:text-gray-300">Select a conversation</p>
+          <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">Choose from the inbox to start chatting</p>
         </div>
       );
     }

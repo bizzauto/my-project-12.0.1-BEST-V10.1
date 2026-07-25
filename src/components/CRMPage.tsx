@@ -684,34 +684,23 @@ export default function CRMPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 text-gray-500 mb-1"><DollarSign size={14} /><span className="text-xs">Pipeline</span></div>
-          <p className="text-xl font-bold text-gray-900 dark:text-white">₹{(totalDealValue / 100000).toFixed(1)}L</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 text-green-500 mb-1"><TrendingUp size={14} /><span className="text-xs">Won</span></div>
-          <p className="text-xl font-bold text-green-600">₹{(wonDeals / 100000).toFixed(1)}L</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 text-blue-500 mb-1"><Users size={14} /><span className="text-xs">Contacts</span></div>
-          <p className="text-xl font-bold text-blue-600">{contacts.length}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 text-green-500 mb-1"><BarChart3 size={14} /><span className="text-xs">Revenue</span></div>
-          <p className="text-xl font-bold text-green-600">₹{(totalRevenue / 100000).toFixed(1)}L</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 text-red-500 mb-1"><ArrowDown size={14} /><span className="text-xs">Expenses</span></div>
-          <p className="text-xl font-bold text-red-600">₹{(totalExpenses / 100000).toFixed(1)}L</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 text-purple-500 mb-1"><Target size={14} /><span className="text-xs">Goals</span></div>
-          <p className="text-xl font-bold text-purple-600">{goals.filter(g => g.progress >= 100).length}/{goals.length}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 text-orange-500 mb-1"><Calendar size={14} /><span className="text-xs">Today</span></div>
-          <p className="text-xl font-bold text-orange-600">{todayAppointments.length}</p>
-        </div>
+        {[
+          { label: 'Pipeline', value: `₹${(totalDealValue / 100000).toFixed(1)}L`, icon: <DollarSign size={14} />, color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-700/50' },
+          { label: 'Won', value: `₹${(wonDeals / 100000).toFixed(1)}L`, icon: <TrendingUp size={14} />, color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-500/10' },
+          { label: 'Contacts', value: contacts.length, icon: <Users size={14} />, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-500/10' },
+          { label: 'Revenue', value: `₹${(totalRevenue / 100000).toFixed(1)}L`, icon: <BarChart3 size={14} />, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-500/10' },
+          { label: 'Expenses', value: `₹${(totalExpenses / 100000).toFixed(1)}L`, icon: <ArrowDown size={14} />, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-500/10' },
+          { label: 'Goals', value: `${goals.filter(g => g.progress >= 100).length}/${goals.length}`, icon: <Target size={14} />, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-500/10' },
+          { label: 'Today', value: todayAppointments.length, icon: <Calendar size={14} />, color: 'text-orange-500', bg: 'bg-orange-100 dark:bg-orange-500/10' },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-default group">
+            <div className={`w-8 h-8 ${stat.bg} rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
+              <div className={stat.color}>{stat.icon}</div>
+            </div>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</p>
+          </div>
+        ))}
       </div>
 
       {/* AI Lead Scoring Widget */}
@@ -939,25 +928,25 @@ export default function CRMPage() {
                   <p className="text-sm">Add your first contact or adjust filters</p>
                 </div>
               ) : filteredContacts.map(contact => (
-                <div key={contact.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedContact(contact)}>
+                <div key={contact.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-500/30 transition-all cursor-pointer group" onClick={() => setSelectedContact(contact)}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">{contact.avatar}</div>
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">{contact.avatar}</div>
                       <div>
-                        <p className="font-semibold text-gray-900 dark:text-white">{contact.name}</p>
-                        <p className="text-xs text-gray-500">{contact.company}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{contact.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{contact.company}</p>
                       </div>
                     </div>
                     <LeadScoreBadge score={contact.leadScore} />
                   </div>
                   <div className="space-y-1.5 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    <p className="flex items-center gap-1.5"><Mail size={13} /> {contact.email}</p>
-                    <p className="flex items-center gap-1.5"><Phone size={13} /> {contact.phone}</p>
-                    <p className="flex items-center gap-1.5"><DollarSign size={13} /> ₹{(contact.dealValue ?? 0).toLocaleString()}</p>
+                    <p className="flex items-center gap-1.5"><Mail size={13} className="text-gray-400" /> {contact.email}</p>
+                    <p className="flex items-center gap-1.5"><Phone size={13} className="text-gray-400" /> {contact.phone}</p>
+                    <p className="flex items-center gap-1.5"><DollarSign size={13} className="text-green-500" /> <span className="font-medium text-green-600 dark:text-green-400">₹{(contact.dealValue ?? 0).toLocaleString()}</span></p>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700/50">
                     <StageBadge stage={contact.stage} />
-                    <span className="text-xs text-gray-400">{contact.source || 'Direct'}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{contact.source || 'Direct'}</span>
                   </div>
                 </div>
               ))}
@@ -976,25 +965,28 @@ export default function CRMPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {deals.map(deal => (
-              <div key={deal.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-lg transition-shadow">
+              <div key={deal.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-xl hover:border-green-200 dark:hover:border-green-500/30 transition-all group">
                 <div className="flex items-center justify-between mb-3">
                   <StageBadge stage={deal.stage} />
-                  <span className="text-xs text-gray-500">{deal.probability}% probability</span>
+                  <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                    <Target size={12} />
+                    {deal.probability}%
+                  </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{deal.title}</h3>
-                <p className="text-sm text-gray-500 mb-2">{deal.contactName}</p>
-                {deal.notes && <p className="text-xs text-gray-400 mb-3 italic">{deal.notes}</p>}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-                  <span className="text-xl font-bold text-green-600">₹{deal.value.toLocaleString()}</span>
-                  <span className="text-xs text-gray-400">Close: {new Date(deal.expectedClose).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-1 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">{deal.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{deal.contactName}</p>
+                {deal.notes && <p className="text-xs text-gray-400 dark:text-gray-500 mb-3 italic line-clamp-2">{deal.notes}</p>}
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                  <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">₹{deal.value.toLocaleString()}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">Close: {new Date(deal.expectedClose).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
                 {deal.products && (
-                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                    <p className="text-xs font-medium text-gray-500 mb-1">Products:</p>
+                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Products:</p>
                     {deal.products.map((p, i) => (
-                      <div key={i} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                      <div key={i} className="flex justify-between text-xs text-gray-600 dark:text-gray-400 py-0.5">
                         <span>{p.name} × {p.quantity}</span>
-                        <span>₹{p.price.toLocaleString()}</span>
+                        <span className="font-medium">₹{p.price.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
