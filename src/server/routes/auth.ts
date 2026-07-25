@@ -1180,7 +1180,13 @@ router.get('/users', authenticate, requireRole('SUPER_ADMIN', 'OWNER', 'ADMIN'),
 });
 
 // In-memory OTP store with cleanup interval
-const otpStore = new Map<string, { otp: string; expiresAt: number; attempts: number }>();
+interface OtpEntry {
+  otp: string;
+  expiresAt: number;
+  attempts: number;
+  verified?: boolean;
+}
+const otpStore = new Map<string, OtpEntry>();
 const OTP_RATE_LIMIT = 3; // max OTP requests per email per window
 const OTP_RATE_WINDOW = 15 * 60 * 1000; // 15 minutes
 
@@ -1284,9 +1290,9 @@ router.post('/verify-otp', verifyOtpLimiter, validate(verifyOtpSchema), async (r
       return res.status(400).json({ success: false, error: 'Invalid or expired OTP' });
     }
 
-    // Consume OTP after successful verification to prevent reuse
-    otpStore.delete(email);
-
+    // Mark OTP as verified so /reset-password knows verification passed
+    // but don't delete it yet — it's needed again in /reset-password
+    stored.verified = true;
     res.json({ success: true, message: 'OTP verified' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: 'Failed to verify OTP' });
@@ -1301,11 +1307,14 @@ router.post('/reset-password', resetPasswordLimiter, validate(resetPasswordSchem
     if (!stored || stored.expiresAt < Date.now()) {
       return res.status(400).json({ success: false, error: 'Invalid or expired OTP' });
     }
-    const otpBuf = Buffer.from(otp.padStart(6, '0').slice(0, 6));
-    const storedBuf = Buffer.from(stored.otp.padStart(6, '0').slice(0, 6));
-    const match = otpBuf.length === storedBuf.length && crypto.timingSafeEqual(otpBuf, storedBuf);
-    if (!match) {
-      return res.status(400).json({ success: false, error: 'Invalid or expired OTP' });
+    // If OTP was already verified via /verify-otp step, skip re-check
+    if (!stored.verified) {
+      const otpBuf = Buffer.from(otp.padStart(6, '0').slice(0, 6));
+      const storedBuf = Buffer.from(stored.otp.padStart(6, '0').slice(0, 6));
+      const match = otpBuf.length === storedBuf.length && crypto.timingSafeEqual(otpBuf, storedBuf);
+      if (!match) {
+        return res.status(400).json({ success: false, error: 'Invalid or expired OTP' });
+      }
     }
 
     const hashedPassword = await hashPassword(newPassword);
