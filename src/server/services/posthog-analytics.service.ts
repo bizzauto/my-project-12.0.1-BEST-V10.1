@@ -113,7 +113,7 @@ export class PostHogAnalyticsService {
     try {
       const client = getClient();
       if (!client) return;
-      await client.shutdownAsync();
+      await client.shutdown();
       console.log('[PostHog] Events flushed');
     } catch (error: any) {
       console.error('[PostHog] Flush failed:', error.message);

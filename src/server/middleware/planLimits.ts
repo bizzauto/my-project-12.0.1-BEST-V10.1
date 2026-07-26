@@ -12,6 +12,7 @@ interface PlanLimits {
   posts: number;
   posters: number;
   aiCredits: number;
+  imageCreditsDaily: number;
 }
 
 const PLAN_LIMITS: Record<string, PlanLimits> = {
@@ -22,6 +23,7 @@ const PLAN_LIMITS: Record<string, PlanLimits> = {
     posts: 10,
     posters: 20,
     aiCredits: 10,
+    imageCreditsDaily: 1,
   },
   STARTER: {
     contacts: 2000,
@@ -30,6 +32,7 @@ const PLAN_LIMITS: Record<string, PlanLimits> = {
     posts: 50,
     posters: 100,
     aiCredits: 100,
+    imageCreditsDaily: 3,
   },
   GROWTH: {
     contacts: 10000,
@@ -38,6 +41,7 @@ const PLAN_LIMITS: Record<string, PlanLimits> = {
     posts: 200,
     posters: 500,
     aiCredits: 500,
+    imageCreditsDaily: 10,
   },
   PRO: {
     contacts: 50000,
@@ -46,14 +50,16 @@ const PLAN_LIMITS: Record<string, PlanLimits> = {
     posts: 1000,
     posters: 2000,
     aiCredits: 1000,
+    imageCreditsDaily: 20,
   },
   AGENCY: {
     contacts: 100000,
     messages: 100000,
-    users: 999999,
+    users: 50,
     posts: 10000,
     posters: 10000,
     aiCredits: 10000,
+    imageCreditsDaily: 50,
   },
   ENTERPRISE: {
     contacts: 999999999,
@@ -62,6 +68,7 @@ const PLAN_LIMITS: Record<string, PlanLimits> = {
     posts: 999999,
     posters: 999999,
     aiCredits: 999999,
+    imageCreditsDaily: 999999,
   },
 };
 
@@ -263,6 +270,55 @@ export const checkAICredits = async (
       return res.status(429).json({
         success: false,
         error: `AI credits exhausted. Your ${business.plan} plan includes ${maxCredits} credits. Purchase more or upgrade.`,
+        used: totalUsed,
+        limit: totalAvailable,
+        upgrade: true,
+      });
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Middleware: Check Image credits before generating
+ */
+export const checkImageCredits = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = (req as any).user;
+    if (!user) return next();
+
+    // Skip for exempt roles
+    if (isExempt(user.role)) return next();
+
+    const business = await prisma.business.findUnique({
+      where: { id: user.businessId },
+      select: {
+        plan: true,
+        imageCreditsUsed: true,
+        imageCreditsLimit: true,
+        imageCreditsPurchased: true
+      },
+    });
+
+    if (!business) return res.status(404).json({ success: false, error: 'Business not found' });
+
+    // Get plan limits
+    const limits = getPlanLimits(business.plan);
+    const maxCredits = business.imageCreditsLimit || limits.imageCreditsDaily;
+    const totalUsed = business.imageCreditsUsed || 0;
+    const totalAvailable = maxCredits + (business.imageCreditsPurchased || 0);
+
+    if (totalUsed >= totalAvailable) {
+      return res.status(429).json({
+        success: false,
+        error: `Image credits exhausted. Your ${business.plan} plan includes ${maxCredits} images/day. Purchase more or upgrade.`,
         used: totalUsed,
         limit: totalAvailable,
         upgrade: true,

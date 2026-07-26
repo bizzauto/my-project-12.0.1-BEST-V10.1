@@ -162,6 +162,7 @@ export const authAPI = {
   verifyOTP: (email: string, otp: string) => apiClient.post('/auth/verify-otp', { email, otp }),
   resetPassword: (email: string, otp: string, newPassword: string) =>
     apiClient.post('/auth/reset-password', { email, otp, newPassword }),
+  refreshToken: (refreshToken: string) => apiClient.post('/auth/refresh', { refreshToken }),
   // Account
   deleteAccount: (password: string) => apiClient.post('/user/delete-account', { password }),
 };

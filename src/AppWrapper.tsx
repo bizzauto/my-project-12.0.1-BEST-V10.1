@@ -8,6 +8,7 @@ import { ToastProvider } from './components/Toast';
 import ThemeSelector from './components/ThemeSelector';
 import NetworkStatus from './components/NetworkStatus';
 import { UIModeProvider } from './contexts/UIModeContext';
+import { DesignVariantProvider } from './contexts/DesignVariantContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import PWAInstallBanner from './components/PWAInstallBanner';
 import CookieConsentBanner from './components/CookieConsentBanner';
@@ -19,7 +20,7 @@ let mobileInitDone = false;
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const LoginPage = lazy(() => import('./components/LoginPage'));
 const RegisterPage = lazy(() => import('./components/RegisterPage'));
-const PricingPage = lazy(() => import('./components/PricingPage'));
+const PricingPage = lazy(() => import('./components/PricingPageV2'));
 const TermsPage = lazy(() => import('./components/TermsPage'));
 const PrivacyPage = lazy(() => import('./components/PrivacyPage'));
 const RefundPolicyPage = lazy(() => import('./components/RefundPolicyPage'));
@@ -938,9 +939,11 @@ export default function AppWrapper() {
       <ErrorBoundary>
         <LanguageProvider>
           <UIModeProvider>
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
+            <DesignVariantProvider>
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </DesignVariantProvider>
           </UIModeProvider>
         </LanguageProvider>
       </ErrorBoundary>

@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { Palette, Check, X, RotateCcw } from 'lucide-react';
+import { Palette, Check, X, RotateCcw, Sparkles } from 'lucide-react';
 import { themes, applyTheme, getThemeById, getStoredTheme, setStoredTheme, Theme } from '../lib/themes';
+import { useDesignVariant, DesignVariant } from '../contexts/DesignVariantContext';
 
 interface ThemeSelectorProps {
   onClose?: () => void;
@@ -104,6 +105,16 @@ const ThemeSelector: React.FC<ThemeSelectorProps> = ({ onClose }) => {
                 ))}
               </div>
 
+              {/* Design Variant Toggle */}
+              <div className="mt-6 mb-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles size={16} className="text-purple-500" />
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Design Style</h3>
+                  <span className="text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 px-1.5 py-0.5 rounded-full font-medium">NEW</span>
+                </div>
+                <DesignVariantToggle />
+              </div>
+
               {/* Info */}
               <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-blue-700 dark:text-blue-400">
@@ -180,5 +191,42 @@ const ThemeCard: React.FC<ThemeCardProps> = ({ theme, isSelected, isPreviewing, 
     </div>
   );
 };
+
+/* ── Design Variant Toggle ── */
+function DesignVariantToggle() {
+  const { variant, setVariant } = useDesignVariant();
+
+  const options: { id: DesignVariant; label: string; desc: string }[] = [
+    { id: 'default', label: 'Original', desc: 'Classic dark sidebar & layout' },
+    { id: 'premium', label: 'Premium', desc: 'Glass sidebar, refined animations' },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-xl">
+        {options.map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => setVariant(opt.id)}
+            className={`flex-1 flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+              variant === opt.id
+                ? 'bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-white ring-1 ring-gray-200 dark:ring-gray-600'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <span className="text-sm font-semibold">{opt.label}</span>
+            <span className="text-[10px] opacity-70">{opt.desc}</span>
+          </button>
+        ))}
+      </div>
+      {variant === 'premium' && (
+        <p className="text-[11px] text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+          <Sparkles size={12} />
+          Premium style active — glass sidebar, rounded nav, smoother hover effects
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default ThemeSelector;

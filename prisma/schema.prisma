@@ -91,6 +91,9 @@ model Business {
   aiCreditsUsed          Int                     @default(0)
   aiCreditsLimit         Int                     @default(100)
   aiCreditsPurchased     Int                     @default(0)
+  imageCreditsUsed       Int                     @default(0)
+  imageCreditsLimit      Int                     @default(1)
+  imageCreditsPurchased  Int                     @default(0)
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   admissionCompleted     Boolean                 @default(false)
@@ -204,6 +207,7 @@ model Business {
   workflows              Workflow[]
   workflowExecutions     WorkflowExecution[]
   workflowRuns           WorkflowRun[]
+  vCards                 VCard[]
 
   @@index([plan])
 }
@@ -2774,6 +2778,29 @@ model Lead {
   @@index([businessId])
   @@index([businessId, status])
   @@index([businessId, source])
+}
+
+model VCard {
+  id          String   @id @default(cuid())
+  businessId  String
+  name        String
+  title       String?
+  company     String?
+  phone       String?
+  email       String?
+  website     String?
+  address     String?
+  template    String   @default("professional")
+  color       String   @default("#2563eb")
+  views       Int      @default(0)
+  shares      Int      @default(0)
+  status      String   @default("active")
+  socialLinks Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  business    Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId])
 }
 
 model CustomRole {

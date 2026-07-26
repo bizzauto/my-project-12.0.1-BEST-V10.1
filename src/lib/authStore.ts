@@ -125,6 +125,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
     if (!token) {
       set({ isInitialized: true, isAuthenticated: false, isLoading: false });
       return;
@@ -135,17 +136,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { user, business } = res.data.data;
       const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
       const admissionCompleted = localStorage.getItem('admissionCompleted') === 'true';
-      
+
       // Map image to avatar for backward compatibility
       if (user?.image && !user.avatar) {
         user.avatar = user.image;
       }
-      
+
       // Sync admission status from business data if available
       if (business?.admissionCompleted) {
         localStorage.setItem('admissionCompleted', 'true');
       }
-      
+
       set({
         token,
         user,
@@ -159,14 +160,48 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error: any) {
       const status = error?.response?.status;
       const isAuthError = status === 401 || status === 403;
-      if (isAuthError) {
+
+      // ── Token expired? Try refresh before logging out ──
+      if (isAuthError && refreshToken) {
+        try {
+          const refreshRes = await authAPI.refreshToken(refreshToken);
+          const { token: newToken, refreshToken: newRefreshToken } = refreshRes.data.data;
+          localStorage.setItem('token', newToken);
+          if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
+
+          // Retry getProfile with the new token
+          const retryRes = await authAPI.getProfile();
+          const { user: freshUser, business: freshBusiness } = retryRes.data.data;
+          const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
+          const admissionCompleted = localStorage.getItem('admissionCompleted') === 'true';
+
+          if (freshUser?.image && !freshUser.avatar) {
+            freshUser.avatar = freshUser.image;
+          }
+
+          set({
+            token: newToken,
+            user: freshUser,
+            business: freshBusiness,
+            isAuthenticated: true,
+            isInitialized: true,
+            isLoading: false,
+            onboardingCompleted,
+            admissionCompleted,
+          });
+          return; // ✅ success — don't fall through to clear
+        } catch (refreshError: any) {
+          // Refresh also failed — session is truly dead
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          set({ token: null, user: null, business: null, isAuthenticated: false });
+        }
+      } else if (isAuthError) {
+        // No refresh token and auth error — clear session
         localStorage.removeItem('token');
         set({ token: null, user: null, business: null, isAuthenticated: false });
-      } else {
-        // Server/network error — token is still valid, don't log out.
-        // Next API call will re-verify via middleware and interceptor.
-        set({ isAuthenticated: true });
       }
+
       set({ isInitialized: true, isLoading: false });
     }
   },

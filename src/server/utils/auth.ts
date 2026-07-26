@@ -78,7 +78,7 @@ export const verifyRefreshToken = (token: string): any => {
 export const generateRefreshToken = (payload: object): string => {
   const secret = process.env.JWT_REFRESH_SECRET || getJwtSecret();
   return jwt.sign(payload, secret, {
-    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '30d') as jwt.SignOptions['expiresIn'],
+    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '90d') as jwt.SignOptions['expiresIn'],
     algorithm: 'HS256',
     audience: process.env.JWT_REFRESH_AUDIENCE || 'bizzauto-refresh',
     issuer: process.env.JWT_ISSUER || 'bizzauto',

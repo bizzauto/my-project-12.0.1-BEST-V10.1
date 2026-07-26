@@ -1131,6 +1131,173 @@ body {
   @apply focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500;
 }
 
+/* ===== DESIGN VARIANT TOKENS ===== */
+/* These vars are only available when .design-premium is active */
+.design-premium {
+  --dp-sidebar-glass: rgba(15, 23, 42, 0.82);
+  --dp-sidebar-border: rgba(255, 255, 255, 0.10);
+  --dp-nav-radius: 12px;
+  --dp-nav-hover-bg: rgba(255, 255, 255, 0.07);
+  --dp-nav-active-shadow: 0 0 24px color-mix(in srgb, var(--color-primary) 18%, transparent);
+  --dp-topbar-glass-dark: rgba(15, 23, 42, 0.55);
+  --dp-topbar-glass-light: rgba(255, 255, 255, 0.78);
+  --dp-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --dp-transition: 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ===== PREMIUM DESIGN VARIANT =====
+   Only activates when .design-premium is on <html>.
+   Overrides the default .shell-* classes without touching originals. */
+.design-premium .shell-sidebar,
+.design-premium .dp-sidebar {
+  background: var(--dp-sidebar-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--dp-sidebar-border);
+  /* Keep indicator inside border-radius */
+  overflow: visible;
+}
+
+.design-premium .shell-brand {
+  background: transparent;
+  padding: 1.25rem 1rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.design-premium .shell-nav-item {
+  border-radius: var(--dp-nav-radius);
+  margin: 2px 6px;
+  padding: 0.625rem 0.75rem;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.design-premium .shell-nav-item:hover {
+  background: var(--dp-nav-hover-bg);
+  transform: translateX(3px);
+}
+
+.design-premium .shell-nav-item-active {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-primary) 24%, transparent),
+    color-mix(in srgb, var(--color-primary) 6%, transparent)
+  ) !important;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  box-shadow: var(--dp-nav-active-shadow);
+}
+
+/* Fix nav indicator — use ::before instead of shell-nav-indicator for curve-safe positioning */
+.design-premium .shell-nav-item-active .shell-nav-indicator {
+  width: 3px;
+  height: 60%;
+  top: 20%;
+  left: -1px;
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-primary) 50%, transparent);
+}
+
+.design-premium .shell-section-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  padding: 0 0.75rem;
+  margin-bottom: 0.375rem;
+}
+
+/* Topbar — separate light/dark for premium */
+.design-premium .shell-topbar,
+.design-premium .dp-topbar {
+  background: var(--dp-topbar-glass-dark);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Light mode topbar override — lighter glass */
+:root:not(.dark) .design-premium .shell-topbar,
+:root:not(.dark) .design-premium .dp-topbar {
+  background: var(--dp-topbar-glass-light);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+:root:not(.dark) .design-premium .shell-topbar-mobile {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.design-premium .shell-search {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+}
+
+.design-premium .shell-search:focus {
+  border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent),
+              inset 0 1px 2px rgba(255, 255, 255, 0.05);
+}
+
+.design-premium .shell-cta {
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary-light) 25%, transparent);
+  margin: 0 6px;
+}
+
+.design-premium .shell-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.design-premium .shell-icon-btn {
+  transition: all 0.2s ease;
+}
+
+.design-premium .shell-icon-btn:hover {
+  background: var(--dp-nav-hover-bg);
+  transform: scale(1.08);
+}
+
+/* Premium cards — elevated look */
+.design-premium .modern-card {
+  box-shadow: var(--dp-card-shadow);
+  border-top: 2px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  transition: all 0.25s ease;
+}
+
+.design-premium .modern-card:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Premium content area */
+.design-premium .dp-content {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary)) 0%,
+    var(--color-bg-secondary) 100%);
+}
+
+/* Disable backdrop-filter on mobile for scroll perf */
+@media (max-width: 1024px) {
+  .design-premium .shell-sidebar,
+  .design-premium .dp-sidebar {
+    background: #0f172a !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .design-premium .shell-topbar,
+  .design-premium .dp-topbar {
+    background: #0f172a !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  :root:not(.dark) .design-premium .shell-topbar-mobile {
+    background: #ffffff !important;
+  }
+}
+
 /* ==================== ENTERPRISE APP SHELL ==================== */
 /* Corporate, trustworthy, dense-but-breathable. Reuses existing
    --color-* tokens so the 7 themes + dark mode keep working. */

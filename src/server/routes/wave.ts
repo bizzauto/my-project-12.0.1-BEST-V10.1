@@ -213,7 +213,6 @@ router.post('/sync-invoice/:invoiceId', async (req: AuthRequest, res: Response) 
     // Get the CRM invoice
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      include: { contact: true },
     });
 
     if (!invoice) {
@@ -225,9 +224,8 @@ router.post('/sync-invoice/:invoiceId', async (req: AuthRequest, res: Response) 
     }
 
     // Create customer in Wave if needed
-    const content = invoice.content as any;
-    const customerName = invoice.contact?.name || content?.customerName || 'Customer';
-    const customerEmail = invoice.contact?.email || content?.customerEmail || '';
+    const customerName = 'Customer';
+    const customerEmail = '';
 
     const customerResult = await WaveService.createCustomer(
       config.accessToken,
@@ -243,20 +241,13 @@ router.post('/sync-invoice/:invoiceId', async (req: AuthRequest, res: Response) 
     }
 
     // Create invoice in Wave
-    const lineItems = content?.items || [];
-    const waveLineItems = lineItems.map((item: any) => ({
-      description: item.description || item.name || 'Service',
-      quantity: item.quantity || 1,
-      unitPrice: item.unitPrice || item.amount || 0,
-    }));
-
-    if (waveLineItems.length === 0) {
-      waveLineItems.push({
-        description: content?.description || 'Invoice',
+    const waveLineItems = [
+      {
+        description: 'Invoice',
         quantity: 1,
         unitPrice: invoice.amount || 0,
-      });
-    }
+      },
+    ];
 
     const invoiceResult = await WaveService.createInvoice(
       config.accessToken,
@@ -264,8 +255,6 @@ router.post('/sync-invoice/:invoiceId', async (req: AuthRequest, res: Response) 
       {
         customerId: customerResult.data.id,
         lineItems: waveLineItems,
-        dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : undefined,
-        memo: content?.notes || content?.memo || undefined,
       }
     );
 
@@ -321,15 +310,14 @@ router.post('/sync-all', async (req: AuthRequest, res: Response) => {
     for (const invoice of unpaidInvoices) {
       try {
         // Reuse the sync logic
-        const content = invoice.content as any;
         const config = integration.config as any;
 
         const customerResult = await WaveService.createCustomer(
           config.accessToken,
           config.waveBusinessId,
           {
-            name: invoice.contact?.name || content?.customerName || 'Customer',
-            email: invoice.contact?.email || content?.customerEmail || '',
+            name: 'Customer',
+            email: '',
           }
         );
 
@@ -338,20 +326,13 @@ router.post('/sync-all', async (req: AuthRequest, res: Response) => {
           continue;
         }
 
-        const lineItems = content?.items || [];
-        const waveLineItems = lineItems.map((item: any) => ({
-          description: item.description || item.name || 'Service',
-          quantity: item.quantity || 1,
-          unitPrice: item.unitPrice || item.amount || 0,
-        }));
-
-        if (waveLineItems.length === 0) {
-          waveLineItems.push({
-            description: content?.description || 'Invoice',
+        const waveLineItems = [
+          {
+            description: 'Invoice',
             quantity: 1,
             unitPrice: invoice.amount || 0,
-          });
-        }
+          },
+        ];
 
         const invoiceResult = await WaveService.createInvoice(
           config.accessToken,
@@ -359,7 +340,6 @@ router.post('/sync-all', async (req: AuthRequest, res: Response) => {
           {
             customerId: customerResult.data.id,
             lineItems: waveLineItems,
-            dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : undefined,
           }
         );
 

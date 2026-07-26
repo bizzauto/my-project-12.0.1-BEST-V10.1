@@ -10,6 +10,16 @@ import { initPostHog } from "./lib/posthog-client";
 const savedTheme = getStoredTheme();
 applyTheme(getThemeById(savedTheme));
 
+// Apply saved design variant before render to prevent flash
+try {
+  const savedVariant = localStorage.getItem('bizzauto_design_variant');
+  if (savedVariant === 'premium') {
+    document.documentElement.classList.add('design-premium');
+  }
+} catch {
+  // localStorage unavailable
+}
+
 // Initialize PostHog analytics (client-side)
 initPostHog();
 

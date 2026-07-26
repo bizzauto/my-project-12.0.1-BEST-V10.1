@@ -142,7 +142,7 @@ export const authenticate = async (
         emailVerified: false,
       } as any;
 
-      if (user.role !== 'SUPER_ADMIN' && !user.businessId) {
+      if (!user.businessId) {
         return res.status(403).json({
           success: false,
           error: 'No business associated with your account. Please contact support.',

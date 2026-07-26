@@ -46,6 +46,10 @@ router.post('/', authenticate, async (req: any, res: any) => {
   try {
     const { content, platforms, scheduledAt } = req.body;
 
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ success: false, error: 'content is required' });
+    }
+
     const post = await prisma.post.create({
       data: {
         businessId: req.user.businessId,
@@ -99,6 +103,11 @@ router.delete('/:id', authenticate, async (req: any, res: any) => {
 router.post('/:id/schedule', authenticate, async (req: any, res: any) => {
   try {
     const { scheduledAt } = req.body;
+
+    if (!scheduledAt) {
+      return res.status(400).json({ success: false, error: 'scheduledAt is required' });
+    }
+
     const post = await prisma.post.findFirst({ where: { id: req.params.id, businessId: req.user.businessId } });
     if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
 

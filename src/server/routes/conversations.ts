@@ -340,6 +340,9 @@ router.get('/:contactId', authenticate, async (req: AuthRequest, res: Response) 
       createdAt: m.createdAt,
     }));
 
+    const hasEmail = formattedMessages.some((m) => m.type === 'email');
+    const channel = hasEmail ? 'email' : 'whatsapp';
+
     res.json({
       success: true,
       data: {
@@ -348,7 +351,7 @@ router.get('/:contactId', authenticate, async (req: AuthRequest, res: Response) 
         contactPhone: contact.phone,
         contactEmail: contact.email,
         contactAvatar: contact.waProfilePic || null,
-        channel: 'whatsapp',
+        channel,
         messages: formattedMessages,
         pagination: { total, page: pageNum, limit: limitNum },
       },

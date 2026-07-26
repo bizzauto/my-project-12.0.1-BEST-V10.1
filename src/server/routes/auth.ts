@@ -450,12 +450,20 @@ router.post('/apple', socialAuthLimiter, async (req: Request, res: Response) => 
         role: user.role,
       });
 
+      const refreshToken = generateRefreshToken({
+        id: user.id,
+        email: user.email,
+        businessId: user.businessId || 'super-admin',
+        role: user.role,
+      });
+
       return res.json({
         success: true,
         data: {
           user: { id: user.id, email: user.email, name: user.name, role: user.role, businessId: user.businessId },
           business: user.business ? { id: user.business.id, name: user.business.name, type: user.business.type, plan: user.business.plan } : null,
           token,
+          refreshToken,
         },
       });
     }
@@ -491,12 +499,20 @@ router.post('/apple', socialAuthLimiter, async (req: Request, res: Response) => 
       role: user.role,
     });
 
+    const refreshToken = generateRefreshToken({
+      id: user.id,
+      email: user.email,
+      businessId: user.businessId,
+      role: user.role,
+    });
+
     res.status(201).json({
       success: true,
       data: {
         user: { id: user.id, email: user.email, name: user.name, role: user.role, businessId: user.businessId },
         business: { id: business.id, name: business.name, type: business.type, plan: business.plan },
         token,
+        refreshToken,
       },
     });
   } catch (error: any) {
@@ -755,6 +771,13 @@ router.post('/register', registerLimiter, validate(registerSchema), async (req: 
       role: user.role,
     });
 
+    const refreshToken = generateRefreshToken({
+      id: user.id,
+      email: user.email,
+      businessId: user.businessId,
+      role: user.role,
+    });
+
     res.status(201).json({
       success: true,
       data: {
@@ -772,6 +795,7 @@ router.post('/register', registerLimiter, validate(registerSchema), async (req: 
           plan: business.plan,
         },
         token,
+        refreshToken,
       },
     });
   } catch (error: any) {
@@ -1418,7 +1442,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     // Blacklist the old refresh token to prevent reuse (refresh token rotation)
     try {
       const { blacklistRefreshToken } = await import('../services/token-blacklist.service.js');
-      const expiresIn = (parseInt(process.env.JWT_REFRESH_EXPIRES_IN || '2592000', 10)) * 1000;
+      const expiresIn = (parseInt(process.env.JWT_REFRESH_EXPIRES_IN || '7776000', 10)) * 1000;
       await blacklistRefreshToken(user.id, expiresIn).catch(() => {});
     } catch { /* Redis unavailable — skip blacklist */ }
 

@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from '../lib/authStore';
 import { useThemeStore } from '../lib/themeStore';
 import { MobileApp } from '../lib/capacitor-app';
+import { useDesignVariant } from '../contexts/DesignVariantContext';
 import { useViewport } from '../hooks/useViewport';
 import NotificationCenter from '../components/NotificationCenter';
 import AvaExecutiveAssistant from '../components/AvaExecutiveAssistant';
@@ -153,6 +154,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const userEmail = user?.email || 'admin@bizzauto.com';
   const userRole = user?.role || 'OWNER';
   const businessPlan = business?.plan || 'FREE';
+  const { variant } = useDesignVariant();
+  const isPremium = variant === 'premium';
 
   // Close notification dropdown on outside click
   useEffect(() => {
@@ -309,6 +312,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       {/* Desktop (lg+): always visible, collapsible w-64/w-20 (flex item, not fixed) */}
       <div
         className={`shell-sidebar flex-col transition-all duration-300 ${
+          isPremium ? 'dp-sidebar' : ''
+        } ${
           isMobile ? 'hidden' :
           isTablet ? `fixed left-0 top-0 z-50 ${sidebarOpen ? 'flex w-72 shadow-2xl' : 'hidden'}` :
           `flex flex-shrink-0 ${collapsed ? 'w-20' : 'w-64'}`
@@ -559,7 +564,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
 
         {/* ===== TABLET TOP BAR ===== */}
-        <div className="shell-topbar hidden md:flex lg:hidden px-4 sm:px-6 py-3 items-center justify-between sticky top-0 z-40">
+        <div className={`shell-topbar hidden md:flex lg:hidden px-4 sm:px-6 py-3 items-center justify-between sticky top-0 z-40 ${isPremium ? 'dp-topbar' : ''}`}>
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               onClick={() => setCollapsed(!collapsed)}
@@ -613,7 +618,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
 
         {/* ===== DESKTOP TOP BAR ===== */}
-        <div className="shell-topbar hidden lg:flex px-6 xl:px-8 py-3.5 items-center justify-between sticky top-0 z-40">
+        <div className={`shell-topbar hidden lg:flex px-6 xl:px-8 py-3.5 items-center justify-between sticky top-0 z-40 ${isPremium ? 'dp-topbar' : ''}`}>
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <button
               onClick={() => setCollapsed(!collapsed)}
@@ -670,7 +675,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
         {/* ===== PAGE CONTENT ===== */}
         <div
-          className="flex-1 overflow-y-auto"
+          className={`flex-1 overflow-y-auto ${isPremium ? 'dp-content' : ''}`}
           style={{
             minHeight: '0px',
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
