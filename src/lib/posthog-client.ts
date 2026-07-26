@@ -11,7 +11,9 @@ export function initPostHog(): void {
 
   const apiKey = import.meta.env.VITE_POSTHOG_API_KEY;
   if (!apiKey) {
-    console.warn('[PostHog] VITE_POSTHOG_API_KEY not set — client analytics disabled');
+    if (import.meta.env.DEV) {
+      console.log('[PostHog] VITE_POSTHOG_API_KEY not set — analytics disabled (expected in development)');
+    }
     return;
   }
 

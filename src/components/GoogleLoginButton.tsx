@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+// Module-level guard: Google GSI SDK should only be initialized ONCE globally.
+// Both LoginPage and RegisterPage mount this component; navigating between them
+// would re-invoke initialize() without this guard. React StrictMode's double-mount
+// in dev further multiplies the effect runs.
+let googleInitialized = false;
 
 interface Props {
   onError?: (msg: string) => void;
@@ -99,9 +104,10 @@ const GoogleLoginButton: React.FC<Props> = ({
         return;
       }
 
-      // Prevent re-initialization (StrictMode runs effects twice in dev)
-      if (initializedRef.current) return;
-      initializedRef.current = true;
+      // Prevent re-initialization (module-level guard — survives StrictMode double-mount
+      // and cross-page navigation between LoginPage and RegisterPage)
+      if (googleInitialized) return;
+      googleInitialized = true;
 
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,

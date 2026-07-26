@@ -60,8 +60,14 @@ router.post('/google-sheets', async (req: any, res: Response) => {
  */
 router.get('/google-sheets/oauth-url', async (req: any, res: Response) => {
   try {
+    const { popup } = req.query;
     const oauthUrl = GoogleSheetsService.getOAuthUrl();
-    res.json({ success: true, data: { oauthUrl } });
+
+    // Append popup flag to state so callback knows
+    const state = `popup=${popup === 'true'}`;
+    const url = `${oauthUrl}&state=${encodeURIComponent(state)}`;
+
+    res.json({ success: true, data: { oauthUrl: url } });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -69,25 +75,102 @@ router.get('/google-sheets/oauth-url', async (req: any, res: Response) => {
 
 /**
  * GET /api/integrations/google-sheets/callback
- * Handle Google OAuth callback
+ * Handle Google OAuth callback - supports both redirect and popup flows
  */
 router.get('/google-sheets/callback', async (req: any, res: Response) => {
   try {
-    const { code, state } = req.query;
-    const businessId = state; // Pass business ID in state parameter
+    const { code, state, popup } = req.query;
+    const businessId = req.query.businessId || req.query.state?.split('businessId=')[1]; // Can be in state or separate
+
+    // Parse state for popup flag
+    let isPopup = popup === 'true';
+    if (state && state.includes('popup=true')) {
+      isPopup = true;
+    }
 
     if (!code || !businessId) {
-      return res.status(400).json({ success: false, error: 'Missing code or businessId' });
+      const errorHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Google Sheets Integration Error</title></head>
+        <body style="font-family: system-ui; padding: 20px; text-align: center;">
+          <h2>❌ Integration Failed</h2>
+          <p>Missing authorization code or business ID.</p>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'GOOGLE_SHEETS_OAUTH_RESULT',
+                success: false,
+                error: 'Missing code or businessId'
+              }, '${new URL(req.headers.origin || 'http://localhost:5173').origin}');
+              window.close();
+            }
+          </script>
+        </body>
+        </html>
+      `;
+      return res.send(errorHtml);
     }
 
     const result = await GoogleSheetsService.handleOAuthCallback(businessId as string, code as string);
+    const origin = new URL(req.headers.origin || 'http://localhost:5173').origin;
 
+    // If popup mode, return HTML that posts message to parent
+    if (isPopup) {
+      const successHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Google Sheets Connected</title></head>
+        <body style="font-family: system-ui; padding: 20px; text-align: center;">
+          <h2>✅ Google Sheets Connected!</h2>
+          <p>You can close this window.</p>
+          <script>
+            window.opener?.postMessage({
+              type: 'GOOGLE_SHEETS_OAUTH_RESULT',
+              success: true,
+              spreadsheetId: '${result.spreadsheetId}',
+              spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/${result.spreadsheetId}'
+            }, '${origin}');
+            window.close();
+          </script>
+        </body>
+        </html>
+      `;
+      return res.send(successHtml);
+    }
+
+    // Standard JSON response for redirect flow
     res.json({
       success: true,
       message: 'Google Sheets connected successfully',
       data: result,
     });
   } catch (error: any) {
+    const origin = new URL(req.headers.origin || 'http://localhost:5173').origin;
+    const isPopup = req.query.popup === 'true' || (req.query.state && req.query.state.includes('popup=true'));
+
+    if (isPopup) {
+      const errorHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Google Sheets Integration Error</title></head>
+        <body style="font-family: system-ui; padding: 20px; text-align: center;">
+          <h2>❌ Integration Failed</h2>
+          <p>${error.message}</p>
+          <script>
+            window.opener?.postMessage({
+              type: 'GOOGLE_SHEETS_OAUTH_RESULT',
+              success: false,
+              error: '${error.message.replace(/'/g, "\\'")}'
+            }, '${origin}');
+            window.close();
+          </script>
+        </body>
+        </html>
+      `;
+      return res.send(errorHtml);
+    }
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
