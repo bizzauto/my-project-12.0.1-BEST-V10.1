@@ -119,6 +119,7 @@ model Business {
   activities             Activity[]
   analyticsIntegration   AnalyticsIntegration?
   apiKeys                ApiKey[]
+  externalIntegrations   ExternalIntegration[]
   appointments           Appointment[]
   appointmentReminders   AppointmentReminder[]
   auditLogs              AuditLog[]
@@ -1527,6 +1528,25 @@ model ApiKey {
   prefix      String?
   business    Business  @relation(fields: [businessId], references: [id])
 
+  @@index([businessId])
+}
+
+model ExternalIntegration {
+  id              String   @id @default(cuid())
+  businessId      String
+  provider        String   // "whatsapp", "shopify", "razorpay", "hubspot", "custom", etc.
+  name            String   // User-friendly name
+  apiKeyEncrypted String   // AES-256-GCM encrypted
+  config          Json?    // Base URL, webhook secrets, additional fields
+  isActive        Boolean  @default(true)
+  lastTestedAt    DateTime?
+  lastTestStatus  String?  // "success" | "failed"
+  lastTestError   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  business        Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId, provider])
   @@index([businessId])
 }
 

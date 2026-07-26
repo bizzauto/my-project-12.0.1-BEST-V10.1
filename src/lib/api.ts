@@ -386,6 +386,19 @@ export const notificationsAPI = {
   delete: (id: string) => apiClient.delete(`/notifications/${id}`),
 };
 
+// External Integrations API
+export const integrationsAPI = {
+  list: () => apiClient.get('/integrations'),
+  getProviders: () => apiClient.get('/integrations/providers/list'),
+  create: (data: { provider: string; name: string; apiKey: string; config?: any }) =>
+    apiClient.post('/integrations', data),
+  get: (id: string) => apiClient.get(`/integrations/${id}`),
+  update: (id: string, data: { name?: string; config?: any; apiKey?: string; isActive?: boolean }) =>
+    apiClient.put(`/integrations/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/integrations/${id}`),
+  test: (id: string) => apiClient.post(`/integrations/${id}/test`),
+};
+
 // Email Marketing API
 export const emailAPI = {
   listTemplates: (params?: any) => apiClient.get('/email/templates', { params }),

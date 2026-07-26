@@ -1,9 +1,6 @@
-import { Router, Response } from 'express';
-import { prisma } from '../db.js';
-import { authenticate } from '../middleware/auth.js';
-import { GoogleSheetsService } from '../services/google-sheets.service.js';
-import { EmailService } from '../services/email.service.js';
-import { WhatsAppService } from '../services/whatsapp.service.js';
+import { Router } from 'express';
+import { authenticate, requireRole, type AuthRequest } from '../middleware/auth.js';
+import { ExternalIntegrationService } from '../services/external-integration.service.js';
 
 const router = Router();
 
@@ -11,380 +8,237 @@ const router = Router();
 router.use(authenticate);
 
 /**
- * GET /api/integrations
- * List all integrations for business
+ * @route GET /api/integrations
+ * @desc List all external integrations for the business
+ * @access Private (OWNER, ADMIN, MEMBER)
  */
-router.get('/', async (req: any, res: Response) => {
+router.get('/', async (req: AuthRequest, res) => {
   try {
     const businessId = req.user.businessId;
+    if (!businessId) {
+      return res.status(400).json({ success: false, error: 'Business context required' });
+    }
 
-    const integrations = await prisma.integration.findMany({
-      where: { businessId },
-      orderBy: { createdAt: 'desc' },
-    });
-
+    const integrations = await ExternalIntegrationService.listByBusiness(businessId);
     res.json({ success: true, data: integrations });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('List integrations error:', error);
+    res.status(500).json({ success: false, error: 'Failed to list integrations' });
   }
 });
 
 /**
- * POST /api/integrations/google-sheets
- * Configure Google Sheets integration
+ * @route POST /api/integrations
+ * @desc Create a new external integration
+ * @access Private (OWNER, ADMIN)
  */
-router.post('/google-sheets', async (req: any, res: Response) => {
+router.post('/', requireRole('OWNER', 'ADMIN'), async (req: AuthRequest, res) => {
   try {
     const businessId = req.user.businessId;
-    const { spreadsheetId, accessToken, refreshToken, expiryDate, autoSync, syncInterval } =
-      req.body;
-
-    const integration = await GoogleSheetsService.configureIntegration(businessId, {
-      spreadsheetId,
-      accessToken,
-      refreshToken,
-      expiryDate,
-      autoSync,
-      syncInterval,
-    });
-
-    res.json({ success: true, data: integration });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * GET /api/integrations/google-sheets/oauth-url
- * Get Google OAuth URL
- */
-router.get('/google-sheets/oauth-url', async (req: any, res: Response) => {
-  try {
-    const { popup } = req.query;
-    const oauthUrl = GoogleSheetsService.getOAuthUrl();
-
-    // Append popup flag to state so callback knows
-    const state = `popup=${popup === 'true'}`;
-    const url = `${oauthUrl}&state=${encodeURIComponent(state)}`;
-
-    res.json({ success: true, data: { oauthUrl: url } });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * GET /api/integrations/google-sheets/callback
- * Handle Google OAuth callback - supports both redirect and popup flows
- */
-router.get('/google-sheets/callback', async (req: any, res: Response) => {
-  try {
-    const { code, state, popup } = req.query;
-    const businessId = req.query.businessId || req.query.state?.split('businessId=')[1]; // Can be in state or separate
-
-    // Parse state for popup flag
-    let isPopup = popup === 'true';
-    if (state && state.includes('popup=true')) {
-      isPopup = true;
+    if (!businessId) {
+      return res.status(400).json({ success: false, error: 'Business context required' });
     }
 
-    if (!code || !businessId) {
-      const errorHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head><title>Google Sheets Integration Error</title></head>
-        <body style="font-family: system-ui; padding: 20px; text-align: center;">
-          <h2>❌ Integration Failed</h2>
-          <p>Missing authorization code or business ID.</p>
-          <script>
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'GOOGLE_SHEETS_OAUTH_RESULT',
-                success: false,
-                error: 'Missing code or businessId'
-              }, '${new URL(req.headers.origin || 'http://localhost:5173').origin}');
-              window.close();
-            }
-          </script>
-        </body>
-        </html>
-      `;
-      return res.send(errorHtml);
-    }
+    const { provider, name, apiKey, config } = req.body;
 
-    const result = await GoogleSheetsService.handleOAuthCallback(businessId as string, code as string);
-    const origin = new URL(req.headers.origin || 'http://localhost:5173').origin;
-
-    // If popup mode, return HTML that posts message to parent
-    if (isPopup) {
-      const successHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head><title>Google Sheets Connected</title></head>
-        <body style="font-family: system-ui; padding: 20px; text-align: center;">
-          <h2>✅ Google Sheets Connected!</h2>
-          <p>You can close this window.</p>
-          <script>
-            window.opener?.postMessage({
-              type: 'GOOGLE_SHEETS_OAUTH_RESULT',
-              success: true,
-              spreadsheetId: '${result.spreadsheetId}',
-              spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/${result.spreadsheetId}'
-            }, '${origin}');
-            window.close();
-          </script>
-        </body>
-        </html>
-      `;
-      return res.send(successHtml);
-    }
-
-    // Standard JSON response for redirect flow
-    res.json({
-      success: true,
-      message: 'Google Sheets connected successfully',
-      data: result,
-    });
-  } catch (error: any) {
-    const origin = new URL(req.headers.origin || 'http://localhost:5173').origin;
-    const isPopup = req.query.popup === 'true' || (req.query.state && req.query.state.includes('popup=true'));
-
-    if (isPopup) {
-      const errorHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head><title>Google Sheets Integration Error</title></head>
-        <body style="font-family: system-ui; padding: 20px; text-align: center;">
-          <h2>❌ Integration Failed</h2>
-          <p>${error.message}</p>
-          <script>
-            window.opener?.postMessage({
-              type: 'GOOGLE_SHEETS_OAUTH_RESULT',
-              success: false,
-              error: '${error.message.replace(/'/g, "\\'")}'
-            }, '${origin}');
-            window.close();
-          </script>
-        </body>
-        </html>
-      `;
-      return res.send(errorHtml);
-    }
-
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * POST /api/integrations/google-sheets/sync
- * Sync contacts to Google Sheets
- */
-router.post('/google-sheets/sync', async (req: any, res: Response) => {
-  try {
-    const businessId = req.user.businessId;
-    const { spreadsheetId, sheetName, filter } = req.body;
-
-    const result = await GoogleSheetsService.syncContacts(businessId, {
-      spreadsheetId,
-      sheetName,
-      filter,
-    });
-
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * POST /api/integrations/google-sheets/import
- * Import contacts from Google Sheets
- */
-router.post('/google-sheets/import', async (req: any, res: Response) => {
-  try {
-    const businessId = req.user.businessId;
-    const { spreadsheetId, sheetName, range } = req.body;
-
-    const result = await GoogleSheetsService.importContacts(businessId, {
-      spreadsheetId,
-      sheetName,
-      range,
-    });
-
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * POST /api/integrations/google-sheets/create
- * Create new spreadsheet
- */
-router.post('/google-sheets/create', async (req: any, res: Response) => {
-  try {
-    const businessId = req.user.businessId;
-    const { title } = req.body;
-
-    const result = await GoogleSheetsService.createSpreadsheet(businessId, title || 'CRM Contacts');
-
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * POST /api/integrations/email
- * Configure email integration
- */
-router.post('/email', async (req: any, res: Response) => {
-  try {
-    const businessId = req.user.businessId;
-    const {
-      smtpHost,
-      smtpPort,
-      smtpSecure,
-      smtpUser,
-      smtpPass,
-      fromName,
-      enableAutoReply,
-      autoReplyMessage,
-    } = req.body;
-
-    const integration = await EmailService.configureEmail(businessId, {
-      host: smtpHost || 'smtp.gmail.com',
-      port: smtpPort || 587,
-      secure: smtpSecure || false,
-      user: smtpUser,
-      pass: smtpPass,
-      fromName: fromName || smtpUser,
-    });
-
-    res.json({ success: true, data: integration });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * POST /api/integrations/email/test
- * Test email configuration
- */
-router.post('/email/test', async (req: any, res: Response) => {
-  try {
-    const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass } = req.body;
-
-
-    const isValid = await EmailService.testEmailConfig({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpSecure,
-      user: smtpUser,
-      pass: smtpPass,
-    });
-
-    res.json({ success: true, data: { valid: isValid } });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * POST /api/integrations/proxy
- * Add proxy for WhatsApp
- */
-router.post('/proxy', async (req: any, res: Response) => {
-  try {
-    const businessId = req.user.businessId;
-    const { url, username, password } = req.body;
-
-    const proxy = await WhatsAppService.addProxy(businessId, {
-      url,
-      username,
-      password,
-    });
-
-    res.json({ success: true, data: proxy });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * POST /api/integrations
- * Create custom integration
- */
-router.post('/', async (req: any, res: Response) => {
-  try {
-    const businessId = req.user.businessId;
-    const { type, name, config, isActive } = req.body;
-
-    if (!type || !name) {
+    // Validate required fields
+    if (!provider || !name || !apiKey) {
       return res.status(400).json({
         success: false,
-        error: 'Type and name are required',
+        error: 'Provider, name, and API key are required'
       });
     }
 
-    const integration = await prisma.integration.create({
-      data: {
-        businessId,
-        type,
-        name,
-        config: config || {},
-        isActive: isActive !== false,
-      },
+    // Validate provider
+    const validProviders = ['whatsapp', 'shopify', 'razorpay', 'hubspot', 'zoho', 'custom'];
+    if (!validProviders.includes(provider)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid provider. Must be one of: ${validProviders.join(', ')}`
+      });
+    }
+
+    const integration = await ExternalIntegrationService.create({
+      businessId,
+      provider,
+      name,
+      apiKey,
+      config,
     });
 
-    res.json({ success: true, data: integration });
+    res.status(201).json({ success: true, data: integration });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Create integration error:', error);
+    res.status(500).json({ success: false, error: 'Failed to create integration' });
   }
 });
 
 /**
- * PUT /api/integrations/:id
- * Update integration
+ * @route GET /api/integrations/:id
+ * @desc Get a single integration (without API key)
+ * @access Private (OWNER, ADMIN, MEMBER)
  */
-router.put('/:id', async (req: any, res: Response) => {
+router.get('/:id', async (req: AuthRequest, res) => {
   try {
     const businessId = req.user.businessId;
-    const { id } = req.params;
-    const { name, config, isActive } = req.body;
+    if (!businessId) {
+      return res.status(400).json({ success: false, error: 'Business context required' });
+    }
 
-    const integration = await prisma.integration.update({
-      where: { id, businessId },
-      data: {
-        ...(name && { name }),
-        ...(config && { config }),
-        ...(typeof isActive === 'boolean' && { isActive }),
-      },
-    });
+    const integration = await ExternalIntegrationService.getById(req.params.id, businessId);
+
+    if (!integration) {
+      return res.status(404).json({ success: false, error: 'Integration not found' });
+    }
 
     res.json({ success: true, data: integration });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Get integration error:', error);
+    res.status(500).json({ success: false, error: 'Failed to get integration' });
   }
 });
 
 /**
- * DELETE /api/integrations/:id
- * Delete integration
+ * @route PUT /api/integrations/:id
+ * @desc Update an integration
+ * @access Private (OWNER, ADMIN)
  */
-router.delete('/:id', async (req: any, res: Response) => {
+router.put('/:id', requireRole('OWNER', 'ADMIN'), async (req: AuthRequest, res) => {
   try {
     const businessId = req.user.businessId;
-    const { id } = req.params;
+    if (!businessId) {
+      return res.status(400).json({ success: false, error: 'Business context required' });
+    }
 
-    await prisma.integration.delete({
-      where: { id, businessId },
-    });
+    const { name, config, apiKey, isActive } = req.body;
 
-    res.json({ success: true, message: 'Integration deleted' });
+    const integration = await ExternalIntegrationService.update(
+      req.params.id,
+      businessId,
+      { name, config, apiKey, isActive }
+    );
+
+    if (!integration) {
+      return res.status(404).json({ success: false, error: 'Integration not found' });
+    }
+
+    res.json({ success: true, data: integration });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Update integration error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update integration' });
   }
+});
+
+/**
+ * @route DELETE /api/integrations/:id
+ * @desc Delete an integration
+ * @access Private (OWNER, ADMIN)
+ */
+router.delete('/:id', requireRole('OWNER', 'ADMIN'), async (req: AuthRequest, res) => {
+  try {
+    const businessId = req.user.businessId;
+    if (!businessId) {
+      return res.status(400).json({ success: false, error: 'Business context required' });
+    }
+
+    await ExternalIntegrationService.delete(req.params.id, businessId);
+    res.json({ success: true, message: 'Integration deleted successfully' });
+  } catch (error: any) {
+    console.error('Delete integration error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete integration' });
+  }
+});
+
+/**
+ * @route POST /api/integrations/:id/test
+ * @desc Test an integration connection
+ * @access Private (OWNER, ADMIN)
+ */
+router.post('/:id/test', requireRole('OWNER', 'ADMIN'), async (req: AuthRequest, res) => {
+  try {
+    const businessId = req.user.businessId;
+    if (!businessId) {
+      return res.status(400).json({ success: false, error: 'Business context required' });
+    }
+
+    const result = await ExternalIntegrationService.testIntegration(req.params.id, businessId);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('Test integration error:', error);
+    res.status(500).json({ success: false, error: 'Failed to test integration' });
+  }
+});
+
+/**
+ * @route GET /api/integrations/providers/list
+ * @desc Get list of supported providers with their config schema
+ * @access Private
+ */
+router.get('/providers/list', (req: AuthRequest, res) => {
+  const providers = [
+    {
+      id: 'whatsapp',
+      name: 'WhatsApp Business API',
+      description: 'Send WhatsApp messages, templates, and manage conversations',
+      authType: 'bearer',
+      configFields: [
+        { key: 'phoneNumberId', label: 'Phone Number ID', type: 'string', required: true, description: 'WhatsApp Business Phone Number ID from Meta' },
+        { key: 'businessAccountId', label: 'Business Account ID', type: 'string', required: false, description: 'Meta Business Account ID' },
+        { key: 'webhookSecret', label: 'Webhook Verify Token', type: 'string', required: false, description: 'For receiving webhooks' },
+      ],
+    },
+    {
+      id: 'shopify',
+      name: 'Shopify',
+      description: 'Manage products, orders, customers in Shopify store',
+      authType: 'header',
+      configFields: [
+        { key: 'shopDomain', label: 'Shop Domain', type: 'string', required: true, description: 'Your shop myshopify.com domain' },
+      ],
+    },
+    {
+      id: 'razorpay',
+      name: 'Razorpay',
+      description: 'Accept payments, manage subscriptions, payouts',
+      authType: 'basic',
+      configFields: [
+        { key: 'keySecret', label: 'Key Secret', type: 'password', required: true, description: 'Razorpay Key Secret (or include in API key as key_id:key_secret)' },
+        { key: 'webhookSecret', label: 'Webhook Secret', type: 'password', required: false, description: 'For verifying payment webhooks' },
+      ],
+    },
+    {
+      id: 'hubspot',
+      name: 'HubSpot CRM',
+      description: 'Sync contacts, deals, companies with HubSpot',
+      authType: 'bearer',
+      configFields: [
+        { key: 'webhookSecret', label: 'Webhook Secret', type: 'password', required: false, description: 'For verifying HubSpot webhooks' },
+      ],
+    },
+    {
+      id: 'zoho',
+      name: 'Zoho CRM',
+      description: 'Manage leads, contacts, deals in Zoho CRM',
+      authType: 'custom',
+      configFields: [
+        { key: 'organizationId', label: 'Organization ID', type: 'string', required: false, description: 'Zoho Organization ID' },
+      ],
+    },
+    {
+      id: 'custom',
+      name: 'Custom REST API',
+      description: 'Connect to any REST API with Bearer/Basic/Custom auth',
+      authType: 'custom',
+      configFields: [
+        { key: 'baseUrl', label: 'Base URL', type: 'url', required: true, description: 'API base URL (e.g., https://api.example.com/v1)' },
+        { key: 'authHeader', label: 'Auth Header Name', type: 'string', required: false, default: 'Authorization', description: 'Header name for authentication' },
+        { key: 'authPrefix', label: 'Auth Prefix', type: 'string', required: false, default: 'Bearer', description: 'Prefix for auth value (Bearer, Basic, Token, etc.)' },
+        { key: 'healthEndpoint', label: 'Health Check Endpoint', type: 'string', required: false, default: '/health', description: 'Endpoint to test connectivity' },
+      ],
+    },
+  ];
+
+  res.json({ success: true, data: providers });
 });
 
 export default router;
