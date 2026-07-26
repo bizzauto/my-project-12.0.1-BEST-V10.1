@@ -4,6 +4,75 @@ import { authenticate, requireBusinessOwner, AuthRequest } from '../middleware/a
 import { WaveService } from '../services/wave.service.js';
 
 const router = Router();
+
+/**
+ * GET /api/wave/callback
+ * Handle OAuth callback from Wave (public — no auth middleware)
+ * MUST be registered BEFORE router.use(authenticate)
+ */
+router.get('/callback', async (req: Request, res: Response) => {
+  try {
+    const { code, state } = req.query;
+
+    if (!code || !state) {
+      return res.status(400).json({ success: false, error: 'Missing code or state' });
+    }
+
+    const { businessId } = JSON.parse(Buffer.from(state as string, 'base64').toString());
+    const redirectUri = `${process.env.BASE_URL || 'http://localhost:3001'}/api/wave/callback`;
+
+    const tokenResult = await WaveService.exchangeCodeForToken(code as string, redirectUri);
+    if (!tokenResult.success || !tokenResult.data) {
+      return res.status(400).json({ success: false, error: tokenResult.error });
+    }
+
+    // Test connection to get business info
+    const connectionTest = await WaveService.testConnection(tokenResult.data.accessToken);
+    const businessName = connectionTest.success ? connectionTest.data?.businessName : null;
+    const waveBusinessId = connectionTest.success ? connectionTest.data?.businessId : null;
+
+    // Save to Integration model
+    await prisma.integration.upsert({
+      where: { businessId_type: { businessId, type: 'wave' } },
+      create: {
+        businessId,
+        type: 'wave',
+        name: 'Wave Accounting',
+        config: {
+          accessToken: tokenResult.data.accessToken,
+          refreshToken: tokenResult.data.refreshToken,
+          expiresIn: tokenResult.data.expiresIn,
+          businessName,
+          waveBusinessId,
+          autoSync: false,
+        },
+        isActive: true,
+      },
+      update: {
+        config: {
+          accessToken: tokenResult.data.accessToken,
+          refreshToken: tokenResult.data.refreshToken,
+          expiresIn: tokenResult.data.expiresIn,
+          businessName,
+          waveBusinessId,
+          autoSync: false,
+        },
+        isActive: true,
+        lastError: null,
+      },
+    });
+
+    // Redirect to frontend settings page
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/settings/wave?connected=true`);
+  } catch (error: any) {
+    console.error('[Wave] Callback failed:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/settings/wave?error=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Apply auth middleware to all OTHER routes
 router.use(authenticate);
 
 /**
@@ -65,72 +134,6 @@ router.get('/auth-url', (req: AuthRequest, res: Response) => {
     return res.json({ success: true, data: { authUrl } });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * GET /api/wave/callback
- * Handle OAuth callback from Wave (public — no auth middleware)
- */
-router.get('/callback', async (req: Request, res: Response) => {
-  try {
-    const { code, state } = req.query;
-
-    if (!code || !state) {
-      return res.status(400).json({ success: false, error: 'Missing code or state' });
-    }
-
-    const { businessId } = JSON.parse(Buffer.from(state as string, 'base64').toString());
-    const redirectUri = `${process.env.BASE_URL || 'http://localhost:3001'}/api/wave/callback`;
-
-    const tokenResult = await WaveService.exchangeCodeForToken(code as string, redirectUri);
-    if (!tokenResult.success || !tokenResult.data) {
-      return res.status(400).json({ success: false, error: tokenResult.error });
-    }
-
-    // Test connection to get business info
-    const connectionTest = await WaveService.testConnection(tokenResult.data.accessToken);
-    const businessName = connectionTest.success ? connectionTest.data?.businessName : null;
-    const waveBusinessId = connectionTest.success ? connectionTest.data?.businessId : null;
-
-    // Save to Integration model
-    await prisma.integration.upsert({
-      where: { businessId_type: { businessId, type: 'wave' } },
-      create: {
-        businessId,
-        type: 'wave',
-        name: 'Wave Accounting',
-        config: {
-          accessToken: tokenResult.data.accessToken,
-          refreshToken: tokenResult.data.refreshToken,
-          expiresIn: tokenResult.data.expiresIn,
-          businessName,
-          waveBusinessId,
-          autoSync: false,
-        },
-        isActive: true,
-      },
-      update: {
-        config: {
-          accessToken: tokenResult.data.accessToken,
-          refreshToken: tokenResult.data.refreshToken,
-          expiresIn: tokenResult.data.expiresIn,
-          businessName,
-          waveBusinessId,
-          autoSync: false,
-        },
-        isActive: true,
-        lastError: null,
-      },
-    });
-
-    // Redirect to frontend settings page
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/settings/wave?connected=true`);
-  } catch (error: any) {
-    console.error('[Wave] Callback failed:', error);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/settings/wave?error=${encodeURIComponent(error.message)}`);
   }
 });
 

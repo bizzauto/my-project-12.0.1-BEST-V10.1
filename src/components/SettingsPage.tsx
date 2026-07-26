@@ -304,15 +304,26 @@ export default function SettingsPage() {
                 </span>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/settings/white-label')}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all text-sm font-medium shadow-lg shadow-indigo-500/25"
-            >
-              <ExternalLink size={14} />
-              Open Full White-Label Settings
-              <ArrowRight size={14} />
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => navigate('/settings/white-label')}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all text-sm font-medium shadow-lg shadow-indigo-500/25"
+              >
+                <ExternalLink size={14} />
+                Open Full White-Label Settings
+                <ArrowRight size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/settings/wave')}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all text-sm font-medium shadow-lg shadow-blue-500/25"
+              >
+                <ExternalLink size={14} />
+                Wave Accounting Settings
+                <ArrowRight size={14} />
+              </button>
+            </div>
           </div>
 
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
