@@ -5,8 +5,19 @@
       "name": "vite-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 5173,
-      "autoPort": true
+      "port": 5173
+    },
+    {
+      "name": "next-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "billinvoice",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "-p", "3101"],
+      "port": 3100
     }
   ]
 }

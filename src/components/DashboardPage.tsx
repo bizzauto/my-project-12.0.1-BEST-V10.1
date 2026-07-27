@@ -289,11 +289,11 @@ export default function DashboardPage() {
       setStats(statsData);
 
       // Set analytics chart data
-      const chartData = dashData?.data?.chartData ?? [];
+      const chartData = dashData?.chartData ?? [];
       setAnalyticsData(Array.isArray(chartData) ? chartData : []);
 
       // Set pipeline distribution
-      const pipeData = dashData?.data?.pipeline ?? [];
+      const pipeData = dashData?.pipeline ?? [];
       setPipelineData(Array.isArray(pipeData) ? pipeData : []);
 
       // Set recent leads
@@ -312,15 +312,15 @@ export default function DashboardPage() {
       setRecentLeads(formattedLeads);
 
       // Set revenue data from API (fallback to demo)
-      const revData = dashData?.data?.revenue ?? [];
+      const revData = dashData?.revenue ?? [];
       setRevenueData(Array.isArray(revData) && revData.length > 0 ? revData : demoRevenueData);
 
       // Set activity feed from API (fallback to demo)
-      const actData = dashData?.data?.activity ?? [];
+      const actData = dashData?.activity ?? [];
       setActivityFeed(Array.isArray(actData) && actData.length > 0 ? actData : demoActivityFeed);
 
       // Set AI insights from API (fallback to demo)
-      const insData = dashData?.data?.insights ?? [];
+      const insData = dashData?.insights ?? [];
       setInsights(Array.isArray(insData) && insData.length > 0 ? insData : demoInsights);
     } catch (err: any) {
       console.error('Failed to fetch dashboard data:', err);
