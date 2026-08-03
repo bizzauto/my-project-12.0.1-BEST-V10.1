@@ -34,6 +34,7 @@ RUN npm ci --omit=dev --no-audit --no-fund --loglevel error && npx prisma genera
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
+COPY scripts ./scripts
 COPY start.sh ./start.sh
 RUN chmod +x start.sh
 
