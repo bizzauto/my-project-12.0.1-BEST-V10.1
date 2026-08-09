@@ -2,7 +2,7 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { prisma } from '../db.js';
 
-// Validate Razorpay env vars
+// Lazy Razorpay init — initialize only when needed, skip at startup if keys missing
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
@@ -14,10 +14,22 @@ if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
   console.log(`[Razorpay] Initialized with key: ${RAZORPAY_KEY_ID.substring(0, 8)}...`);
 }
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: RAZORPAY_KEY_ID || 'missing_key_id',
-  key_secret: RAZORPAY_KEY_SECRET || 'missing_key_secret',
+let razorpayInstance: any = null;
+function getRazorpayInstance() {
+  if (!razorpayInstance) {
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+      throw new Error('Razorpay not configured');
+    }
+    razorpayInstance = new Razorpay({
+      key_id: RAZORPAY_KEY_ID,
+      key_secret: RAZORPAY_KEY_SECRET,
+    });
+  }
+  return razorpayInstance;
+}
+// Backwards-compatible export: proxy access through lazy getter
+const razorpay = new Proxy({} as any, {
+  get: (_target, prop) => getRazorpayInstance()[prop as keyof any],
 });
 
 // Plan pricing

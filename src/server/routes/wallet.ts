@@ -5,14 +5,20 @@ import Razorpay from 'razorpay';
 
 const router = Router();
 
-// Initialize Razorpay
-if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-  console.warn('[Wallet] Razorpay keys not configured — wallet recharge will be unavailable');
+// Lazy Razorpay init — don't crash at startup if keys are missing
+let razorpay: InstanceType<typeof Razorpay> | null = null;
+function getRazorpay(): InstanceType<typeof Razorpay> {
+  if (!razorpay) {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keyId || !keySecret) {
+      console.warn('[Wallet] Razorpay keys not configured — wallet recharge will be unavailable');
+      throw new Error('[Wallet] Razorpay keys not configured');
+    }
+    razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
+  }
+  return razorpay;
 }
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || '',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
-});
 
 const PLATFORM_MARGIN_PERCENT = 0.10;
 
@@ -89,7 +95,7 @@ router.post('/recharge', authenticate, async (req: AuthRequest, res: Response) =
 
     const amountInPaise = Math.round(amount * 100);
 
-    const order = await razorpay.orders.create({
+    const order = await getRazorpay().orders.create({
       amount: amountInPaise,
       currency: 'INR',
       receipt: `wallet_${req.user.businessId}_${Date.now()}`,
@@ -143,7 +149,7 @@ router.post('/recharge/verify', authenticate, async (req: AuthRequest, res: Resp
     }
 
     // Fetch order from Razorpay to get authoritative amount (never trust client)
-    const order = await razorpay.orders.fetch(razorpay_order_id);
+    const order = await getRazorpay().orders.fetch(razorpay_order_id);
     if (!order || order.status !== 'paid') {
       return res.status(400).json({ success: false, error: 'Payment not completed' });
     }
