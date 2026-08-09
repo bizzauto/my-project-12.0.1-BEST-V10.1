@@ -12,7 +12,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     });
     res.json({ success: true, data: flows });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch flows', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch flows' });
   }
 });
 
@@ -32,7 +32,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     });
     res.status(201).json({ success: true, data: flow });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to create flow', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create flow' });
   }
 });
 
@@ -51,7 +51,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     });
     res.json({ success: true, data: updated });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to update flow', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update flow' });
   }
 });
 
@@ -69,7 +69,7 @@ router.post('/:id/toggle', authenticate, async (req: AuthRequest, res: Response)
     });
     res.json({ success: true, data: updated });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to toggle flow', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to toggle flow' });
   }
 });
 
@@ -87,7 +87,7 @@ router.post('/:id/activate', authenticate, async (req: AuthRequest, res: Respons
     });
     res.json({ success: true, data: updated });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to activate flow', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to activate flow' });
   }
 });
 
@@ -105,7 +105,7 @@ router.post('/:id/deactivate', authenticate, async (req: AuthRequest, res: Respo
     });
     res.json({ success: true, data: updated });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to deactivate flow', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to deactivate flow' });
   }
 });
 
@@ -127,7 +127,7 @@ router.post('/:id/test', authenticate, async (req: AuthRequest, res: Response) =
       }
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to test flow', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to test flow' });
   }
 });
 
@@ -142,7 +142,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     await prisma.chatbotFlow.delete({ where: { id: req.params.id } });
     res.json({ success: true, message: 'Flow deleted' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to delete flow', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to delete flow' });
   }
 });
 

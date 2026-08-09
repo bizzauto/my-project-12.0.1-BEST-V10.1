@@ -33,7 +33,7 @@ export const MobileApp = {
       // Harden native navigation (hardware back, etc.)
       this.setupNativeNavigation();
     } catch (err) {
-      console.log('Mobile init error:', err);
+      console.error('Mobile init error:', err);
     }
   },
 
@@ -73,7 +73,7 @@ export const MobileApp = {
     try {
       await Share.share({ title, text, url });
     } catch (err) {
-      console.log('Share error:', err);
+      console.error('Share error:', err);
     }
   },
 
@@ -89,7 +89,7 @@ export const MobileApp = {
       });
       return photo.dataUrl || null;
     } catch (err) {
-      console.log('Camera error:', err);
+      console.error('Camera error:', err);
       return null;
     }
   },
@@ -106,7 +106,7 @@ export const MobileApp = {
       });
       return photo.dataUrl || null;
     } catch (err) {
-      console.log('Gallery error:', err);
+      console.error('Gallery error:', err);
       return null;
     }
   },

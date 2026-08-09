@@ -140,8 +140,7 @@ const OnboardingWizard: React.FC<{ onComplete?: () => void }> = ({ onComplete })
           )}
 
           {step === 1 && setupMode === 'auto' && (
-            <AutoSetupWizard onComplete={(data) => {
-              console.log('Setup data:', data);
+            <AutoSetupWizard onComplete={(_data) => {
               setStep(2);
             }} />
           )}

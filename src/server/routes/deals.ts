@@ -111,7 +111,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: any) => {
     });
   } catch (error: any) {
     console.error('Get deals error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch deals', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch deals' });
   }
 });
 
@@ -261,7 +261,7 @@ router.get('/stats', authenticate, cacheResponse(30), async (req: AuthRequest, r
     });
   } catch (error: any) {
     console.error('Get deal stats error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch deal stats', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch deal stats' });
   }
 });
 
@@ -321,7 +321,7 @@ router.put('/:id/stage', authenticate, requireRole('OWNER', 'ADMIN'), validate(u
     });
   } catch (error: any) {
     console.error('Update deal stage error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update deal stage', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update deal stage' });
   }
 });
 
@@ -354,7 +354,7 @@ router.put('/:id', authenticate, requireRole('OWNER', 'ADMIN'), validate(updateD
     res.json({ success: true, data: updated });
   } catch (error: any) {
     console.error('Update deal error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update deal', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update deal' });
   }
 });
 

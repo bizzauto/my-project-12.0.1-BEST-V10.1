@@ -44,7 +44,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Get funnels error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch funnels', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch funnels' });
   }
 });
 
@@ -63,7 +63,7 @@ router.get('/templates', authenticate, async (req: AuthRequest, res: Response) =
     res.json({ success: true, data: templates });
   } catch (error: any) {
     console.error('Get funnel templates error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch templates', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch templates' });
   }
 });
 
@@ -84,7 +84,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     res.json({ success: true, data: funnel });
   } catch (error: any) {
     console.error('Get funnel error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch funnel', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch funnel' });
   }
 });
 
@@ -110,7 +110,7 @@ router.post('/', authenticate, requireRole('OWNER', 'ADMIN'), async (req: AuthRe
     res.status(201).json({ success: true, data: funnel });
   } catch (error: any) {
     console.error('Create funnel error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create funnel', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create funnel' });
   }
 });
 
@@ -135,7 +135,7 @@ router.put('/:id', authenticate, requireRole('OWNER', 'ADMIN'), async (req: Auth
     res.json({ success: true, data: funnel });
   } catch (error: any) {
     console.error('Update funnel error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update funnel', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update funnel' });
   }
 });
 
@@ -155,7 +155,7 @@ router.delete('/:id', authenticate, requireRole('OWNER', 'ADMIN'), async (req: A
     res.json({ success: true, message: 'Funnel deleted' });
   } catch (error: any) {
     console.error('Delete funnel error:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete funnel', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to delete funnel' });
   }
 });
 
@@ -199,7 +199,7 @@ router.get('/:id/preview', authenticate, async (req: AuthRequest, res: Response)
     res.json({ success: true, data: { html, funnel: { id: funnel.id, name: funnel.name, pages: funnel.pages.length } } });
   } catch (error: any) {
     console.error('Preview funnel error:', error);
-    res.status(500).json({ success: false, error: 'Failed to preview funnel', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to preview funnel' });
   }
 });
 
@@ -258,7 +258,7 @@ router.post('/:id/pages', authenticate, requireRole('OWNER', 'ADMIN'), async (re
       return res.status(409).json({ success: false, error: 'A page with this slug already exists in this funnel' });
     }
     console.error('Create funnel page error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create page', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create page' });
   }
 });
 
@@ -307,7 +307,7 @@ router.put('/pages/:pageId', authenticate, requireRole('OWNER', 'ADMIN'), async 
       return res.status(409).json({ success: false, error: 'A page with this slug already exists in this funnel' });
     }
     console.error('Update funnel page error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update page', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update page' });
   }
 });
 
@@ -329,7 +329,7 @@ router.delete('/pages/:pageId', authenticate, requireRole('OWNER', 'ADMIN'), asy
     res.json({ success: true, message: 'Page deleted' });
   } catch (error: any) {
     console.error('Delete funnel page error:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete page', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to delete page' });
   }
 });
 
@@ -354,7 +354,7 @@ router.patch('/pages/:pageId/publish', authenticate, requireRole('OWNER', 'ADMIN
     res.json({ success: true, data: page });
   } catch (error: any) {
     console.error('Toggle page publish error:', error);
-    res.status(500).json({ success: false, error: 'Failed to toggle publish status', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to toggle publish status' });
   }
 });
 
@@ -554,7 +554,7 @@ router.post('/templates/:templateId/clone', authenticate, requireRole('OWNER', '
     res.status(201).json({ success: true, data: result });
   } catch (error: any) {
     console.error('Clone template error:', error);
-    res.status(500).json({ success: false, error: 'Failed to clone template', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to clone template' });
   }
 });
 

@@ -58,7 +58,7 @@ router.get('/', authenticate, cacheResponse(30), async (req: AuthRequest, res: a
     res.json({ success: true, data: { pipelines: result } });
   } catch (error: any) {
     console.error('Get pipelines error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch pipelines', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch pipelines' });
   }
 });
 
@@ -99,7 +99,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: any) => {
     res.status(201).json({ success: true, data: pipeline });
   } catch (error: any) {
     console.error('Create pipeline error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create pipeline', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create pipeline' });
   }
 });
 
@@ -133,7 +133,7 @@ router.post('/:id/stages', authenticate, async (req: AuthRequest, res: any) => {
     res.status(201).json({ success: true, data: stage });
   } catch (error: any) {
     console.error('Create stage error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create stage', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create stage' });
   }
 });
 
@@ -162,7 +162,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: any) => {
     res.json({ success: true, message: 'Pipeline deleted' });
   } catch (error: any) {
     console.error('Delete pipeline error:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete pipeline', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to delete pipeline' });
   }
 });
 

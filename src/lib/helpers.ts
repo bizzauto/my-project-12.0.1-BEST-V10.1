@@ -1,4 +1,5 @@
-// Global toast helper - can be used anywhere in the app
+// Global toast helper - dispatches custom DOM events so any code (React or not)
+// can trigger visible UI toasts without needing the React context.
 import apiClient from './api';
 
 export interface ToastOptions {
@@ -6,20 +7,26 @@ export interface ToastOptions {
   position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 }
 
-// Simple toast utility (fallback when toast context is not available)
+/** Dispatch a custom event that the Toast component listens for. */
+function dispatchToast(message: string, type: string): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, type } }));
+  }
+}
+
+// Simple toast utility — works inside and outside React component tree
 export const toast = {
-  success: (message: string, options?: ToastOptions) => {
-    console.log(`[SUCCESS] ${message}`, options);
-    // In components with access to toast context, use the useToast hook instead
+  success: (message: string, _options?: ToastOptions) => {
+    dispatchToast(message, 'success');
   },
-  error: (message: string, options?: ToastOptions) => {
-    console.error(`[ERROR] ${message}`, options);
+  error: (message: string, _options?: ToastOptions) => {
+    dispatchToast(message, 'error');
   },
-  warning: (message: string, options?: ToastOptions) => {
-    console.warn(`[WARNING] ${message}`, options);
+  warning: (message: string, _options?: ToastOptions) => {
+    dispatchToast(message, 'warning');
   },
-  info: (message: string, options?: ToastOptions) => {
-    console.info(`[INFO] ${message}`, options);
+  info: (message: string, _options?: ToastOptions) => {
+    dispatchToast(message, 'info');
   },
 };
 

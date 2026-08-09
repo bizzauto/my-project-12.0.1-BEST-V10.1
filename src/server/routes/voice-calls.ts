@@ -46,7 +46,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching voice calls:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch calls', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch calls' });
   }
 });
 
@@ -95,7 +95,7 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error fetching call stats:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch stats', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch stats' });
   }
 });
 

@@ -314,7 +314,7 @@ router.post('/:id/run', authenticate, requireRole('OWNER', 'ADMIN'), async (req:
     });
   } catch (error: any) {
     console.error('Run workflow error:', error);
-    res.status(500).json({ success: false, error: 'Failed to run workflow', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to run workflow' });
   }
 });
 
@@ -435,7 +435,7 @@ router.post('/execute', authenticate, async (req: AuthRequest, res: Response) =>
     });
   } catch (error: any) {
     console.error('Execute workflow error:', error);
-    res.status(500).json({ success: false, error: 'Failed to execute workflows', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to execute workflows' });
   }
 });
 

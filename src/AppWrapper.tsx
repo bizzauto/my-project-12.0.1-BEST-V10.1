@@ -183,7 +183,7 @@ const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <>{children}</>;
+  return <ErrorBoundary>{children}</ErrorBoundary>;
 };
 
 function AppRoutes() {

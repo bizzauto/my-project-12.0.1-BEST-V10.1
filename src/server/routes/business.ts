@@ -20,7 +20,7 @@ router.get('/', authenticate, async (req: any, res: any) => {
     const safeData = decryptBusinessData(business as any);
     res.json({ success: true, data: safeData });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch business', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch business' });
   }
 });
 
@@ -48,7 +48,7 @@ router.put('/', authenticate, async (req: any, res: any) => {
 
     res.json({ success: true, data: business });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to update business', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update business' });
   }
 });
 
@@ -65,7 +65,7 @@ router.get('/settings', authenticate, async (req: any, res: any) => {
 
     res.json({ success: true, data: business });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch business settings', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch business settings' });
   }
 });
 
@@ -94,7 +94,7 @@ router.put('/settings', authenticate, async (req: any, res: any) => {
 
     res.json({ success: true, data: business });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to update business settings', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update business settings' });
   }
 });
 
@@ -118,7 +118,7 @@ router.put('/whatsapp', authenticate, requireBusinessOwner, async (req: any, res
 
     res.json({ success: true, data: business });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to update WhatsApp config', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update WhatsApp config' });
   }
 });
 
@@ -136,7 +136,7 @@ router.put('/social-media', authenticate, requireBusinessOwner, async (req: any,
 
     res.json({ success: true, data: business });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to update social media config', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update social media config' });
   }
 });
 
@@ -150,7 +150,7 @@ router.get('/pipelines', authenticate, async (req: any, res: any) => {
 
     res.json({ success: true, data: pipelines });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch pipelines', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch pipelines' });
   }
 });
 
@@ -165,7 +165,7 @@ router.post('/pipelines', authenticate, async (req: any, res: any) => {
 
     res.status(201).json({ success: true, data: pipeline });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to create pipeline', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create pipeline' });
   }
 });
 

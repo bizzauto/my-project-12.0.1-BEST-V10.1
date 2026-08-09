@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { CheckCircle, AlertCircle, X, Info } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -49,6 +49,16 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  // Listen for toast events dispatched from non-React code (helpers.ts, services, etc.)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { message, type } = (e as CustomEvent).detail;
+      toast(message, type as ToastType);
+    };
+    window.addEventListener('app:toast', handler);
+    return () => window.removeEventListener('app:toast', handler);
+  }, [toast]);
 
   const getIcon = (type: ToastType) => {
     switch (type) {

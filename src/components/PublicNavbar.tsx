@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Zap, Moon, Sun, Menu, X } from 'lucide-react';
+import { useThemeStore } from '../lib/themeStore';
 
 interface PublicNavbarProps {
   isDark?: boolean;
@@ -10,15 +11,9 @@ interface PublicNavbarProps {
 const PublicNavbar: React.FC<PublicNavbarProps> = ({ isDark: forcedDark, onToggleDark: forcedToggle }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [localDark, setLocalDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' ||
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
+  const { isDark: storeDark, toggle: storeToggle } = useThemeStore();
 
-  const isDark = forcedDark ?? localDark;
+  const isDark = forcedDark ?? storeDark;
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20);
@@ -30,15 +25,7 @@ const PublicNavbar: React.FC<PublicNavbarProps> = ({ isDark: forcedDark, onToggl
     if (forcedToggle) {
       forcedToggle();
     } else {
-      const next = !localDark;
-      setLocalDark(next);
-      if (next) {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
-      }
+      storeToggle();
     }
   };
 

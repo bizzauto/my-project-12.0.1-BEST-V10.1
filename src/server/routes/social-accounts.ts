@@ -68,7 +68,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: accounts });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to get social accounts', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to get social accounts' });
   }
 });
 
@@ -96,7 +96,7 @@ router.post('/facebook/connect', async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, message: 'Facebook Page connected successfully!' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to connect Facebook', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to connect Facebook' });
   }
 });
 
@@ -112,7 +112,7 @@ router.delete('/facebook/disconnect', async (req: AuthRequest, res: Response) =>
     });
     res.json({ success: true, message: 'Facebook disconnected' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to disconnect Facebook', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to disconnect Facebook' });
   }
 });
 
@@ -140,7 +140,7 @@ router.post('/linkedin/connect', async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, message: 'LinkedIn Page connected successfully!' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to connect LinkedIn', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to connect LinkedIn' });
   }
 });
 
@@ -156,7 +156,7 @@ router.delete('/linkedin/disconnect', async (req: AuthRequest, res: Response) =>
     });
     res.json({ success: true, message: 'LinkedIn disconnected' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to disconnect LinkedIn', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to disconnect LinkedIn' });
   }
 });
 
@@ -184,7 +184,7 @@ router.post('/twitter/connect', async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, message: 'Twitter/X account connected successfully!' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to connect Twitter/X', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to connect Twitter/X' });
   }
 });
 
@@ -200,7 +200,7 @@ router.delete('/twitter/disconnect', async (req: AuthRequest, res: Response) => 
     });
     res.json({ success: true, message: 'Twitter/X disconnected' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to disconnect Twitter/X', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to disconnect Twitter/X' });
   }
 });
 
@@ -228,7 +228,7 @@ router.post('/youtube/connect', async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, message: 'YouTube channel connected successfully!' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to connect YouTube', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to connect YouTube' });
   }
 });
 
@@ -244,7 +244,7 @@ router.delete('/youtube/disconnect', async (req: AuthRequest, res: Response) => 
     });
     res.json({ success: true, message: 'YouTube disconnected' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to disconnect YouTube', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to disconnect YouTube' });
   }
 });
 

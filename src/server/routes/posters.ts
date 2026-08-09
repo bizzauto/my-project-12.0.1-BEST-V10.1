@@ -20,7 +20,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     const templates = await prisma.posterTemplate.findMany({ where, orderBy: { usageCount: 'desc' } });
     res.json({ success: true, data: templates });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch templates', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch templates' });
   }
 });
 
@@ -73,7 +73,7 @@ router.get('/generated', authenticate, async (req: AuthRequest, res: Response) =
     });
   } catch (error: any) {
     console.error('List generated posters error:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to list generated posters', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to list generated posters' });
   }
 });
 
@@ -94,7 +94,7 @@ router.delete('/generated/:id', authenticate, async (req: AuthRequest, res: Resp
     res.json({ success: true, message: 'Poster deleted successfully' });
   } catch (error: any) {
     console.error('Delete generated poster error:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to delete poster', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to delete poster' });
   }
 });
 
@@ -107,7 +107,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     if (!template) return res.status(404).json({ success: false, error: 'Template not found' });
     res.json({ success: true, data: template });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch template', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch template' });
   }
 });
 
@@ -120,7 +120,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     });
     res.status(201).json({ success: true, data: template });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to create template', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create template' });
   }
 });
 
@@ -130,7 +130,7 @@ router.post('/:id/usage', authenticate, async (req: AuthRequest, res: Response) 
     await prisma.posterTemplate.update({ where: { id: req.params.id }, data: { usageCount: { increment: 1 } } });
     res.json({ success: true, message: 'Usage counted' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to update usage', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update usage' });
   }
 });
 
@@ -219,7 +219,7 @@ router.post('/generate-image', authenticate, async (req: AuthRequest, res: Respo
     res.json({ success: true, data: { url: imageUrl } });
   } catch (error: any) {
     console.error('AI image generation error:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to generate AI image', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to generate AI image' });
   }
 });
 
@@ -326,7 +326,7 @@ router.post('/generate', authenticate, async (req: AuthRequest, res: Response) =
     });
   } catch (error: any) {
     console.error('Poster generation error:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to generate poster', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to generate poster' });
   }
 });
 
@@ -399,7 +399,7 @@ router.get('/:id/download', authenticate, async (req: AuthRequest, res: Response
     });
   } catch (error: any) {
     console.error('Poster download error:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to download poster', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to download poster' });
   }
 });
 
@@ -424,7 +424,7 @@ router.get('/backgrounds/active', authenticate, async (req: AuthRequest, res: Re
 
     res.json({ success: true, data: backgrounds });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch backgrounds', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch backgrounds' });
   }
 });
 

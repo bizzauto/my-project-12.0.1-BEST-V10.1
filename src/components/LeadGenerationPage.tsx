@@ -125,7 +125,6 @@ export default function LeadGenerationPage(){
     body: JSON.stringify({ days: 7 })
    });
    const d = await r.json();
-   console.log('Debug result:', d);
    if (d.success && d.data) {
     const emails = d.data.emails || [];
     let msg = `Total emails in inbox: ${d.data.totalEmails || 0}\n`;

@@ -96,7 +96,7 @@ router.get('/', authenticate, cacheResponse(15), async (req: AuthRequest, res: a
     });
   } catch (error: any) {
     console.error('Get invoices error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch invoices', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch invoices' });
   }
 });
 
@@ -148,7 +148,7 @@ router.post('/', authenticate, validate(createInvoiceSchema), async (req: AuthRe
     res.status(201).json({ success: true, data: mapDocToInvoice(doc) });
   } catch (error: any) {
     console.error('Create invoice error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create invoice', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create invoice' });
   }
 });
 
@@ -184,7 +184,7 @@ router.put('/:id', authenticate, validate(updateInvoiceSchema), async (req: Auth
     res.json({ success: true, data: mapDocToInvoice(updated) });
   } catch (error: any) {
     console.error('Update invoice error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update invoice', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update invoice' });
   }
 });
 
@@ -219,7 +219,7 @@ router.put('/:id/pay', authenticate, validate(markInvoicePaidSchema), async (req
     res.json({ success: true, data: mapDocToInvoice(updated) });
   } catch (error: any) {
     console.error('Mark invoice paid error:', error);
-    res.status(500).json({ success: false, error: 'Failed to mark invoice as paid', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to mark invoice as paid' });
   }
 });
 
@@ -241,7 +241,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: any) => {
     res.json({ success: true, message: 'Invoice deleted' });
   } catch (error: any) {
     console.error('Delete invoice error:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete invoice', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to delete invoice' });
   }
 });
 

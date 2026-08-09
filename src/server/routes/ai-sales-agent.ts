@@ -102,7 +102,7 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('AI sales agent stats error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch AI agent stats', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch AI agent stats' });
   }
 });
 
@@ -179,7 +179,7 @@ router.get('/follow-ups', authenticate, async (req: AuthRequest, res: Response) 
     });
   } catch (error: any) {
     console.error('List AI follow-ups error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch follow-ups', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch follow-ups' });
   }
 });
 
@@ -243,7 +243,7 @@ router.post('/follow-ups', authenticate, async (req: AuthRequest, res: Response)
     res.status(201).json({ success: true, data: followUp });
   } catch (error: any) {
     console.error('Create AI follow-up error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create follow-up', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create follow-up' });
   }
 });
 
@@ -328,7 +328,7 @@ router.post('/follow-ups/:id/send', authenticate, async (req: AuthRequest, res: 
     }
   } catch (error: any) {
     console.error('Send AI follow-up error:', error);
-    res.status(500).json({ success: false, error: 'Failed to send follow-up', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to send follow-up' });
   }
 });
 
@@ -370,7 +370,7 @@ router.patch('/follow-ups/:id/cancel', authenticate, async (req: AuthRequest, re
     res.json({ success: true, message: 'Follow-up cancelled', data: updatedFollowUp });
   } catch (error: any) {
     console.error('Cancel AI follow-up error:', error);
-    res.status(500).json({ success: false, error: 'Failed to cancel follow-up', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to cancel follow-up' });
   }
 });
 
@@ -475,7 +475,7 @@ router.post('/auto-follow-ups', authenticate, async (req: AuthRequest, res: Resp
     });
   } catch (error: any) {
     console.error('Auto follow-ups error:', error);
-    res.status(500).json({ success: false, error: 'Failed to generate auto follow-ups', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to generate auto follow-ups' });
   }
 });
 
@@ -496,7 +496,7 @@ router.post('/suggest', authenticate, async (req: AuthRequest, res: Response) =>
     res.json({ success: true, data });
   } catch (error: any) {
     console.error('AI suggest error:', error);
-    res.status(500).json({ success: false, error: 'Failed to generate suggestion', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to generate suggestion' });
   }
 });
 

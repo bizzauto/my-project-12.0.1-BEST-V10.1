@@ -20,7 +20,7 @@ router.get('/', authenticate, async (req: any, res: any) => {
 
     res.json({ success: true, data: { posts, pagination: { total, page: Number(page), limit: Number(limit) } } });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch posts', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch posts' });
   }
 });
 
@@ -37,7 +37,7 @@ router.get('/:id', authenticate, async (req: any, res: any) => {
 
     res.json({ success: true, data: post });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch post' });
   }
 });
 
@@ -64,7 +64,7 @@ router.post('/', authenticate, async (req: any, res: any) => {
 
     res.status(201).json({ success: true, data: post });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to create post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create post' });
   }
 });
 
@@ -82,7 +82,7 @@ router.put('/:id', authenticate, async (req: any, res: any) => {
     const updated = await prisma.post.update({ where: { id: post.id }, data: { content, mediaUrls, link, platforms, scheduledAt } });
     res.json({ success: true, data: updated });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to update post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update post' });
   }
 });
 
@@ -95,7 +95,7 @@ router.delete('/:id', authenticate, async (req: any, res: any) => {
     await prisma.post.delete({ where: { id: post.id } });
     res.json({ success: true, message: 'Post deleted' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to delete post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to delete post' });
   }
 });
 
@@ -120,7 +120,7 @@ router.post('/:id/schedule', authenticate, async (req: any, res: any) => {
     });
     res.json({ success: true, data: updated });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to schedule post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to schedule post' });
   }
 });
 
@@ -139,7 +139,7 @@ router.post('/:id/publish', authenticate, async (req: any, res: any) => {
     });
     res.json({ success: true, data: updated });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to publish post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to publish post' });
   }
 });
 

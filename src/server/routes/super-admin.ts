@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { sanitizeError } from '../utils/error.js';
 
 const router = Router();
 
@@ -76,7 +77,6 @@ router.get('/stats', async (req: any, res: any) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch stats',
-      details: error.message,
     });
   }
 });
@@ -137,7 +137,6 @@ router.get('/analytics', async (req: any, res: any) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch analytics',
-      details: error.message,
     });
   }
 });
@@ -245,7 +244,6 @@ router.get('/businesses', async (req: any, res: any) => {
     res.status(500).json({
       success: false,
       error: 'Failed to list businesses',
-      details: error.message,
     });
   }
 });
@@ -285,7 +283,6 @@ router.get('/businesses/:id', async (req: any, res: any) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get business',
-      details: error.message,
     });
   }
 });
@@ -315,7 +312,6 @@ router.put('/businesses/:id/plan', async (req: any, res: any) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update plan',
-      details: error.message,
     });
   }
 });
@@ -581,7 +577,7 @@ router.get('/backgrounds', async (req: any, res: any) => {
 
     res.json({ success: true, data: backgrounds, total });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch backgrounds', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch backgrounds' });
   }
 });
 
@@ -603,7 +599,7 @@ router.post('/backgrounds', async (req: any, res: any) => {
     });
     res.status(201).json({ success: true, data: bg });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to create background', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create background' });
   }
 });
 
@@ -625,7 +621,7 @@ router.put('/backgrounds/:id', async (req: any, res: any) => {
     });
     res.json({ success: true, data: bg });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to update background', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update background' });
   }
 });
 
@@ -635,7 +631,7 @@ router.delete('/backgrounds/:id', async (req: any, res: any) => {
     await prisma.posterBackground.delete({ where: { id: req.params.id } });
     res.json({ success: true, message: 'Background deleted' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to delete background', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to delete background' });
   }
 });
 

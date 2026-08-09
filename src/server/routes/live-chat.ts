@@ -36,7 +36,7 @@ router.get('/widget', async (req: Request, res: Response) => {
     res.json({ success: true, data: widget });
   } catch (error: any) {
     console.error('Get widget error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch widget', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch widget' });
   }
 });
 
@@ -68,7 +68,7 @@ router.post('/sessions', visitorRateLimiter, async (req: Request, res: Response)
     res.status(201).json({ success: true, data: session });
   } catch (error: any) {
     console.error('Create session error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create session', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create session' });
   }
 });
 
@@ -115,7 +115,7 @@ router.post('/sessions/:id/messages', visitorRateLimiter, async (req: Request, r
     res.status(201).json({ success: true, data: message });
   } catch (error: any) {
     console.error('Add message error:', error);
-    res.status(500).json({ success: false, error: 'Failed to add message', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to add message' });
   }
 });
 
@@ -185,7 +185,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('List sessions error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch sessions', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch sessions' });
   }
 });
 
@@ -236,7 +236,7 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Chat stats error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch chat stats', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch chat stats' });
   }
 });
 
@@ -262,7 +262,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     res.json({ success: true, data: session });
   } catch (error: any) {
     console.error('Get session error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch session', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch session' });
   }
 });
 
@@ -296,7 +296,7 @@ router.patch('/:id/assign', authenticate, async (req: AuthRequest, res: Response
     res.json({ success: true, data: updated });
   } catch (error: any) {
     console.error('Assign session error:', error);
-    res.status(500).json({ success: false, error: 'Failed to assign session', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to assign session' });
   }
 });
 
@@ -329,7 +329,7 @@ router.patch('/:id/close', authenticate, async (req: AuthRequest, res: Response)
     res.json({ success: true, data: updated });
   } catch (error: any) {
     console.error('Close session error:', error);
-    res.status(500).json({ success: false, error: 'Failed to close session', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to close session' });
   }
 });
 
@@ -362,7 +362,7 @@ router.patch('/:id/rate', visitorRateLimiter, async (req: Request, res: Response
     res.json({ success: true, data: updated });
   } catch (error: any) {
     console.error('Rate session error:', error);
-    res.status(500).json({ success: false, error: 'Failed to rate session', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to rate session' });
   }
 });
 
@@ -421,7 +421,7 @@ router.post('/widget', authenticate, requireRole('OWNER', 'ADMIN'), async (req: 
     res.json({ success: true, data: widget });
   } catch (error: any) {
     console.error('Upsert widget error:', error);
-    res.status(500).json({ success: false, error: 'Failed to save widget config', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to save widget config' });
   }
 });
 
@@ -507,7 +507,7 @@ router.post('/bot-reply', authenticate, async (req: AuthRequest, res: Response) 
     res.json({ success: true, data: message });
   } catch (error: any) {
     console.error('Bot reply error:', error);
-    res.status(500).json({ success: false, error: 'Failed to generate bot reply', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to generate bot reply' });
   }
 });
 

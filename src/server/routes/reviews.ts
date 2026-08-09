@@ -24,7 +24,7 @@ router.get('/', authenticate, cacheResponse(30), async (req: AuthRequest, res: R
 
     res.json({ success: true, data: { reviews, pagination: { total, page: Number(page), limit: Number(limit) } } });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch reviews', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch reviews' });
   }
 });
 
@@ -67,7 +67,7 @@ router.get('/stats', authenticate, cacheResponse(30), async (req: AuthRequest, r
     });
   } catch (error: any) {
     console.error('Get review stats error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch review stats', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch review stats' });
   }
 });
 
@@ -84,7 +84,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: review });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch review', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch review' });
   }
 });
 
@@ -98,7 +98,7 @@ router.put('/:id/reply', authenticate, async (req: AuthRequest, res: Response) =
     });
     res.json({ success: true, message: 'Reply sent' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to send reply', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to send reply' });
   }
 });
 
@@ -184,7 +184,7 @@ router.post('/sync', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Review sync error:', error);
-    res.status(500).json({ success: false, error: 'Failed to sync reviews', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to sync reviews' });
   }
 });
 

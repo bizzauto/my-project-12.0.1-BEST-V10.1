@@ -72,7 +72,7 @@ router.post('/connect', authenticate, async (req: any, res: Response) => {
       connected: testResult.connected,
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to connect Instagram account', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to connect Instagram account' });
   }
 });
 
@@ -92,7 +92,7 @@ router.delete('/disconnect', authenticate, async (req: any, res: Response) => {
 
     res.json({ success: true, message: 'Instagram account disconnected' });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to disconnect Instagram account', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to disconnect Instagram account' });
   }
 });
 
@@ -128,7 +128,7 @@ router.get('/status', authenticate, async (req: any, res: Response) => {
       },
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to check Instagram status', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to check Instagram status' });
   }
 });
 
@@ -141,7 +141,7 @@ router.get('/account', authenticate, async (req: any, res: Response) => {
     const accountInfo = await InstagramService.getAccountInfo(req.user.businessId);
     res.json({ success: true, data: accountInfo });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch Instagram account info', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch Instagram account info' });
   }
 });
 
@@ -179,7 +179,7 @@ router.post('/media/upload', authenticate, upload.array('media', 10), async (req
       },
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to upload media', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to upload media' });
   }
 });
 
@@ -205,7 +205,7 @@ router.post('/media/container', authenticate, async (req: any, res: Response) =>
 
     res.json({ success: true, data: container });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to create media container', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create media container' });
   }
 });
 
@@ -231,7 +231,7 @@ router.post('/media/container/carousel', authenticate, async (req: any, res: Res
 
     res.json({ success: true, data: carousel });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to create carousel container', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create carousel container' });
   }
 });
 
@@ -244,7 +244,7 @@ router.get('/media/container/:creationId/status', authenticate, async (req: any,
     const status = await InstagramService.checkContainerStatus(req.user.businessId, req.params.creationId);
     res.json({ success: true, data: status });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to check container status', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to check container status' });
   }
 });
 
@@ -265,7 +265,7 @@ router.post('/media/publish', authenticate, async (req: any, res: Response) => {
     const result = await InstagramService.publishContainer(req.user.businessId, creationId);
     res.json({ success: true, data: result });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to publish media', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to publish media' });
   }
 });
 
@@ -289,7 +289,7 @@ router.post('/publish', authenticate, async (req: any, res: Response) => {
 
     res.json({ success: true, data: result });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to publish to Instagram', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to publish to Instagram' });
   }
 });
 
@@ -315,7 +315,7 @@ router.post('/carousel', authenticate, async (req: any, res: Response) => {
 
     res.json({ success: true, data: result });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to publish carousel to Instagram', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to publish carousel to Instagram' });
   }
 });
 
@@ -345,7 +345,7 @@ router.post('/post/:postId/publish', authenticate, async (req: any, res: Respons
 
     res.json({ success: true, data: result });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to publish post to Instagram', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to publish post to Instagram' });
   }
 });
 
@@ -361,7 +361,7 @@ router.get('/media', authenticate, async (req: any, res: Response) => {
     const media = await InstagramService.getRecentMedia(req.user.businessId, limit);
     res.json({ success: true, data: media });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch Instagram media', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch Instagram media' });
   }
 });
 
@@ -374,7 +374,7 @@ router.get('/media/:mediaId/insights', authenticate, async (req: any, res: Respo
     const insights = await InstagramService.getMediaInsights(req.user.businessId, req.params.mediaId);
     res.json({ success: true, data: insights });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to fetch media insights', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch media insights' });
   }
 });
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AxiosError } from 'axios';
 
 interface UseApiOptions {
@@ -24,27 +24,36 @@ export function useApi<T = any>(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  // Use refs to avoid re-creating execute on every render when callers pass
+  // inline functions for apiCall/onSuccess/onError.
+  const apiCallRef = useRef(apiCall);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  apiCallRef.current = apiCall;
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+
   const execute = useCallback(async (...args: any[]) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await apiCall(...args);
+      const response = await apiCallRef.current(...args);
       const result = response?.data || response;
       setData(result);
-      onSuccess?.(result);
+      onSuccessRef.current?.(result);
       return result;
     } catch (err) {
       const error = err as AxiosError;
       const errorMessage = (error.response?.data as any)?.error || error.message || 'Request failed';
       const errorObj = new Error(errorMessage);
       setError(errorObj);
-      onError?.(errorObj);
+      onErrorRef.current?.(errorObj);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [apiCall, onSuccess, onError]);
+  }, []);
 
   useEffect(() => {
     if (immediate) {
@@ -88,32 +97,39 @@ export function usePagination<T = any>(
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
+  const apiCallRef = useRef(apiCall);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  apiCallRef.current = apiCall;
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+
   const fetchData = useCallback(async (pageNum: number, append = false) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await apiCall(pageNum, pageSize);
+      const response = await apiCallRef.current(pageNum, pageSize);
       const result = response?.data || response;
       const items = Array.isArray(result) ? result : result.items || result.data || [];
-      
+
       if (append) {
         setData(prev => [...prev, ...items]);
       } else {
         setData(items);
       }
-      
+
       setHasMore(items.length === pageSize);
-      onSuccess?.(items);
+      onSuccessRef.current?.(items);
     } catch (err) {
       const error = err as AxiosError;
       const errorMessage = (error.response?.data as any)?.error || error.message || 'Request failed';
       setError(new Error(errorMessage));
-      onError?.(error as Error);
+      onErrorRef.current?.(new Error(errorMessage));
     } finally {
       setLoading(false);
     }
-  }, [apiCall, pageSize, onSuccess, onError]);
+  }, [pageSize]);
 
   const loadMore = useCallback(async () => {
     if (!loading && hasMore) {
@@ -169,32 +185,39 @@ export function useForm<T = any>(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  const apiCallRef = useRef(apiCall);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  apiCallRef.current = apiCall;
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+
   const submit = useCallback(async (formData: any) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await apiCall(formData);
+      const response = await apiCallRef.current(formData);
       const result = response?.data || response;
       setData(result);
-      onSuccess?.(result);
-      
+      onSuccessRef.current?.(result);
+
       if (resetOnSuccess) {
         setData(null);
       }
-      
+
       return result;
     } catch (err) {
       const error = err as AxiosError;
       const errorMessage = (error.response?.data as any)?.error || error.message || 'Request failed';
       const errorObj = new Error(errorMessage);
       setError(errorObj);
-      onError?.(errorObj);
+      onErrorRef.current?.(errorObj);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [apiCall, onSuccess, onError, resetOnSuccess]);
+  }, [resetOnSuccess]);
 
   const reset = useCallback(() => {
     setData(null);

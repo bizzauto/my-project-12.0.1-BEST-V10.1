@@ -6,8 +6,21 @@ import https from 'https';
 
 const router = Router();
 
-// Shared HTTPS agent for n8n API calls (skip SSL verification for internal Docker traffic)
-const n8nHttpsAgent = new https.Agent({ rejectUnauthorized: false });
+// HTTPS agent for n8n API calls.
+// Only skip SSL verification when the n8n URL is on an internal/private network.
+function getN8nHttpsAgent(): https.Agent {
+  const n8nUrl = process.env.N8N_URL || 'http://localhost:5678';
+  try {
+    const parsed = new URL(n8nUrl);
+    const host = parsed.hostname;
+    const isInternal = host === 'localhost' || host === '127.0.0.1'
+      || /^10\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+      || /^192\.168\./.test(host);
+    return new https.Agent({ rejectUnauthorized: !isInternal });
+  } catch {
+    return new https.Agent({ rejectUnauthorized: false });
+  }
+}
 
 /**
  * Get the n8n API key for app-to-n8n API calls.
@@ -223,7 +236,7 @@ router.get('/n8n/status', async (req: AuthRequest, res: Response) => {
     try {
       const response = await axios.get(`${n8nUrl}/healthz`, {
         timeout: 5000,
-        httpsAgent: n8nHttpsAgent,
+        httpsAgent: getN8nHttpsAgent(),
       });
       res.json({
         success: true,
@@ -263,7 +276,7 @@ router.post('/n8n/trigger/:workflowId', async (req: AuthRequest, res: Response) 
       req.body,
       { 
         timeout: 30000,
-        httpsAgent: n8nHttpsAgent,
+        httpsAgent: getN8nHttpsAgent(),
       }
     );
 
@@ -293,7 +306,7 @@ router.get('/n8n/workflows', async (req: AuthRequest, res: Response) => {
       const response = await axios.get(`${n8nUrl}/api/v1/workflows`, {
         headers,
         timeout: 5000,
-        httpsAgent: n8nHttpsAgent,
+        httpsAgent: getN8nHttpsAgent(),
       });
 
       res.json({
@@ -328,7 +341,7 @@ router.post('/n8n/workflows/:workflowId/trigger', async (req: AuthRequest, res: 
       req.body,
       { 
         timeout: 30000,
-        httpsAgent: n8nHttpsAgent,
+        httpsAgent: getN8nHttpsAgent(),
       }
     );
 

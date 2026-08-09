@@ -87,7 +87,7 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Get inbox stats error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch inbox stats', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch inbox stats' });
   }
 });
 
@@ -243,7 +243,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Get conversations error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch conversations', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch conversations' });
   }
 });
 
@@ -358,7 +358,7 @@ router.get('/:contactId', authenticate, async (req: AuthRequest, res: Response) 
     });
   } catch (error: any) {
     console.error('Get conversation error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch conversation', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch conversation' });
   }
 });
 
@@ -593,7 +593,7 @@ router.patch('/:contactId/read', authenticate, async (req: AuthRequest, res: Res
     res.json({ success: true, data: { markedRead: updated.count } });
   } catch (error: any) {
     console.error('Mark read error:', error);
-    res.status(500).json({ success: false, error: 'Failed to mark as read', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to mark as read' });
   }
 });
 
@@ -658,7 +658,7 @@ router.post('/archive', authenticate, async (req: AuthRequest, res: Response) =>
     });
   } catch (error: any) {
     console.error('Archive conversations error:', error);
-    res.status(500).json({ success: false, error: 'Failed to archive conversations', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to archive conversations' });
   }
 });
 

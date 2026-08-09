@@ -984,7 +984,7 @@ router.post('/schedule', authenticate, async (req: AuthRequest, res: Response) =
     res.json({ success: true, data: scheduledMessage });
   } catch (error: any) {
     console.error('Create scheduled message error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create scheduled message', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create scheduled message' });
   }
 });
 

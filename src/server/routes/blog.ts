@@ -107,7 +107,7 @@ router.get('/posts', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Get blog posts error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch posts', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch posts' });
   }
 });
 
@@ -133,7 +133,7 @@ router.get('/posts/:id', authenticate, async (req: AuthRequest, res: Response) =
     res.json({ success: true, data: post });
   } catch (error: any) {
     console.error('Get blog post error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch post' });
   }
 });
 
@@ -186,7 +186,7 @@ router.post('/posts', authenticate, requireRole('OWNER', 'ADMIN'), async (req: A
     res.status(201).json({ success: true, data: post });
   } catch (error: any) {
     console.error('Create blog post error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create post' });
   }
 });
 
@@ -244,7 +244,7 @@ router.put('/posts/:id', authenticate, requireRole('OWNER', 'ADMIN'), async (req
     res.json({ success: true, data: post });
   } catch (error: any) {
     console.error('Update blog post error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update post' });
   }
 });
 
@@ -267,7 +267,7 @@ router.delete('/posts/:id', authenticate, requireRole('OWNER', 'ADMIN'), async (
     res.json({ success: true, message: 'Post deleted' });
   } catch (error: any) {
     console.error('Delete blog post error:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to delete post' });
   }
 });
 
@@ -296,7 +296,7 @@ router.patch('/posts/:id/publish', authenticate, requireRole('OWNER', 'ADMIN'), 
     res.json({ success: true, data: post });
   } catch (error: any) {
     console.error('Toggle publish error:', error);
-    res.status(500).json({ success: false, error: 'Failed to toggle publish status', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to toggle publish status' });
   }
 });
 
@@ -314,7 +314,7 @@ router.get('/categories', authenticate, async (req: AuthRequest, res: Response) 
     res.json({ success: true, data: categories });
   } catch (error: any) {
     console.error('Get blog categories error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch categories', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch categories' });
   }
 });
 
@@ -348,7 +348,7 @@ router.post('/categories', authenticate, requireRole('OWNER', 'ADMIN'), async (r
     res.status(201).json({ success: true, data: category });
   } catch (error: any) {
     console.error('Create blog category error:', error);
-    res.status(500).json({ success: false, error: 'Failed to create category', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to create category' });
   }
 });
 
@@ -390,7 +390,7 @@ router.put('/categories/:id', authenticate, requireRole('OWNER', 'ADMIN'), async
     res.json({ success: true, data: category });
   } catch (error: any) {
     console.error('Update blog category error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update category', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update category' });
   }
 });
 
@@ -417,7 +417,7 @@ router.delete('/categories/:id', authenticate, requireRole('OWNER', 'ADMIN'), as
     res.json({ success: true, message: 'Category deleted' });
   } catch (error: any) {
     console.error('Delete blog category error:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete category', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to delete category' });
   }
 });
 
@@ -464,7 +464,7 @@ router.get('/posts/:id/comments', authenticate, async (req: AuthRequest, res: Re
     });
   } catch (error: any) {
     console.error('Get blog comments error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch comments', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch comments' });
   }
 });
 
@@ -489,7 +489,7 @@ router.patch('/comments/:id/approve', authenticate, requireRole('OWNER', 'ADMIN'
     res.json({ success: true, data: updated });
   } catch (error: any) {
     console.error('Approve blog comment error:', error);
-    res.status(500).json({ success: false, error: 'Failed to approve comment', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to approve comment' });
   }
 });
 
@@ -558,7 +558,7 @@ router.get('/p', async (req: any, res: Response) => {
     });
   } catch (error: any) {
     console.error('Public list posts error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch posts', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch posts' });
   }
 });
 
@@ -595,7 +595,7 @@ router.get('/p/:slug', async (req: any, res: Response) => {
     res.json({ success: true, data: { ...post, viewCount: post.viewCount + 1 } });
   } catch (error: any) {
     console.error('Public get post error:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch post', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch post' });
   }
 });
 
@@ -628,7 +628,7 @@ router.get('/p/:slug', async (req: any, res: Response) => {
     res.status(201).json({ success: true, data: comment });
   } catch (error: any) {
     console.error('Submit comment error:', error);
-    res.status(500).json({ success: false, error: 'Failed to submit comment', details: error.message });
+    res.status(500).json({ success: false, error: 'Failed to submit comment' });
   }
 });
 
