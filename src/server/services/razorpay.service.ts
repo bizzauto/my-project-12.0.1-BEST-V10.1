@@ -27,10 +27,27 @@ function getRazorpayInstance() {
   }
   return razorpayInstance;
 }
-// Backwards-compatible export: proxy access through lazy getter
-const razorpay = new Proxy({} as any, {
-  get: (_target, prop) => getRazorpayInstance()[prop as keyof any],
-});
+// Backwards-compatible export: lazily expose the SDK's API resources so
+// importing this module never constructs Razorpay (no startup crash when keys
+// are missing). Accessing a resource still throws 'Razorpay not configured'
+// on first use. Plain getters (no Proxy traps), so innocuous reads — symbol
+// access, 'then', inspection, JSON.stringify, writes — never construct or
+// throw. Property list mirrors the SDK's addResources() surface.
+const RAZORPAY_RESOURCES = [
+  'accounts', 'stakeholders', 'payments', 'refunds', 'orders', 'customers',
+  'transfers', 'tokens', 'virtualAccounts', 'invoices', 'iins', 'paymentLink',
+  'plans', 'products', 'subscriptions', 'addons', 'settlements', 'qrCode',
+  'fundAccount', 'items', 'cards', 'webhooks', 'documents', 'disputes',
+] as const;
+
+const razorpay: any = {};
+for (const resource of RAZORPAY_RESOURCES) {
+  Object.defineProperty(razorpay, resource, {
+    enumerable: false,
+    configurable: true,
+    get: () => getRazorpayInstance()[resource],
+  });
+}
 
 // Plan pricing
 export const PLAN_PRICES: Record<string, { month: number; year: number }> = {
