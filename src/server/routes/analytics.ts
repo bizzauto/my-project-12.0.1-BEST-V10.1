@@ -7,6 +7,13 @@ const router = Router();
 
 // Get dashboard analytics (for frontend dashboard)
 router.get('/dashboard', authenticate, cacheResponse(30), async (req: any, res: any) => {
+  if (!req.user?.businessId) {
+    return res.status(400).json({
+      success: false,
+      error: 'No business associated with your account. Please create a business first.',
+      code: 'NO_BUSINESS',
+    });
+  }
   try {
     const { period = '30' } = req.query;
     const startDate = new Date();
