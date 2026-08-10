@@ -8,6 +8,7 @@ import { ipBlocker } from './ipSecurity.js';
 export interface AuthRequest extends Request {
   user?: any;
   id?: string;
+  params: Record<string, string>;
   [key: string]: any;
 }
 

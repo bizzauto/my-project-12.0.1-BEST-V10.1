@@ -1,3 +1,4 @@
+import { AuthRequest } from "../middleware/auth.js";
 import { Request, Response } from 'express';
 
 interface Referral {
@@ -133,42 +134,42 @@ class AffiliateService {
 export const affiliateService = new AffiliateService();
 
 // Routes
-export const createReferral = (req: Request, res: Response) => {
+export const createReferral = (req: AuthRequest, res: Response) => {
   const { userId, userName } = req.body;
   const result = affiliateService.createReferral(userId, userName);
   res.json({ success: true, data: result });
 };
 
-export const getReferrals = (req: Request, res: Response) => {
+export const getReferrals = (req: AuthRequest, res: Response) => {
   const { userId } = req.params;
   const referrals = affiliateService.getReferrals(userId);
   res.json({ success: true, data: referrals });
 };
 
-export const getAffiliateStats = (req: Request, res: Response) => {
+export const getAffiliateStats = (req: AuthRequest, res: Response) => {
   const { userId } = req.params;
   const stats = affiliateService.getStats(userId);
   res.json({ success: true, data: stats });
 };
 
-export const claimReward = (req: Request, res: Response) => {
+export const claimReward = (req: AuthRequest, res: Response) => {
   const { referralId } = req.params;
   const result = affiliateService.claimReward(referralId);
   res.json(result);
 };
 
-export const validateReferralCode = (req: Request, res: Response) => {
+export const validateReferralCode = (req: AuthRequest, res: Response) => {
   const { code } = req.params;
   const result = affiliateService.validateCode(code);
   res.json({ success: true, data: result });
 };
 
-export const getLeaderboard = (_req: Request, res: Response) => {
+export const getLeaderboard = (_req: AuthRequest, res: Response) => {
   const leaderboard = affiliateService.getLeaderboard();
   res.json({ success: true, data: leaderboard });
 };
 
-export const trackSignup = (req: Request, res: Response) => {
+export const trackSignup = (req: AuthRequest, res: Response) => {
   const { code, refereeId, refereeName, refereeEmail } = req.body;
   const result = affiliateService.trackSignup(code, refereeId, refereeName, refereeEmail);
   res.json({ success: !!result, data: result });

@@ -229,7 +229,7 @@ export const listZapierWebhooks = (_req: Request, res: Response) => {
 };
 
 export const deleteZapierWebhook = (req: Request, res: Response) => {
-  const result = zapierService.deleteWebhook(req.params.id);
+  const result = zapierService.deleteWebhook(req.params.id as string);
   res.json(result);
 };
 

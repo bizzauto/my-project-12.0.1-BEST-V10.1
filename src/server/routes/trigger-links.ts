@@ -53,14 +53,14 @@ function parseUserAgent(userAgent: string): {
 }
 
 // List trigger links (paginated)
-router.get('/', authenticate, async (req: Request, res: Response) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const businessId = (req as any).user.businessId;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string as string) || 1;
+    const limit = parseInt(req.query.limit as string as string) || 20;
     const skip = (page - 1) * limit;
-    const search = (req.query.search as string) || '';
-    const isActive = req.query.isActive !== undefined ? req.query.isActive === 'true' : undefined;
+    const search = (req.query.search as string as string) || '';
+    const isActive = req.query.isActive as string !== undefined ? req.query.isActive as string === 'true' : undefined;
 
     const where: any = { businessId };
     if (search) {
@@ -103,7 +103,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
 });
 
 // Get link with stats
-router.get('/:id', authenticate, async (req: Request, res: Response) => {
+router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const businessId = (req as any).user.businessId;
@@ -160,7 +160,7 @@ router.get('/:id', authenticate, async (req: Request, res: Response) => {
 });
 
 // Create trigger link
-router.post('/', authenticate, validate(createTriggerLinkSchema), async (req: Request, res: Response) => {
+router.post('/', authenticate, validate(createTriggerLinkSchema), async (req: AuthRequest, res: Response) => {
   try {
     const businessId = (req as any).user.businessId;
     const { name, originalUrl, campaignId, workflowId, tags, customShortCode } = req.body;
@@ -216,7 +216,7 @@ router.post('/', authenticate, validate(createTriggerLinkSchema), async (req: Re
 });
 
 // Update link
-router.put('/:id', authenticate, async (req: Request, res: Response) => {
+router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const businessId = (req as any).user.businessId;
@@ -260,7 +260,7 @@ router.put('/:id', authenticate, async (req: Request, res: Response) => {
 });
 
 // Delete link
-router.delete('/:id', authenticate, async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const businessId = (req as any).user.businessId;
@@ -285,7 +285,7 @@ router.delete('/:id', authenticate, async (req: Request, res: Response) => {
 });
 
 // Toggle active
-router.patch('/:id/toggle', authenticate, async (req: Request, res: Response) => {
+router.patch('/:id/toggle', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const businessId = (req as any).user.businessId;
@@ -311,12 +311,12 @@ router.patch('/:id/toggle', authenticate, async (req: Request, res: Response) =>
 });
 
 // Get click history (paginated, with device/browser stats)
-router.get('/:id/clicks', authenticate, async (req: Request, res: Response) => {
+router.get('/:id/clicks', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const businessId = (req as any).user.businessId;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string as string) || 1;
+    const limit = parseInt(req.query.limit as string as string) || 20;
     const skip = (page - 1) * limit;
 
     const link = await prisma.triggerLink.findFirst({
@@ -392,7 +392,7 @@ router.get('/:id/clicks', authenticate, async (req: Request, res: Response) => {
 });
 
 // Public redirect (no auth required)
-router.get('/s/:shortCode', async (req: Request, res: Response) => {
+router.get('/s/:shortCode', async (req: AuthRequest, res: Response) => {
   try {
     const { shortCode } = req.params;
 

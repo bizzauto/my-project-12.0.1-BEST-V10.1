@@ -31,7 +31,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 // Get single landing page
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const page = await prisma.landingPage.findFirst({ where: { id: req.params.id, businessId: req.user.businessId } });
+    const page = await prisma.landingPage.findFirst({ where: { id: req.params.id as string, businessId: req.user.businessId } });
     if (!page) return res.status(404).json({ success: false, error: 'Landing page not found' });
     res.json({ success: true, data: page });
   } catch (error: any) {
@@ -60,17 +60,17 @@ router.post('/', authenticate, requireRole('OWNER', 'ADMIN'), async (req: AuthRe
 // Update landing page
 router.put('/:id', authenticate, requireRole('OWNER', 'ADMIN'), async (req: AuthRequest, res: Response) => {
   try {
-    const existing = await prisma.landingPage.findFirst({ where: { id: req.params.id, businessId: req.user.businessId } });
+    const existing = await prisma.landingPage.findFirst({ where: { id: req.params.id as string, businessId: req.user.businessId } });
     if (!existing) return res.status(404).json({ success: false, error: 'Landing page not found' });
 
     const { name, slug, blocks, content, html, status } = req.body;
     if (slug && slug !== existing.slug) {
-      const conflict = await prisma.landingPage.findFirst({ where: { businessId: req.user.businessId, slug, NOT: { id: req.params.id } } });
+      const conflict = await prisma.landingPage.findFirst({ where: { businessId: req.user.businessId, slug, NOT: { id: req.params.id as string } } });
       if (conflict) return res.status(400).json({ success: false, error: 'Slug already exists' });
     }
 
     const page = await prisma.landingPage.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { name, slug, blocks, content, html, status },
     });
     res.json({ success: true, data: page });
@@ -82,10 +82,10 @@ router.put('/:id', authenticate, requireRole('OWNER', 'ADMIN'), async (req: Auth
 // Delete landing page
 router.delete('/:id', authenticate, requireRole('OWNER', 'ADMIN'), async (req: AuthRequest, res: Response) => {
   try {
-    const existing = await prisma.landingPage.findFirst({ where: { id: req.params.id, businessId: req.user.businessId } });
+    const existing = await prisma.landingPage.findFirst({ where: { id: req.params.id as string, businessId: req.user.businessId } });
     if (!existing) return res.status(404).json({ success: false, error: 'Landing page not found' });
 
-    await prisma.landingPage.delete({ where: { id: req.params.id } });
+    await prisma.landingPage.delete({ where: { id: req.params.id as string } });
     res.json({ success: true, message: 'Landing page deleted' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: 'Failed to delete landing page', details: error.message });
@@ -96,7 +96,7 @@ router.delete('/:id', authenticate, requireRole('OWNER', 'ADMIN'), async (req: A
 router.get('/published/:slug', async (req: Request, res: Response) => {
   try {
     const page = await prisma.landingPage.findFirst({
-      where: { slug: req.params.slug, status: 'PUBLISHED' },
+      where: { slug: req.params.slug as string, status: 'PUBLISHED' },
     });
     if (!page) return res.status(404).json({ success: false, error: 'Page not found' });
 

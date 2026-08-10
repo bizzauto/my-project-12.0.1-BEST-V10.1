@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Alert, AlertTitle } from '@radix-ui/react-dialog';
+// Button, Alert, strong — using local UI primitives instead of @radix-ui/react-dialog
 import { CheckCircle, AlertCircle, Loader2, FileSpreadsheet, ExternalLink } from 'lucide-react';
 
 interface GoogleSheetsOneClickProps {
@@ -130,10 +130,10 @@ export const GoogleSheetsOneClick: React.FC<GoogleSheetsOneClickProps> = ({
 
   return (
     <div className={className}>
-      <Button
+      <button
         onClick={handleClick}
         disabled={status === 'loading'}
-        className="w-full gap-2 justify-center"
+        className="w-full gap-2 justify-center inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {status === 'loading' && <Loader2 className="h-4 w-4 animate-spin" />}
         {status !== 'loading' && <FileSpreadsheet className="h-4 w-4" />}
@@ -144,13 +144,13 @@ export const GoogleSheetsOneClick: React.FC<GoogleSheetsOneClickProps> = ({
             ? t('integrations.googleSheets.connected')
             : t('integrations.googleSheets.connect')}
         </span>
-      </Button>
+      </button>
 
       {status === 'success' && (
         <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center gap-2 text-green-800 mb-2">
             <CheckCircle className="h-5 w-5" />
-            <AlertTitle>{t('integrations.googleSheets.successTitle')}</AlertTitle>
+            <strong>{t('integrations.googleSheets.successTitle')}</strong>
           </div>
           <p className="text-sm text-green-700 mb-3">
             {t('integrations.googleSheets.successDesc')}
@@ -170,11 +170,11 @@ export const GoogleSheetsOneClick: React.FC<GoogleSheetsOneClickProps> = ({
       )}
 
       {status === 'error' && (
-        <Alert className="mt-3">
+        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t('integrations.googleSheets.errorTitle')}</AlertTitle>
+          <strong>{t('integrations.googleSheets.errorTitle')}</strong>
           <p className="text-sm">{message}</p>
-        </Alert>
+        </div>
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+import { AuthRequest } from "../middleware/auth.js";
 import { Request, Response } from 'express';
 
 interface AnalyticsData {
@@ -217,38 +218,38 @@ ${analytics.predictions.recommendations.map(r => `• ${r}`).join('\n')}
 export const aiAnalyticsService = new AIAnalyticsService();
 
 // Route handlers
-export const getAnalytics = async (req: Request, res: Response) => {
+export const getAnalytics = async (req: AuthRequest, res: Response) => {
   const { businessId } = req.params;
   const data = await aiAnalyticsService.getAnalytics(businessId);
   res.json({ success: true, data });
 };
 
-export const getMetrics = (req: Request, res: Response) => {
+export const getMetrics = (req: AuthRequest, res: Response) => {
   const { businessId } = req.params;
   const data = aiAnalyticsService.getMetrics(businessId);
   res.json({ success: true, data });
 };
 
-export const getSalesForecast = async (req: Request, res: Response) => {
+export const getSalesForecast = async (req: AuthRequest, res: Response) => {
   const { businessId } = req.params;
   const { months = 3 } = req.query;
   const data = await aiAnalyticsService.getSalesForecast(businessId, parseInt(months as string));
   res.json({ success: true, data });
 };
 
-export const getCustomerSegments = (req: Request, res: Response) => {
+export const getCustomerSegments = (req: AuthRequest, res: Response) => {
   const { businessId } = req.params;
   const data = aiAnalyticsService.getCustomerSegments(businessId);
   res.json({ success: true, data });
 };
 
-export const getActivityHeatmap = (req: Request, res: Response) => {
+export const getActivityHeatmap = (req: AuthRequest, res: Response) => {
   const { businessId } = req.params;
   const data = aiAnalyticsService.getActivityHeatmap(businessId);
   res.json({ success: true, data });
 };
 
-export const generateReport = async (req: Request, res: Response) => {
+export const generateReport = async (req: AuthRequest, res: Response) => {
   const { businessId } = req.params;
   const { type = 'weekly' } = req.body;
   const data = await aiAnalyticsService.generateReport(businessId, type);

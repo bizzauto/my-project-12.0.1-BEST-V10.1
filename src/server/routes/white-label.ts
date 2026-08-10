@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../db.js';
@@ -52,7 +53,7 @@ const requireWhiteLabel = (req: Request, res: Response, next: Function) => {
 // ==================== AUTH ====================
 
 // POST /api/wl/auth/login
-router.post('/auth/login', requireWhiteLabel, async (req: Request, res: Response) => {
+router.post('/auth/login', requireWhiteLabel, async (req: AuthRequest, res: Response) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -102,7 +103,7 @@ router.post('/auth/login', requireWhiteLabel, async (req: Request, res: Response
 });
 
 // POST /api/wl/auth/register
-router.post('/auth/register', requireWhiteLabel, async (req: Request, res: Response) => {
+router.post('/auth/register', requireWhiteLabel, async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, phone, company, password } = req.body;
     if (!name || !email || !password) {
@@ -145,7 +146,7 @@ router.post('/auth/register', requireWhiteLabel, async (req: Request, res: Respo
 });
 
 // GET /api/wl/auth/me
-router.get('/auth/me', requireWhiteLabel, wlAuth, async (req: Request, res: Response) => {
+router.get('/auth/me', requireWhiteLabel, wlAuth, async (req: AuthRequest, res: Response) => {
   try {
     const resellerId = (req as any).resellerId;
     const reseller = await prisma.wlReseller.findUnique({ where: { id: resellerId } });
@@ -176,7 +177,7 @@ router.get('/auth/me', requireWhiteLabel, wlAuth, async (req: Request, res: Resp
 // ==================== CLIENTS ====================
 
 // GET /api/wl/clients
-router.get('/clients', requireWhiteLabel, wlAuth, async (req: Request, res: Response) => {
+router.get('/clients', requireWhiteLabel, wlAuth, async (req: AuthRequest, res: Response) => {
   try {
     const resellerId = (req as any).resellerId;
     const clients = await prisma.wlClient.findMany({
@@ -200,7 +201,7 @@ router.get('/clients', requireWhiteLabel, wlAuth, async (req: Request, res: Resp
 });
 
 // POST /api/wl/clients
-router.post('/clients', requireWhiteLabel, wlAuth, async (req: Request, res: Response) => {
+router.post('/clients', requireWhiteLabel, wlAuth, async (req: AuthRequest, res: Response) => {
   try {
     const resellerId = (req as any).resellerId;
     const { name, email, phone, product, plan } = req.body;
@@ -242,18 +243,18 @@ router.post('/clients', requireWhiteLabel, wlAuth, async (req: Request, res: Res
 });
 
 // DELETE /api/wl/clients/:id
-router.delete('/clients/:id', requireWhiteLabel, wlAuth, async (req: Request, res: Response) => {
+router.delete('/clients/:id', requireWhiteLabel, wlAuth, async (req: AuthRequest, res: Response) => {
   try {
     const resellerId = (req as any).resellerId;
     const client = await prisma.wlClient.findFirst({
-      where: { id: req.params.id, resellerId },
+      where: { id: req.params.id as string, resellerId },
     });
 
     if (!client) {
       return res.status(404).json({ success: false, error: 'Client not found' });
     }
 
-    await prisma.wlClient.delete({ where: { id: req.params.id } });
+    await prisma.wlClient.delete({ where: { id: req.params.id as string } });
 
     // Subtract revenue
     await prisma.wlReseller.update({
@@ -269,7 +270,7 @@ router.delete('/clients/:id', requireWhiteLabel, wlAuth, async (req: Request, re
 });
 
 // PATCH /api/wl/clients/:id/status
-router.patch('/clients/:id/status', wlAuth, async (req: Request, res: Response) => {
+router.patch('/clients/:id/status', wlAuth, async (req: AuthRequest, res: Response) => {
   try {
     const resellerId = (req as any).resellerId;
     const { status } = req.body;
@@ -279,7 +280,7 @@ router.patch('/clients/:id/status', wlAuth, async (req: Request, res: Response) 
     }
 
     const client = await prisma.wlClient.findFirst({
-      where: { id: req.params.id, resellerId },
+      where: { id: req.params.id as string, resellerId },
     });
 
     if (!client) {
@@ -287,7 +288,7 @@ router.patch('/clients/:id/status', wlAuth, async (req: Request, res: Response) 
     }
 
     const updated = await prisma.wlClient.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { status },
     });
 
@@ -299,7 +300,7 @@ router.patch('/clients/:id/status', wlAuth, async (req: Request, res: Response) 
 });
 
 // GET /api/wl/clients/stats
-router.get('/clients/stats', requireWhiteLabel, wlAuth, async (req: Request, res: Response) => {
+router.get('/clients/stats', requireWhiteLabel, wlAuth, async (req: AuthRequest, res: Response) => {
   try {
     const resellerId = (req as any).resellerId;
     const clients = await prisma.wlClient.findMany({ where: { resellerId } });
@@ -322,7 +323,7 @@ router.get('/clients/stats', requireWhiteLabel, wlAuth, async (req: Request, res
 // ==================== BRANDING ====================
 
 // GET /api/wl/branding
-router.get('/branding', requireWhiteLabel, wlAuth, async (req: Request, res: Response) => {
+router.get('/branding', requireWhiteLabel, wlAuth, async (req: AuthRequest, res: Response) => {
   try {
     const resellerId = (req as any).resellerId;
     const reseller = await prisma.wlReseller.findUnique({ where: { id: resellerId } });
@@ -347,7 +348,7 @@ router.get('/branding', requireWhiteLabel, wlAuth, async (req: Request, res: Res
 });
 
 // PUT /api/wl/branding
-router.put('/branding', requireWhiteLabel, wlAuth, async (req: Request, res: Response) => {
+router.put('/branding', requireWhiteLabel, wlAuth, async (req: AuthRequest, res: Response) => {
   try {
     const resellerId = (req as any).resellerId;
     const { company, domain, logo, primaryColor } = req.body;

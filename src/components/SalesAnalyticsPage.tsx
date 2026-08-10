@@ -211,8 +211,8 @@ const SalesAnalyticsPage: React.FC = () => {
                     />
                     <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
                     <Tooltip
-                      formatter={(value: number) => [formatCurrency(value), 'Revenue']}
-                      labelFormatter={(label) => new Date(label).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      formatter={(value: any) => [formatCurrency(Number(value)), 'Revenue']}
+                      labelFormatter={(label) => new Date(Number(label)).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                     />
                     <Area type="monotone" dataKey="revenue" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.15} strokeWidth={2} />
                   </AreaChart>
@@ -275,7 +275,7 @@ const SalesAnalyticsPage: React.FC = () => {
                           <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: number) => [value, 'Orders']} />
+                      <Tooltip formatter={(value: any) => [Number(value), 'Orders']} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>

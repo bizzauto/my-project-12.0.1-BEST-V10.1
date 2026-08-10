@@ -34,7 +34,7 @@ async function getWhatsAppCredentials(businessId: string) {
 }
 
 // WhatsApp webhook verification (Meta sends GET for webhook setup)
-router.get('/webhook/:businessId', async (req: Request, res: Response) => {
+router.get('/webhook/:businessId', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId } = req.params;
     const verifyToken = req.query['hub.verify_token'] as string;
@@ -65,7 +65,7 @@ router.get('/webhook/:businessId', async (req: Request, res: Response) => {
 });
 
 // WhatsApp webhook endpoint (public)
-router.post('/webhook/:businessId', async (req: Request, res: Response) => {
+router.post('/webhook/:businessId', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId } = req.params;
     const body = req.body;
@@ -675,7 +675,7 @@ router.post('/connect', authenticate, requireBusinessOwner, async (req: AuthRequ
 });
 
 // OAuth Callback - Meta redirects here after user authorizes
-router.get('/callback', async (req: Request, res: Response) => {
+router.get('/callback', async (req: AuthRequest, res: Response) => {
   try {
     const { code, state, error: fbError } = req.query;
 

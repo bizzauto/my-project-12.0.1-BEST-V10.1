@@ -1,3 +1,4 @@
+import { AuthRequest } from "../middleware/auth.js";
 import { Request, Response } from 'express';
 
 interface PushNotification {
@@ -123,19 +124,19 @@ class PushNotificationService {
 export const pushService = new PushNotificationService();
 
 // Routes
-export const subscribeToPush = (req: Request, res: Response) => {
+export const subscribeToPush = (req: AuthRequest, res: Response) => {
   const { userId, subscription, browser } = req.body;
   const sub = pushService.subscribe(userId, subscription, browser);
   res.json({ success: true, data: sub });
 };
 
-export const unsubscribePush = (req: Request, res: Response) => {
+export const unsubscribePush = (req: AuthRequest, res: Response) => {
   const { endpoint } = req.body;
   const result = pushService.unsubscribe(endpoint);
   res.json({ success: result });
 };
 
-export const sendPushNotification = async (req: Request, res: Response) => {
+export const sendPushNotification = async (req: AuthRequest, res: Response) => {
   const { userId, title, body, icon, image, data } = req.body;
   try {
     const notif = await pushService.send(userId, { title, body, icon, image, data });
@@ -145,18 +146,18 @@ export const sendPushNotification = async (req: Request, res: Response) => {
   }
 };
 
-export const getPushHistory = (req: Request, res: Response) => {
+export const getPushHistory = (req: AuthRequest, res: Response) => {
   const { userId, limit } = req.params;
   const history = pushService.getHistory(userId, parseInt(limit) || 50);
   res.json({ success: true, data: history });
 };
 
-export const getPushStats = (_req: Request, res: Response) => {
+export const getPushStats = (_req: AuthRequest, res: Response) => {
   const stats = pushService.getStats();
   res.json({ success: true, data: stats });
 };
 
-export const schedulePushNotification = (req: Request, res: Response) => {
+export const schedulePushNotification = (req: AuthRequest, res: Response) => {
   const { userId, title, body, scheduledAt } = req.body;
   const notif = pushService.schedule(userId, { title, body }, new Date(scheduledAt));
   res.json({ success: true, data: notif });

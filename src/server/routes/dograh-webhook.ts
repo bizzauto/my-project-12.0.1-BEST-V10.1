@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../db.js';
 import crypto from 'crypto';
 
@@ -14,7 +15,7 @@ const PROVIDER_RATES: Record<string, number> = {
 };
 
 // POST /api/dograh/webhook/:businessId
-router.post('/:businessId', async (req: Request, res: Response) => {
+router.post('/:businessId', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId } = req.params;
     const payload = req.body;

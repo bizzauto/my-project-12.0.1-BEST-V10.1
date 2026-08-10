@@ -63,11 +63,11 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     const businessId = req.user.businessId;
     const { name, description, questions, status } = req.body;
 
-    const existing = await prisma.survey.findFirst({ where: { id: req.params.id, businessId } });
+    const existing = await prisma.survey.findFirst({ where: { id: req.params.id as string, businessId } });
     if (!existing) return res.status(404).json({ success: false, error: 'Survey not found' });
 
     const survey = await prisma.survey.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
@@ -86,11 +86,11 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const businessId = req.user.businessId;
-    const existing = await prisma.survey.findFirst({ where: { id: req.params.id, businessId } });
+    const existing = await prisma.survey.findFirst({ where: { id: req.params.id as string, businessId } });
     if (!existing) return res.status(404).json({ success: false, error: 'Survey not found' });
 
-    await prisma.surveyResponse.deleteMany({ where: { surveyId: req.params.id } });
-    await prisma.survey.delete({ where: { id: req.params.id } });
+    await prisma.surveyResponse.deleteMany({ where: { surveyId: req.params.id as string } });
+    await prisma.survey.delete({ where: { id: req.params.id as string } });
     res.json({ success: true, message: 'Survey deleted' });
   } catch (err) {
     console.error('Delete survey error:', err);
@@ -106,13 +106,13 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Answers are required' });
     }
 
-    const survey = await prisma.survey.findUnique({ where: { id: req.params.id }, include: { questions: true } });
+    const survey = await prisma.survey.findUnique({ where: { id: req.params.id as string }, include: { questions: true } });
     if (!survey) return res.status(404).json({ success: false, error: 'Survey not found' });
     if (!survey.isActive) return res.status(400).json({ success: false, error: 'Survey is not accepting responses' });
 
     const submission = await prisma.surveyResponse.create({
       data: {
-        surveyId: req.params.id,
+        surveyId: req.params.id as string,
         businessId: survey.businessId,
         answers: answers,
         metadata: respondent ? { respondent } : undefined,
@@ -120,9 +120,9 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
     });
 
     // Update submission count
-    const totalSubmissions = await prisma.surveyResponse.count({ where: { surveyId: req.params.id } });
+    const totalSubmissions = await prisma.surveyResponse.count({ where: { surveyId: req.params.id as string } });
     await prisma.survey.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         submissionCount: totalSubmissions,
       },
@@ -139,11 +139,11 @@ router.post('/:id/submit', async (req: Request, res: Response) => {
 router.get('/:id/results', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const businessId = req.user.businessId;
-    const survey = await prisma.survey.findFirst({ where: { id: req.params.id, businessId }, include: { questions: true } });
+    const survey = await prisma.survey.findFirst({ where: { id: req.params.id as string, businessId }, include: { questions: true } });
     if (!survey) return res.status(404).json({ success: false, error: 'Survey not found' });
 
     const submissions = await prisma.surveyResponse.findMany({
-      where: { surveyId: req.params.id },
+      where: { surveyId: req.params.id as string },
       orderBy: { submittedAt: 'desc' },
     });
 
@@ -172,7 +172,7 @@ router.get('/:id/results', authenticate, async (req: AuthRequest, res: Response)
 // GET /api/surveys/public/:id - Public survey view
 router.get('/public/:id', async (req: Request, res: Response) => {
   try {
-    const survey = await prisma.survey.findUnique({ where: { id: req.params.id }, include: { questions: true } });
+    const survey = await prisma.survey.findUnique({ where: { id: req.params.id as string }, include: { questions: true } });
     if (!survey || !survey.isActive) {
       return res.status(404).json({ success: false, error: 'Survey not found' });
     }

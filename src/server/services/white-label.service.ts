@@ -1,3 +1,4 @@
+import { AuthRequest } from "../middleware/auth.js";
 import { Request, Response } from 'express';
 
 interface WhiteLabelConfig {
@@ -84,25 +85,25 @@ class WhiteLabelService {
 export const whiteLabelService = new WhiteLabelService();
 
 // Routes
-export const getWhiteLabelConfig = (req: Request, res: Response) => {
+export const getWhiteLabelConfig = (req: AuthRequest, res: Response) => {
   const { userId } = req.params;
   const config = whiteLabelService.getConfig(userId);
   res.json({ success: true, data: config });
 };
 
-export const saveWhiteLabelConfig = (req: Request, res: Response) => {
+export const saveWhiteLabelConfig = (req: AuthRequest, res: Response) => {
   const { userId } = req.body;
   const config = whiteLabelService.saveConfig(userId, req.body);
   res.json({ success: true, data: config });
 };
 
-export const getWhiteLabelCSS = (req: Request, res: Response) => {
+export const getWhiteLabelCSS = (req: AuthRequest, res: Response) => {
   const { userId } = req.params;
   const vars = whiteLabelService.getCSSVariables(userId);
   res.json({ success: true, data: vars });
 };
 
-export const listWhiteLabelConfigs = (_req: Request, res: Response) => {
+export const listWhiteLabelConfigs = (_req: AuthRequest, res: Response) => {
   const configs = whiteLabelService.listConfigs();
   res.json({ success: true, data: configs });
 };

@@ -20,7 +20,7 @@ function generateShortCode(): string {
  * GET /api/payment-links/s/:shortCode
  * Public endpoint - get payment link info for the payment page.
  */
-router.get('/s/:shortCode', async (req: Request, res: Response) => {
+router.get('/s/:shortCode', async (req: AuthRequest, res: Response) => {
   try {
     const { shortCode } = req.params;
 
@@ -72,7 +72,7 @@ router.get('/s/:shortCode', async (req: Request, res: Response) => {
  * Public endpoint - process a payment on a link.
  * Expects Razorpay payment verification data in the body.
  */
-router.post('/s/:shortCode/pay', async (req: Request, res: Response) => {
+router.post('/s/:shortCode/pay', async (req: AuthRequest, res: Response) => {
   try {
     const { shortCode } = req.params;
     const {
@@ -254,7 +254,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const link = await prisma.paymentLink.findFirst({
-      where: { id: req.params.id, businessId: req.user.businessId },
+      where: { id: req.params.id as string, businessId: req.user.businessId },
       include: {
         transactions: {
           orderBy: { paidAt: 'desc' },
@@ -345,7 +345,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const existing = await prisma.paymentLink.findFirst({
-      where: { id: req.params.id, businessId: req.user.businessId },
+      where: { id: req.params.id as string, businessId: req.user.businessId },
     });
 
     if (!existing) {
@@ -383,7 +383,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
     if (metadata !== undefined) updateData.metadata = metadata;
 
     const link = await prisma.paymentLink.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: updateData,
     });
 
@@ -400,7 +400,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const existing = await prisma.paymentLink.findFirst({
-      where: { id: req.params.id, businessId: req.user.businessId },
+      where: { id: req.params.id as string, businessId: req.user.businessId },
     });
 
     if (!existing) {
@@ -408,7 +408,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     }
 
     await prisma.paymentLink.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { isActive: false },
     });
 
@@ -425,7 +425,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 router.get('/:id/transactions', async (req: AuthRequest, res: Response) => {
   try {
     const link = await prisma.paymentLink.findFirst({
-      where: { id: req.params.id, businessId: req.user.businessId },
+      where: { id: req.params.id as string, businessId: req.user.businessId },
       select: { id: true },
     });
 
@@ -440,7 +440,7 @@ router.get('/:id/transactions', async (req: AuthRequest, res: Response) => {
     } = req.query;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
-    const where: any = { linkId: req.params.id };
+    const where: any = { linkId: req.params.id as string };
 
     if (status) where.status = status;
 
@@ -478,7 +478,7 @@ router.get('/:id/transactions', async (req: AuthRequest, res: Response) => {
 router.post('/:id/send', async (req: AuthRequest, res: Response) => {
   try {
     const link = await prisma.paymentLink.findFirst({
-      where: { id: req.params.id, businessId: req.user.businessId },
+      where: { id: req.params.id as string, businessId: req.user.businessId },
       include: {
         contact: {
           select: { id: true, name: true, phone: true, email: true },

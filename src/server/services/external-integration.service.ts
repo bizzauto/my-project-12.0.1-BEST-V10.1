@@ -113,7 +113,7 @@ export class ExternalIntegrationService {
   static async update(
     id: string,
     businessId: string,
-    data: Partial<Pick<CreateExternalIntegrationInput, 'name' | 'config' | 'apiKey' | 'isActive'>>
+    data: Partial<Pick<CreateExternalIntegrationInput, 'name' | 'config' | 'apiKey'> & { isActive?: boolean }>
   ): Promise<ExternalIntegration | null> {
     const updateData: any = { ...data };
 
@@ -214,11 +214,11 @@ export class ExternalIntegrationService {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      const error = (await response.json().catch(() => ({}))) as any;
       return { success: false, error: error.error?.message || `HTTP ${response.status}` };
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
     return {
       success: true,
       details: {
@@ -245,11 +245,11 @@ export class ExternalIntegrationService {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      const error = (await response.json().catch(() => ({}))) as any;
       return { success: false, error: error.errors || `HTTP ${response.status}` };
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
     return {
       success: true,
       details: {
@@ -279,11 +279,11 @@ export class ExternalIntegrationService {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      const error = (await response.json().catch(() => ({}))) as any;
       return { success: false, error: error.error?.description || `HTTP ${response.status}` };
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
     return {
       success: true,
       details: {
@@ -304,11 +304,11 @@ export class ExternalIntegrationService {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      const error = (await response.json().catch(() => ({}))) as any;
       return { success: false, error: error.message || `HTTP ${response.status}` };
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
     return {
       success: true,
       details: {
@@ -328,11 +328,11 @@ export class ExternalIntegrationService {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      const error = (await response.json().catch(() => ({}))) as any;
       return { success: false, error: error.message || `HTTP ${response.status}` };
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
     return {
       success: true,
       details: {

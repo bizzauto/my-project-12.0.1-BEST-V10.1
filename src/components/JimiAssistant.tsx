@@ -230,7 +230,7 @@ const JimiAssistant: React.FC = () => {
               <div>
                 <h3 className="text-white font-semibold flex items-center gap-2">
                   Jimi0 (Backup) {PERSONALITY_MODES.find(m => m.code === selectedMode)?.emoji}
-                  <Shield size={14} className="text-green-300" title="Protected Mode" />
+                  <Shield size={14} className="text-green-300" aria-label="Protected Mode" />
                 </h3>
                 <p className="text-white/80 text-xs">
                   {isListening ? '🎤 Sun rahi hoon...' : isTyping ? '🧠 Soch rahi hoon...' : `${PERSONALITY_MODES.find(m => m.code === selectedMode)?.name} • Ready`}

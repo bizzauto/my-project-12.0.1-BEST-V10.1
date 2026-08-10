@@ -17,7 +17,7 @@ const visitorRateLimiter = rateLimit({
 
 // ==================== PUBLIC: GET WIDGET CONFIG ====================
 
-router.get('/widget', async (req: Request, res: Response) => {
+router.get('/widget', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId } = req.query;
 
@@ -42,7 +42,7 @@ router.get('/widget', async (req: Request, res: Response) => {
 
 // ==================== PUBLIC: CREATE SESSION (visitor starts chat, no auth) ====================
 
-router.post('/sessions', visitorRateLimiter, async (req: Request, res: Response) => {
+router.post('/sessions', visitorRateLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const { businessId, visitorName, visitorEmail, visitorPhone, metadata } = req.body;
 
@@ -74,7 +74,7 @@ router.post('/sessions', visitorRateLimiter, async (req: Request, res: Response)
 
 // ==================== PUBLIC: ADD MESSAGE (visitor sends message) ====================
 
-router.post('/sessions/:id/messages', visitorRateLimiter, async (req: Request, res: Response) => {
+router.post('/sessions/:id/messages', visitorRateLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { content, contentType, metadata } = req.body;
@@ -335,7 +335,7 @@ router.patch('/:id/close', authenticate, async (req: AuthRequest, res: Response)
 
 // ==================== RATE SESSION ====================
 
-router.patch('/:id/rate', visitorRateLimiter, async (req: Request, res: Response) => {
+router.patch('/:id/rate', visitorRateLimiter, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { satisfaction } = req.body;

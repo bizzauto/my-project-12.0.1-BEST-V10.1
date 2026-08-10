@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../db.js';
 import crypto from 'crypto';
 
@@ -7,7 +8,7 @@ const router = Router();
 // ==================== PUBLIC STORE API (No Auth Required) ====================
 
 // Get store info by businessId
-router.get('/store/:businessId', async (req: Request, res: Response) => {
+router.get('/store/:businessId', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId } = req.params;
 
@@ -36,7 +37,7 @@ router.get('/store/:businessId', async (req: Request, res: Response) => {
 });
 
 // Get public products (no auth)
-router.get('/store/:businessId/products', async (req: Request, res: Response) => {
+router.get('/store/:businessId/products', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId } = req.params;
     const { category, search, page = '1', limit = '50' } = req.query;
@@ -112,7 +113,7 @@ router.get('/store/:businessId/products', async (req: Request, res: Response) =>
 });
 
 // Get single product
-router.get('/store/:businessId/products/:productId', async (req: Request, res: Response) => {
+router.get('/store/:businessId/products/:productId', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId, productId } = req.params;
 
@@ -153,7 +154,7 @@ router.get('/store/:businessId/products/:productId', async (req: Request, res: R
 });
 
 // Validate coupon (public)
-router.post('/store/:businessId/coupons/validate', async (req: Request, res: Response) => {
+router.post('/store/:businessId/coupons/validate', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId } = req.params;
     const { code, cartTotal } = req.body;
@@ -203,7 +204,7 @@ router.post('/store/:businessId/coupons/validate', async (req: Request, res: Res
 });
 
 // Place order (public - no auth, just businessId)
-router.post('/store/:businessId/orders', async (req: Request, res: Response) => {
+router.post('/store/:businessId/orders', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId } = req.params;
     const { customerName, customerPhone, customerEmail, items, shippingAddress, couponCode, paymentMethod, notes } = req.body;
@@ -343,7 +344,7 @@ router.post('/store/:businessId/orders', async (req: Request, res: Response) => 
 });
 
 // Track order (public)
-router.get('/store/:businessId/track/:orderNumber', async (req: Request, res: Response) => {
+router.get('/store/:businessId/track/:orderNumber', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId, orderNumber } = req.params;
 
@@ -365,7 +366,7 @@ router.get('/store/:businessId/track/:orderNumber', async (req: Request, res: Re
 });
 
 // Verify payment (public)
-router.post('/store/:businessId/orders/:orderId/verify-payment', async (req: Request, res: Response) => {
+router.post('/store/:businessId/orders/:orderId/verify-payment', async (req: AuthRequest, res: Response) => {
   try {
     const { businessId, orderId } = req.params;
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;

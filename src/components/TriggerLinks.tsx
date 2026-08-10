@@ -940,7 +940,7 @@ const TriggerLinks: React.FC = () => {
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
                         ))}
                       </Pie>
-                      <ReTooltip formatter={(value: number) => formatNumber(value)} />
+                      <ReTooltip formatter={(value: any) => formatNumber(Number(value))} />
                       <Legend
                         formatter={(value: string) => <span className="text-xs text-gray-600 dark:text-gray-400">{value}</span>}
                       />
@@ -959,7 +959,7 @@ const TriggerLinks: React.FC = () => {
                     <BarChart data={analytics.browsers} layout="vertical">
                       <XAxis type="number" tick={{ fontSize: 10 }} stroke="#9ca3af" />
                       <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={55} stroke="#9ca3af" />
-                      <ReTooltip formatter={(value: number) => formatNumber(value)} />
+                      <ReTooltip formatter={(value: any) => formatNumber(Number(value))} />
                       <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                         {analytics.browsers.map((_, i) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />

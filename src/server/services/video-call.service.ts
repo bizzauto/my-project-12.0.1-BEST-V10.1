@@ -1,3 +1,4 @@
+import { AuthRequest } from "../middleware/auth.js";
 import { Request, Response } from 'express';
 
 interface VideoCallSession {
@@ -202,13 +203,13 @@ class VideoCallService {
 export const videoCallService = new VideoCallService();
 
 // Route handlers
-export const createVideoCall = async (req: Request, res: Response) => {
+export const createVideoCall = async (req: AuthRequest, res: Response) => {
   const session = await videoCallService.createMeeting(req.body);
   res.json({ success: true, data: session });
 };
 
-export const getVideoCall = (req: Request, res: Response) => {
-  const session = videoCallService.getSession(req.params.id);
+export const getVideoCall = (req: AuthRequest, res: Response) => {
+  const session = videoCallService.getSession(req.params.id as string as string);
   if (session) {
     res.json({ success: true, data: session });
   } else {
@@ -216,17 +217,17 @@ export const getVideoCall = (req: Request, res: Response) => {
   }
 };
 
-export const listVideoCalls = (req: Request, res: Response) => {
+export const listVideoCalls = (req: AuthRequest, res: Response) => {
   const filters = {
-    hostId: req.query.hostId as string,
-    status: req.query.status as string,
+    hostId: req.query.hostId as string as string as string,
+    status: req.query.status as string as string as string,
   };
   res.json({ success: true, data: videoCallService.listSessions(filters) });
 };
 
-export const updateVideoCallStatus = (req: Request, res: Response) => {
+export const updateVideoCallStatus = (req: AuthRequest, res: Response) => {
   const { status } = req.body;
-  const session = videoCallService.updateStatus(req.params.id, status);
+  const session = videoCallService.updateStatus(req.params.id as string as string, status);
   if (session) {
     res.json({ success: true, data: session });
   } else {
@@ -234,9 +235,9 @@ export const updateVideoCallStatus = (req: Request, res: Response) => {
   }
 };
 
-export const addVideoCallNotes = (req: Request, res: Response) => {
+export const addVideoCallNotes = (req: AuthRequest, res: Response) => {
   const { notes } = req.body;
-  const session = videoCallService.addNotes(req.params.id, notes);
+  const session = videoCallService.addNotes(req.params.id as string as string, notes);
   if (session) {
     res.json({ success: true, data: session });
   } else {
@@ -244,11 +245,11 @@ export const addVideoCallNotes = (req: Request, res: Response) => {
   }
 };
 
-export const getVideoCallStats = (_req: Request, res: Response) => {
+export const getVideoCallStats = (_req: AuthRequest, res: Response) => {
   res.json({ success: true, data: videoCallService.getStats() });
 };
 
-export const configureVideoProvider = (req: Request, res: Response) => {
+export const configureVideoProvider = (req: AuthRequest, res: Response) => {
   videoCallService.configureProvider(req.body);
   res.json({ success: true, message: 'Provider configured' });
 };

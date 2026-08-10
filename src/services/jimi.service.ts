@@ -46,16 +46,19 @@ const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
   naturalRhythm: true,
 };
 
-export type PersonalityMode = 'projectmanager';
+export type PersonalityMode = 'projectmanager' | 'gf' | 'bestfriend';
 
 export const PERSONALITY_MODES: { code: PersonalityMode; name: string; emoji: string; description: string }[] = [
   { code: 'projectmanager', name: 'Project Manager', emoji: '🚀', description: 'Smart project control & navigation' },
+  { code: 'gf', name: 'Girlfriend', emoji: '👩', description: 'Caring & supportive assistant' },
+  { code: 'bestfriend', name: 'Best Friend', emoji: '🤝', description: 'Casual & fun buddy' },
 ];
 
 interface CommandResult {
   action: string;
   params?: any;
   response: string;
+  requiresConfirmation?: boolean;
 }
 
 type JimiCallback = (text: string, isUser: boolean) => void;

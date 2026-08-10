@@ -232,7 +232,7 @@ router.post('/consent', authenticate, async (req: AuthRequest, res: Response) =>
  * GET /api/customer-security/access-log/:contactId
  * Get access log for a specific customer
  */
-router.get('/access-log/:contactId', authenticate, async (req: Request, res: Response) => {
+router.get('/access-log/:contactId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { contactId } = req.params;
     const { businessId } = req.user as any;

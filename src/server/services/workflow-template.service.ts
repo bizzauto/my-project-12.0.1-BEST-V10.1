@@ -1,3 +1,4 @@
+import { AuthRequest } from "../middleware/auth.js";
 import { Request, Response } from 'express';
 
 interface WorkflowTemplate {
@@ -139,24 +140,24 @@ class WorkflowService {
 export const workflowService = new WorkflowService();
 
 // Routes
-export const getWorkflowTemplates = (req: Request, res: Response) => {
+export const getWorkflowTemplates = (req: AuthRequest, res: Response) => {
   const { category } = req.query;
   const templates = workflowService.getTemplates(category as string);
   res.json({ success: true, data: templates });
 };
 
-export const getWorkflowTemplate = (req: Request, res: Response) => {
+export const getWorkflowTemplate = (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const template = workflowService.getTemplate(id);
   res.json({ success: !!template, data: template });
 };
 
-export const createWorkflowTemplate = (req: Request, res: Response) => {
+export const createWorkflowTemplate = (req: AuthRequest, res: Response) => {
   const template = workflowService.createTemplate(req.body);
   res.json({ success: true, data: template });
 };
 
-export const executeWorkflow = async (req: Request, res: Response) => {
+export const executeWorkflow = async (req: AuthRequest, res: Response) => {
   const { templateId, context } = req.body;
   try {
     const results = await workflowService.executeWorkflow(templateId, context);
@@ -166,13 +167,13 @@ export const executeWorkflow = async (req: Request, res: Response) => {
   }
 };
 
-export const updateWorkflowTemplate = (req: Request, res: Response) => {
+export const updateWorkflowTemplate = (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const template = workflowService.updateTemplate(id, req.body);
   res.json({ success: !!template, data: template });
 };
 
-export const toggleWorkflow = (req: Request, res: Response) => {
+export const toggleWorkflow = (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const result = workflowService.toggleTemplate(id);
   res.json({ success: result });

@@ -1,3 +1,4 @@
+import { AuthRequest } from "../middleware/auth.js";
 import { Request, Response } from 'express';
 
 interface Client {
@@ -92,25 +93,25 @@ class ClientPortalService {
 export const clientPortalService = new ClientPortalService();
 
 // Routes
-export const createClient = (req: Request, res: Response) => {
+export const createClient = (req: AuthRequest, res: Response) => {
   const client = clientPortalService.createClient(req.body);
   res.json({ success: true, data: client });
 };
 
-export const getClients = (req: Request, res: Response) => {
+export const getClients = (req: AuthRequest, res: Response) => {
   const { userId } = req.params;
   const clients = clientPortalService.getClients(userId);
   res.json({ success: true, data: clients });
 };
 
-export const generatePortalLink = (req: Request, res: Response) => {
+export const generatePortalLink = (req: AuthRequest, res: Response) => {
   const { clientId, userId, permissions } = req.body;
   const access = clientPortalService.generateAccess(clientId, userId, permissions);
   const link = `${process.env.FRONTEND_URL}/portal/${access.token}`;
   res.json({ success: true, data: { link, token: access.token } });
 };
 
-export const accessPortal = (req: Request, res: Response) => {
+export const accessPortal = (req: AuthRequest, res: Response) => {
   const { token } = req.params;
   const access = clientPortalService.validateToken(token);
   if (!access) {
