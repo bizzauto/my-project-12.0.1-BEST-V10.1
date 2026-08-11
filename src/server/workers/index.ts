@@ -5,6 +5,7 @@ import { GoogleSheetsService } from '../services/google-sheets.service.js';
 import { LeadCaptureService } from '../services/lead-capture.service.js';
 import { GBPAutoPostService } from '../services/gbp-auto-post.service.js';
 import { webhookDeliveryQueue, shutdownWebhookWorker } from '../services/webhook-retry.service.js';
+import { scheduledMessageQueue, scheduledMessageWorker } from './scheduled-message.worker.js';
 import { prisma } from '../db.js';
 import { createRedisConnection } from '../utils/redis-connection.js';
 
@@ -37,7 +38,7 @@ export const queues = redisAvailable ? {
 
 // Export shutdown for graceful worker teardown
 export function shutdownAllWorkers(): Promise<void> {
-  const workers = [whatsappWorker, emailWorker, socialPublishWorker, googleSheetsSyncWorker, leadProcessingWorker, campaignSchedulerWorker, gbpAutoPostWorker];
+  const workers = [whatsappWorker, emailWorker, socialPublishWorker, googleSheetsSyncWorker, leadProcessingWorker, campaignSchedulerWorker, gbpAutoPostWorker, scheduledMessageWorker];
   return Promise.allSettled(
     workers.map(w => w?.close())
   ).then(() => {});

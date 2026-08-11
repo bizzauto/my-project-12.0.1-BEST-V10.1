@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { prisma } from '../db.js';
 import { WhatsAppService } from './whatsapp.service.js';
+import { WhatsAppRateLimiter } from './whatsapp-rate-limiter.service.js';
+import { HotLeadProcessor } from './hot-lead-processor.service.js';
 import { EmailService } from './email.service.js';
 import { handleLeadCapture as triggerLeadWorkflows } from './ai-auto-reply.service.js';
 
@@ -117,6 +119,16 @@ export class LeadCaptureService {
       contact: { id: contact.id, name: leadData.name, phone: leadData.phone, email: leadData.email, company: leadData.company },
       source: 'indiamart',
       contactId: contact.id,
+    });
+
+    // Process hot lead - auto-add to CRM, notify team, schedule marketing
+    await HotLeadProcessor.processNewLead(businessId, contact.id, {
+      name: leadData.name,
+      phone: leadData.phone,
+      email: leadData.email,
+      source: 'indiamart',
+      product: leadData.product,
+      requirement: leadData.requirement,
     });
 
     // Trigger n8n workflows

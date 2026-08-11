@@ -418,8 +418,11 @@ model MessageTemplate {
   name         String
   language     String    @default("en")
   category     String    @default("UTILITY")
-  components   Json
+  content      String?   // Simple text content for marketing messages
+  components   Json      // WhatsApp Business API template components
   status       String    @default("PENDING")
+  isActive     Boolean   @default(true) // For marketing follow-up templates
+  variables    String[]  // Template variables like {{name}}, {{product}}
   waTemplateId String?
   waStatus     String?
   usageCount   Int       @default(0)
@@ -1574,8 +1577,11 @@ model ScheduledMessage {
   content          String
   type             String    @default("text")
   scheduledAt      DateTime
+  scheduledFor     DateTime? // For rate limiter queue
   status           String    @default("pending")
+  priority         String    @default("normal") // high, normal, low
   error            String?
+  metadata         Json?     // Additional data (type, templateId, etc.)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   mediaType        String?
@@ -1590,6 +1596,7 @@ model ScheduledMessage {
 
   @@index([businessId])
   @@index([status])
+  @@index([scheduledFor, status]) // For efficient queue processing
 }
 
 model DripQueue {
