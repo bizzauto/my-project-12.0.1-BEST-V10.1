@@ -2,7 +2,7 @@
  * Redis-backed API Response Cache — replaces in-memory Map cache.
  * Shared across all app replicas via Redis.
  */
-import { createRedisConnection } from '../utils/redis-connection.js';
+import { createRedisConnection, isRedisOperational } from '../utils/redis-connection.js';
 
 const redis = createRedisConnection();
 const CACHE_PREFIX = 'cache:resp:';
@@ -14,7 +14,9 @@ interface CacheEntry {
 }
 
 function redisReady(): boolean {
-  return redis !== null && redis.status === 'ready';
+  // Defer the 'ready' check to call time — at import time the client is still
+  // 'waiting' (lazyConnect), so a synchronous status check would always be false.
+  return redis !== null && isRedisOperational();
 }
 
 export function cacheResponse(ttlSeconds: number = CACHE_TTL_DEFAULT) {

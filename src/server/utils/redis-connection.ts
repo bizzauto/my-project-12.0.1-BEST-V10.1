@@ -1,12 +1,20 @@
 import IORedis from 'ioredis';
 
 let redisDisabled = false;
-let connectionAttempted = false;
 /** Global — once set, ALL Redis activity stops immediately with no retries */
 let redisUnreachable = false;
 
 export function isRedisDisabled(): boolean {
   return redisDisabled || redisUnreachable;
+}
+
+/**
+ * True once ANY ioredis client has successfully connected.
+ * ioredis sets `redisUnreachable`/`redisDisabled` on the shared module state,
+ * which is what every call site should check — NOT a per-import snapshot.
+ */
+export function isRedisOperational(): boolean {
+  return !redisDisabled && !redisUnreachable;
 }
 
 function maskUrl(url: string): string {
@@ -19,15 +27,14 @@ function maskUrl(url: string): string {
   }
 }
 
-export function createRedisConnection() {
+export function createRedisConnection(): IORedis | null {
   // IMMEDIATE FAIL FAST: If already unreachable, don't even check env vars
   if (redisUnreachable) {
     return null;
   }
-  if (redisDisabled || connectionAttempted) {
+  if (redisDisabled) {
     return null;
   }
-  connectionAttempted = true;
 
   const redisUrl = process.env.REDIS_URL;
   const redisPassword = process.env.REDIS_PASSWORD;

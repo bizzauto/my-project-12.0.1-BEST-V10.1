@@ -2,7 +2,7 @@
  * Account Lockout Service — Redis-backed per-email brute-force protection.
  * Tracks failed login attempts per email and locks account after threshold.
  */
-import { createRedisConnection } from '../utils/redis-connection.js';
+import { createRedisConnection, isRedisOperational } from '../utils/redis-connection.js';
 
 const redis = createRedisConnection();
 
@@ -20,7 +20,9 @@ export interface LockoutStatus {
 }
 
 function redisReady(): boolean {
-  return redis !== null && redis.status === 'ready';
+  // Defer the 'ready' check to call time — at import time the client is still
+  // 'waiting' (lazyConnect), so a synchronous status check would always be false.
+  return redis !== null && isRedisOperational();
 }
 
 export async function recordFailedLoginAttempt(email: string): Promise<LockoutStatus> {

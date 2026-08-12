@@ -7,7 +7,7 @@ import { createRedisConnection } from '../utils/redis-connection.js';
 const redisConnection = createRedisConnection();
 
 if (!redisConnection) {
-  console.log('[GBP Auto-Post] Redis not available — worker disabled');
+  console.log('[GBP Auto-Post] Redis not configured — worker disabled');
 }
 
 // Queue for GBP auto-posts (only if Redis available)

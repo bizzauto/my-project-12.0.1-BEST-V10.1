@@ -9,12 +9,19 @@ import { scheduledMessageQueue, scheduledMessageWorker } from './scheduled-messa
 import { prisma } from '../db.js';
 import { createRedisConnection } from '../utils/redis-connection.js';
 
-// Redis connection
+// Redis connection (lazyConnect — status is 'waiting' until async connect resolves)
 const redisConnection = createRedisConnection();
-const redisAvailable = redisConnection !== null && redisConnection.status === 'ready';
+
+/**
+ * Don't gate on `redisConnection.status === 'ready'` at import time — the
+ * connection is still 'waiting' here and would permanently disable all queues.
+ * Gate instead on whether connect was *attempted* (a client object exists) and
+ * re-check operability at call time via `isRedisOperational()`.
+ */
+const redisAvailable = redisConnection !== null;
 
 if (!redisAvailable) {
-  console.log('[Workers] Redis not available — background jobs disabled. App will run without queues.');
+  console.log('[Workers] Redis not configured — background jobs disabled. App will run without queues.');
 }
 
 const DEFAULT_JOB_OPTS = {

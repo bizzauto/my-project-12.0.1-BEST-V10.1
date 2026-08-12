@@ -73,7 +73,7 @@ const redisConnection = createRedisConnection();
 const redisAvailable = redisConnection !== null;
 
 if (!redisAvailable) {
-  console.log('[WebhookRetry] Redis not available — webhook retry queue disabled');
+  console.log('[WebhookRetry] Redis not configured — webhook retry queue disabled');
 }
 
 // ==================== QUEUE ====================

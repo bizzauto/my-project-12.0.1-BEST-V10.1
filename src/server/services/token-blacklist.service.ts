@@ -3,7 +3,7 @@
  * Invalidates refresh tokens on password change, logout, or security events.
  * Uses JWT ID (jti) as the key, stored in Redis with TTL matching token expiry.
  */
-import { createRedisConnection } from '../utils/redis-connection.js';
+import { createRedisConnection, isRedisOperational } from '../utils/redis-connection.js';
 
 const redis = createRedisConnection();
 
@@ -11,7 +11,9 @@ const TOKEN_BLACKLIST_PREFIX = 'token:blacklist:';
 const REFRESH_TOKEN_PREFIX = 'refresh:valid:';
 
 function redisReady(): boolean {
-  return redis !== null && redis.status === 'ready';
+  // Defer the 'ready' check to call time — at import time the client is still
+  // 'waiting' (lazyConnect), so a synchronous status check would always be false.
+  return redis !== null && isRedisOperational();
 }
 
 export function blacklistToken(jti: string, expiresInMs: number): void {

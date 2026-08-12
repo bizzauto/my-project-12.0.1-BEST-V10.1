@@ -50,7 +50,7 @@ async function withCampaignLock<T>(
 }
 
 if (!redisConnection) {
-  console.log('[Outreach Worker] Redis not available — worker disabled');
+  console.log('[Outreach Worker] Redis not configured — worker disabled');
 }
 
 // Queue for outreach messages

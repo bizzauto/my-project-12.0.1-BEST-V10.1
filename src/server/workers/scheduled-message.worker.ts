@@ -8,7 +8,7 @@ import { createRedisConnection } from '../utils/redis-connection.js';
 const redisConnection = createRedisConnection();
 
 if (!redisConnection) {
-  console.log('[Scheduled Message Worker] Redis not available — worker disabled');
+  console.log('[Scheduled Message Worker] Redis not configured — worker disabled');
 }
 
 // Queue for scheduled messages
