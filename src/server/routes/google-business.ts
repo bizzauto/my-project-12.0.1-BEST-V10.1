@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { prisma } from '../db.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { GBPAutoPostService } from '../services/gbp-auto-post.service.js';
+import { GoogleBusinessApi, GBPQuotaError } from '../services/google-business-api.service.js';
 import { exchangeGoogleToken } from '../services/google-oauth.service.js';
 import { encrypt, decrypt } from '../utils/auth.js';
 import axios from 'axios';
@@ -181,16 +182,14 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     });
     console.log('[GBP] User info OK:', userInfo.data?.email);
 
-    // Get Business accounts
-    let accountsResponse;
+    // Get Business accounts (resilient: retries on Google 429/5xx)
+    let accounts;
     try {
-      accountsResponse = await axios.get('https://mybusinessbusinessinformation.googleapis.com/v1/accounts', {
-        headers: { Authorization: `Bearer ${access_token}` },
-      });
+      accounts = await GoogleBusinessApi.getAccounts(access_token);
     } catch (apiErr: any) {
-      const status = apiErr.response?.status;
-      const errorBody = apiErr.response?.data?.error;
-      console.error(`[GBP] Accounts API error: ${status}`, errorBody ? JSON.stringify(errorBody) : apiErr.message);
+      const status = apiErr?.status ?? apiErr?.response?.status;
+      const isQuota = apiErr instanceof GBPQuotaError;
+      console.error(`[GBP] Accounts API error: ${status}`, isQuota ? apiErr.message : apiErr?.message);
       if (status === 403) {
         console.error('[GBP] 403 — Google Business Profile API may need approval. Visit: https://developers.google.com/my-business/content/basic-setup');
         return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=api_not_enabled`);
@@ -198,10 +197,12 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       if (status === 401) {
         return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_expired`);
       }
+      if (isQuota && status === 429) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=rate_limited`);
+      }
       throw apiErr;
     }
 
-    const accounts = accountsResponse.data?.accounts || [];
     if (accounts.length === 0) {
       return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=no_business_found`);
     }
@@ -211,19 +212,18 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     const accountId = account.name?.replace('accounts/', '') || account.accountId;
     console.log('[GBP] Found account:', accountId, 'total accounts:', accounts.length);
 
-    // Get locations for this account
+    // Get locations for this account (resilient: retries on Google 429/5xx)
     let locationId = null;
     try {
-      const locationsResponse = await axios.get(
-        `https://mybusinessbusinessinformation.googleapis.com/v1/accounts/${accountId}/locations`,
-        { headers: { Authorization: `Bearer ${access_token}` } }
-      );
-      const locations = locationsResponse.data?.locations || [];
+      const locations = await GoogleBusinessApi.getLocations(access_token, accountId);
       if (locations.length > 0) {
         locationId = locations[0].name?.replace(`accounts/${accountId}/locations/`, '') || locations[0].locationId;
       }
-    } catch (locErr) {
-      console.warn('Could not fetch locations:', locErr);
+    } catch (locErr: any) {
+      if (locErr instanceof GBPQuotaError && locErr.status === 429) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=rate_limited`);
+      }
+      console.warn('Could not fetch locations:', locErr?.message);
     }
 
     // Save to database
@@ -319,22 +319,25 @@ router.get('/setup-check', authenticate, async (req: AuthRequest, res: Response)
   if (business?.gbpAccessToken && business?.gbpAccountId) {
     try {
       const accessToken = await getValidAccessToken(req.user.businessId);
-      await axios.get('https://mybusinessbusinessinformation.googleapis.com/v1/accounts', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      await GoogleBusinessApi.getAccounts(accessToken);
       checks.apiAccess = { ok: true, message: 'Google Business Profile API access confirmed' };
     } catch (err: any) {
-      const status = err?.response?.status;
+      const status = err?.status ?? err?.response?.status;
+      const isQuota = err instanceof GBPQuotaError;
       checks.apiAccess = {
         ok: false,
         message: status === 403
           ? 'API access denied (403) — APIs need approval from Google'
           : status === 401
             ? 'API authentication failed (401) — token invalid'
-            : `API error: ${status || err?.message}`,
+            : status === 429 || isQuota
+              ? 'Google API rate limit hit (429) — app likely in TEST mode or billing not enabled'
+              : `API error: ${status || err?.message}`,
         fix: status === 403
           ? 'Go to https://console.cloud.google.com → APIs & Services → Enable these APIs: Google Business Profile APIs (Business Information API, Reviews API, LocalPosts API). Then submit OAuth consent screen for verification.'
-          : undefined,
+          : status === 429
+            ? 'Enable Cloud Billing on the OAuth client project and publish/verify the OAuth consent screen. Google throttles TEST apps to ~1 req/15s.'
+            : undefined,
       };
     }
   }
@@ -475,17 +478,19 @@ router.get('/reviews', authenticate, async (req: AuthRequest, res: Response) => 
     const accessToken = await getValidAccessToken(req.user.businessId);
 
     // Reviews API — use v4 (v1 equivalent not available)
-    const response = await axios.get(
-      `https://mybusiness.googleapis.com/v4/accounts/${business.gbpAccountId}/locations/${business.gbpLocationId}/reviews`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+    const reviews = await GoogleBusinessApi.getReviews(
+      accessToken,
+      business.gbpAccountId,
+      business.gbpLocationId
     );
-    const reviews = response.data.reviews || [];
 
     res.json({ success: true, data: reviews });
   } catch (error: any) {
-    console.error('GBP reviews fetch error:', error?.response?.status, error?.response?.data || error?.message);
-    const status = error?.response?.status;
-    if (status === 403) {
+    const status = error?.status ?? error?.response?.status;
+    console.error('GBP reviews fetch error:', status, error?.message);
+    if (error instanceof GBPQuotaError && status === 429) {
+      res.status(429).json({ success: false, error: 'Google Business Profile API rate limit reached. Wait a moment and retry.' });
+    } else if (status === 403) {
       res.status(400).json({ success: false, error: 'Google Business Profile API not enabled. Please enable APIs in Google Cloud Console.' });
     } else if (status === 401) {
       res.status(401).json({ success: false, error: 'Authentication expired. Please reconnect Google Business.' });
@@ -592,15 +597,21 @@ router.get('/posts', authenticate, async (req: AuthRequest, res: Response) => {
 
     const accessToken = await getValidAccessToken(req.user.businessId);
 
-    const response = await axios.get(
-      `https://mybusiness.googleapis.com/v4/accounts/${business.gbpAccountId}/locations/${business.gbpLocationId}/localPosts`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+    const posts = await GoogleBusinessApi.getPosts(
+      accessToken,
+      business.gbpAccountId,
+      business.gbpLocationId
     );
 
-    res.json({ success: true, data: response.data.localPosts || [] });
+    res.json({ success: true, data: posts });
   } catch (error: any) {
-    console.error('GBP posts fetch error:', error?.response?.status, error?.response?.data || error?.message);
-    res.status(500).json({ success: false, error: 'Failed to fetch posts', details: error.message });
+    const status = error?.status ?? error?.response?.status;
+    console.error('GBP posts fetch error:', status, error?.message);
+    if (error instanceof GBPQuotaError && status === 429) {
+      res.status(429).json({ success: false, error: 'Google Business Profile API rate limit reached. Wait a moment and retry.' });
+    } else {
+      res.status(500).json({ success: false, error: 'Failed to fetch posts', details: error.message });
+    }
   }
 });
 
@@ -644,15 +655,21 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
 
     const accessToken = await getValidAccessToken(req.user.businessId);
 
-    const response = await axios.get(
-      `https://mybusiness.googleapis.com/v4/accounts/${business.gbpAccountId}/locations/${business.gbpLocationId}/insights`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+    const insights = await GoogleBusinessApi.getInsights(
+      accessToken,
+      business.gbpAccountId,
+      business.gbpLocationId
     );
 
-    res.json({ success: true, data: response.data || {} });
+    res.json({ success: true, data: insights });
   } catch (error: any) {
-    console.error('GBP stats fetch error:', error?.response?.status, error?.message);
-    res.status(500).json({ success: false, error: 'Failed to fetch statistics', details: error.message });
+    const status = error?.status ?? error?.response?.status;
+    console.error('GBP stats fetch error:', status, error?.message);
+    if (error instanceof GBPQuotaError && status === 429) {
+      res.status(429).json({ success: false, error: 'Google Business Profile API rate limit reached. Wait a moment and retry.' });
+    } else {
+      res.status(500).json({ success: false, error: 'Failed to fetch statistics', details: error.message });
+    }
   }
 });
 

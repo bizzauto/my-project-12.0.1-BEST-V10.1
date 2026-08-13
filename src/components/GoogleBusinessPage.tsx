@@ -79,6 +79,7 @@ const GoogleBusinessPage: React.FC = () => {
         'no_business_found': 'No Google Business Profile found for this Google account. Create one at business.google.com first.',
         'access_denied': 'Access denied. You must grant all required permissions when prompted.',
         'api_not_enabled': 'Google Business Profile APIs are not enabled. Go to console.cloud.google.com → APIs & Services → Enable: Business Information API + Google My Business API.',
+        'rate_limited': 'Google throttled the request (429 rate limit). This usually means the OAuth app is in TEST mode or Cloud Billing is not enabled on the project. Enable Cloud Billing + publish/verify the consent screen, wait a minute, then try Connect again.',
         'token_expired': 'Authentication expired. Please try again.',
         'redirect_uri_mismatch': 'Redirect URI mismatch! The redirect URI in Google Cloud Console must EXACTLY match: https://bizzautoai.com/api/google-business/auth/callback',
         'invalid_client': 'Invalid client credentials. Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file.',
