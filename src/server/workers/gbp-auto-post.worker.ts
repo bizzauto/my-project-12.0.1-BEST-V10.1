@@ -3,8 +3,8 @@ import { prisma } from '../db.js';
 import { GBPAutoPostService } from '../services/gbp-auto-post.service.js';
 import { createRedisConnection } from '../utils/redis-connection.js';
 
-// Redis connection
-const redisConnection = createRedisConnection();
+// Redis connection (bullMQ: no per-command timeout — BullMQ blocks on idle pops)
+const redisConnection = createRedisConnection({ bullMQ: true });
 
 if (!redisConnection) {
   console.log('[GBP Auto-Post] Redis not configured — worker disabled');

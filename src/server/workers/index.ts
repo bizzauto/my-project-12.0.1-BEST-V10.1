@@ -10,7 +10,9 @@ import { prisma } from '../db.js';
 import { createRedisConnection } from '../utils/redis-connection.js';
 
 // Redis connection (lazyConnect — status is 'waiting' until async connect resolves)
-const redisConnection = createRedisConnection();
+// bullMQ:true → no commandTimeout, because BullMQ uses long-polling blocking
+// commands that would otherwise trip ioredis's per-command timeout and flood logs.
+const redisConnection = createRedisConnection({ bullMQ: true });
 
 /**
  * Don't gate on `redisConnection.status === 'ready'` at import time — the

@@ -27,7 +27,7 @@ function maskUrl(url: string): string {
   }
 }
 
-export function createRedisConnection(): IORedis | null {
+export function createRedisConnection(opts?: { bullMQ?: boolean }): IORedis | null {
   // IMMEDIATE FAIL FAST: If already unreachable, don't even check env vars
   if (redisUnreachable) {
     return null;
@@ -96,7 +96,7 @@ export function createRedisConnection(): IORedis | null {
       return null;
     }
     console.log(`[Redis] Connecting via URL: ${maskUrl(effectiveUrl)}`);
-    return connectToRedis(effectiveUrl);
+    return connectToRedis(effectiveUrl, opts);
   }
 
   if (redisPassword) {
@@ -104,7 +104,7 @@ export function createRedisConnection(): IORedis | null {
     const port = process.env.REDIS_PORT || '6379';
     const url = `redis://:${redisPassword}@${host}:${port}`;
     console.log(`[Redis] Connecting via password to ${host}:${port}...`);
-    return connectToRedis(url);
+    return connectToRedis(url, opts);
   }
 
   if (redisHost) {
@@ -122,7 +122,7 @@ function getTimeoutConfig() {
   return { commandTimeout: cmdTimeout, connectTimeout: connTimeout };
 }
 
-function connectToRedis(url: string) {
+function connectToRedis(url: string, opts?: { bullMQ?: boolean }) {
   // FAIL FAST: If already marked unreachable, don't even attempt
   if (redisUnreachable || redisDisabled) {
     console.log('[Redis] Already unreachable — skipping connection attempt');
@@ -130,7 +130,15 @@ function connectToRedis(url: string) {
   }
   const { commandTimeout, connectTimeout } = getTimeoutConfig();
 
-  console.log(`[Redis] Timeouts — connect: ${connectTimeout}ms, command: ${commandTimeout}ms. Set REDIS_CONNECT_TIMEOUT / REDIS_COMMAND_TIMEOUT env vars to override.`);
+  // BullMQ relies on LONG-POLLING blocking commands (BRPOP/BLPOP) that sit idle
+  // for seconds waiting for the next job. A commandTimeout here fires on every
+  // idle wait and floods the logs with "Command timed out" (see workers/index.ts).
+  // BullMQ manages its own blocking-command timeout, so we MUST NOT set one for
+  // the queue/worker connection. Only the request-path cache client gets it.
+  const isBullMQ = !!opts?.bullMQ;
+  const effectiveCommandTimeout = isBullMQ ? undefined : commandTimeout;
+
+  console.log(`[Redis] Timeouts — connect: ${connectTimeout}ms, command: ${isBullMQ ? 'NONE (BullMQ blocking-safe)' : `${commandTimeout}ms`}. Set REDIS_CONNECT_TIMEOUT / REDIS_COMMAND_TIMEOUT env vars to override.`);
 
   const client = new IORedis(url, {
     maxRetriesPerRequest: null,
@@ -147,7 +155,7 @@ function connectToRedis(url: string) {
     },
     enableOfflineQueue: false,
     connectTimeout,
-    commandTimeout,
+    commandTimeout: effectiveCommandTimeout,
     lazyConnect: true,
   });
 

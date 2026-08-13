@@ -5,7 +5,7 @@ import { EvolutionApiService } from '../services/evolution.service.js';
 import { WhatsAppRateLimiter } from '../services/whatsapp-rate-limiter.service.js';
 import { createRedisConnection } from '../utils/redis-connection.js';
 
-const redisConnection = createRedisConnection();
+const redisConnection = createRedisConnection({ bullMQ: true });
 
 if (!redisConnection) {
   console.log('[Scheduled Message Worker] Redis not configured — worker disabled');

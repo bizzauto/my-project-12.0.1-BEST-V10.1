@@ -69,7 +69,7 @@ const CONCURRENCY = 5;
 // ==================== REDIS CONNECTION ====================
 
 import { createRedisConnection } from '../utils/redis-connection.js';
-const redisConnection = createRedisConnection();
+const redisConnection = createRedisConnection({ bullMQ: true });
 const redisAvailable = redisConnection !== null;
 
 if (!redisAvailable) {

@@ -22,7 +22,7 @@ async function smartSendText(businessId: string, to: string, message: string): P
   return await WhatsAppService.sendTextMessage(businessId, to, message);
 }
 
-const redisConnection = createRedisConnection();
+const redisConnection = createRedisConnection({ bullMQ: true });
 
 async function withCampaignLock<T>(
   campaignId: string,
