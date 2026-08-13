@@ -388,6 +388,13 @@ export const checkPlanLimits = (resource: string, limit: number) => {
         });
       }
 
+      // Unlock plan limits for OWNER/SUPER_ADMIN so a low-tier business plan
+      // (e.g. FREE) never throttles them with a 429. Mirrors EXEMPT_ROLES in
+      // planLimits.ts so both enforcement paths behave the same.
+      if (['OWNER', 'SUPER_ADMIN'].includes(req.user.role)) {
+        return next();
+      }
+
       const business = await prisma.business.findUnique({
         where: { id: req.user.businessId },
       });

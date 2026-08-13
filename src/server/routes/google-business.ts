@@ -175,12 +175,20 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     console.log('[GBP] Token exchange OK — has access_token:', !!tokenData.access_token, 'has refresh_token:', !!tokenData.refresh_token, 'expires_in:', tokenData.expires_in);
     const { access_token, refresh_token, expires_in } = tokenData;
 
-    // Get user info
+    // Get user info (resilient: retries on Google 429/5xx)
     console.log('[GBP] Fetching user info...');
-    const userInfo = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${access_token}` },
-    });
-    console.log('[GBP] User info OK:', userInfo.data?.email);
+    let userInfo;
+    try {
+      userInfo = await GoogleBusinessApi.getUserInfo(access_token);
+    } catch (uiErr: any) {
+      const status = uiErr?.status ?? uiErr?.response?.status;
+      if (uiErr instanceof GBPQuotaError && status === 429) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=rate_limited`);
+      }
+      console.error('[GBP] User info error:', uiErr?.message);
+      throw uiErr;
+    }
+    console.log('[GBP] User info OK:', userInfo?.email);
 
     // Get Business accounts (resilient: retries on Google 429/5xx)
     let accounts;

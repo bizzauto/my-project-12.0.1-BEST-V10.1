@@ -1,4 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { getJwtSecret, JWT_OPTIONS } from '../utils/jwtConfig.js';
+
+/**
+ * Decode SUPER_ADMIN role from the Bearer token WITHOUT a DB lookup.
+ * Used by global middleware (ipBlockMiddleware) that runs before `authenticate`.
+ */
+function isSuperAdminFromToken(req: Request): boolean {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) return false;
+  try {
+    const decoded = jwt.verify(header.slice(7), getJwtSecret(), {
+      algorithms: ['HS256'],
+      audience: JWT_OPTIONS.audience,
+      issuer: JWT_OPTIONS.issuer,
+    }) as any;
+    return decoded?.role === 'SUPER_ADMIN';
+  } catch {
+    return false;
+  }
+}
 
 /**
  * IP Whitelist - Allow only specific IPs (for admin panel)
@@ -93,6 +114,9 @@ setInterval(() => ipBlocker.cleanup(), 5 * 60 * 1000);
  * IP Blocking Middleware
  */
 export const ipBlockMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  // Superadmin bypass — never block the platform owner, even from a flagged IP.
+  if (isSuperAdminFromToken(req)) return next();
+
   const ip = req.ip || req.socket.remoteAddress || '';
   
   if (ipBlocker.isBlocked(ip)) {

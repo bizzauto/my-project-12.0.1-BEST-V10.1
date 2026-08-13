@@ -1,7 +1,31 @@
 import rateLimit from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { getJwtSecret, JWT_OPTIONS } from '../utils/jwtConfig.js';
 
 const speedTracker: Record<string, { count: number; windowStart: number }> = {};
+
+/**
+ * Decode SUPER_ADMIN role from the Bearer token WITHOUT a DB lookup.
+ *
+ * Used by global limiters that run BEFORE `authenticate` (so req.user is not
+ * populated yet). Synchronous + token-only so it stays cheap on every request.
+ * A malformed/missing token simply returns false → caller applies the limit.
+ */
+function isSuperAdminFromToken(req: Request): boolean {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) return false;
+  try {
+    const decoded = jwt.verify(header.slice(7), getJwtSecret(), {
+      algorithms: ['HS256'],
+      audience: JWT_OPTIONS.audience,
+      issuer: JWT_OPTIONS.issuer,
+    }) as any;
+    return decoded?.role === 'SUPER_ADMIN';
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Global Rate Limiter - Prevents brute force & DDoS
@@ -68,6 +92,7 @@ export const uploadRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   validate: false,
+  skip: (req) => isSuperAdminFromToken(req),
 });
 
 /**
@@ -75,6 +100,9 @@ export const uploadRateLimiter = rateLimit({
  * Adds 100-300ms delay for requests exceeding 1 req/sec sustained
  */
 export const speedLimiter = (req: Request, res: Response, next: NextFunction) => {
+  // Superadmin bypass — never throttle the platform owner, regardless of IP.
+  if (isSuperAdminFromToken(req)) return next();
+
   const now = Date.now();
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const windowMs = 1000; // 1 second window
@@ -146,6 +174,7 @@ export const aiApiRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   validate: false,
+  skip: (req) => isSuperAdminFromToken(req),
 });
 
 /**

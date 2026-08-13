@@ -27,9 +27,13 @@ import axios, { AxiosError } from 'axios';
 const BUSINESS_INFO_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 const BUSINESS_API_BASE = 'https://mybusiness.googleapis.com/v4';
 
-const MAX_RETRIES = 4;
+const MAX_RETRIES = 5;
 const BASE_BACKOFF_MS = 800; // first retry after ~0.8s, grows ×2
-const MAX_BACKOFF_MS = 16_000;
+const MAX_BACKOFF_MS = 32_000;
+// Google TEST-mode (unverified consent screen) throttles to ~1 req / 15s.
+// A backoff below this window just re-hits the same 429, so floor retries for
+// 429 specifically to give the throttle time to reset.
+const RATE_LIMIT_FLOOR_MS = 15_000;
 
 // HTTP statuses worth retrying (transient throttling / upstream hiccups).
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
@@ -98,7 +102,12 @@ async function resilientCall({ url, accessToken, method = 'GET', body, label }: 
       if (attempt === MAX_RETRIES) break;
 
       const retryAfter = parseRetryAfter(axiosErr.response?.headers['retry-after'] as string | undefined);
-      const backoff = retryAfter ?? Math.min(BASE_BACKOFF_MS * 2 ** attempt, MAX_BACKOFF_MS);
+      const computed = Math.min(BASE_BACKOFF_MS * 2 ** attempt, MAX_BACKOFF_MS);
+      // For 429 specifically, never back off below the TEST-mode throttle window.
+      const floor = status === 429 ? RATE_LIMIT_FLOOR_MS : 0;
+      const base = retryAfter ?? Math.max(computed, floor);
+      // Add up to ~25% jitter so concurrent callbacks don't retry in lockstep.
+      const backoff = Math.round(base * (1 + Math.random() * 0.25));
 
       console.warn(
         `[GBP API] ${label} call 429/5xx (attempt ${attempt + 1}/${MAX_RETRIES + 1}, status ${status}) — backing off ${backoff}ms`
@@ -133,6 +142,16 @@ export const GoogleBusinessApi = {
       label: 'accounts',
     });
     return res.data?.accounts ?? [];
+  },
+
+  /** Fetch the authenticated user's basic profile (email/name) via OAuth2 userinfo. */
+  async getUserInfo(accessToken: string) {
+    const res = await resilientCall({
+      url: 'https://www.googleapis.com/oauth2/v2/userinfo',
+      accessToken,
+      label: 'userinfo',
+    });
+    return res.data ?? {};
   },
 
   /** Fetch locations for a GBP account. */

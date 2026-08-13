@@ -4,37 +4,13 @@ import { randomBytes, createCipheriv, createDecipheriv, timingSafeEqual } from '
 import path from 'path';
 import fs from 'fs';
 import { isTokenBlacklisted } from '../services/token-blacklist.service.js';
-
-// ── JWT_SECRET (lazy resolution) ──
-// NOTE: process.env is read at CALL TIME, not module eval time.
-// This ensures dotenv.config() in index.ts has already run by the time
-// any token sign/verify happens, preventing the "different secret" bug.
-// SECURITY: the dev fallback is a random per-process value, not derived
-// from hostname/CWD. Predictable per-host derivation would let anyone
-// who knows the box fingerprint forge tokens in any misconfigured env.
-const DEV_JWT_FALLBACK = randomBytes(32).toString('hex');
-
-const isProd = () => process.env.NODE_ENV === 'production';
-
-export function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (secret) {
-    if (secret.length < 16) {
-      throw new Error('JWT_SECRET must be at least 16 characters');
-    }
-    return secret;
-  }
-  if (isProd()) {
-    console.warn('⚠️ WARNING: JWT_SECRET not set — using random dev fallback. Set JWT_SECRET in .env for production!');
-  }
-  return DEV_JWT_FALLBACK;
-}
+import { getJwtSecret, JWT_OPTIONS } from './jwtConfig.js';
 
 const JWT_SIGN_OPTIONS: jwt.SignOptions = {
   expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'],
   algorithm: 'HS256',
-  audience: process.env.JWT_AUDIENCE || 'bizzauto-web',
-  issuer: process.env.JWT_ISSUER || 'bizzauto',
+  audience: JWT_OPTIONS.audience,
+  issuer: JWT_OPTIONS.issuer,
 };
 
 export const generateToken = (payload: object): string => {
@@ -46,8 +22,8 @@ export const verifyToken = async (token: string): Promise<any> => {
   const secret = getJwtSecret();
   const decoded = jwt.verify(token, secret, {
     algorithms: ['HS256'],
-    audience: process.env.JWT_AUDIENCE || 'bizzauto-web',
-    issuer: process.env.JWT_ISSUER || 'bizzauto',
+    audience: JWT_OPTIONS.audience,
+    issuer: JWT_OPTIONS.issuer,
   }) as any;
 
   // Check if token has been blacklisted (password change, logout, security event)
