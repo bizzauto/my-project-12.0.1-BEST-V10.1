@@ -6,6 +6,11 @@ import fs from 'fs';
 import { isTokenBlacklisted } from '../services/token-blacklist.service.js';
 import { getJwtSecret, JWT_OPTIONS } from './jwtConfig.js';
 
+// Re-export for backward compatibility — several modules (routes/auth.ts,
+// websocket.ts, middleware/apiVersion.ts) import getJwtSecret from auth.ts.
+// The real implementation lives in jwtConfig.ts (leaf module, no import cycle).
+export { getJwtSecret };
+
 const JWT_SIGN_OPTIONS: jwt.SignOptions = {
   expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'],
   algorithm: 'HS256',

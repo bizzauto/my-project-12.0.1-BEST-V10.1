@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '../utils/auth.js';
+import { getJwtSecret } from '../utils/jwtConfig.js';
 
 export const API_VERSION = 'v1';
 export const API_PREFIX = `/api/${API_VERSION}`;

@@ -1,7 +1,7 @@
 import { Server as SocketServer, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
-import { getJwtSecret } from './utils/auth.js';
+import { getJwtSecret } from './utils/jwtConfig.js';
 import { default as redisClient } from './services/redis.service.js';
 import { checkConnectionLimit, checkMessageLimit, cleanupSocketLimits, startRateLimitCleanup } from './middleware/websocket-rate-limit.js';
 
