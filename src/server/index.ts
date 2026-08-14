@@ -1,3 +1,4 @@
+import './dns-config.js'; // MUST be first: forces IPv4-first DNS so GBP/Google calls don't time out on broken IPv6 egress
 import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';

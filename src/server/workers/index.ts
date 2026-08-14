@@ -1,3 +1,4 @@
+import '../dns-config.js'; // MUST be first: forces IPv4-first DNS so GBP/Google calls don't time out on broken IPv6 egress
 import { Queue, Worker, Job } from 'bullmq';
 import { WhatsAppService } from '../services/whatsapp.service.js';
 import { EmailService } from '../services/email.service.js';
