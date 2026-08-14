@@ -659,6 +659,18 @@ if (NODE_ENV === 'production') {
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // If the response was already sent (e.g. an OAuth callback already issued a
+  // redirect and an async error fired afterwards), do NOT try to send again —
+  // that throws ERR_HTTP_HEADERS_SENT and surfaces to the client as a 502.
+  if (res.headersSent) {
+    logger.error('Error after headers sent (skipped second response):', {
+      error: err?.message,
+      path: req.path,
+      method: req.method,
+    });
+    return next(err);
+  }
+
   logger.error('Error:', {
     error: err.message,
     stack: err.stack,

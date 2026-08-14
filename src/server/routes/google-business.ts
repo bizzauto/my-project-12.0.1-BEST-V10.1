@@ -358,7 +358,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
 
     console.log('[GBP] ✅ Database saved successfully! Redirecting to frontend...');
     // Redirect to frontend with success
-    res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?connected=true`);
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?connected=true`);
   } catch (error: any) {
     console.error('[GBP] callback error:', getErrorMessage(error));
     console.error('[GBP] callback error code:', getErrorCode(error));
