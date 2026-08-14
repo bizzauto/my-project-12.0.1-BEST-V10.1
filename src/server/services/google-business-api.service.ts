@@ -23,6 +23,7 @@
  * in the SAME project as the Web OAuth client and sign in as a GBP owner.
  */
 import axios, { AxiosError } from 'axios';
+import { getHttpsProxyAgent } from './httpProxyAgent.js';
 
 const BUSINESS_INFO_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 const BUSINESS_API_BASE = 'https://mybusiness.googleapis.com/v4';
@@ -81,12 +82,15 @@ interface CallArgs {
 async function resilientCall({ url, accessToken, method = 'GET', body, label }: CallArgs) {
   let lastErr: AxiosError | null = null;
 
+  const httpsAgent = await getHttpsProxyAgent();
+
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       return await axios({
         url,
         method,
         data: body,
+        ...(httpsAgent ? { httpsAgent } : {}),
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',

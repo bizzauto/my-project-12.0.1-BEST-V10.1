@@ -75,22 +75,87 @@ function cleanupExpiredStates() {
   }
 }
 
+/** Network error codes that mean "the server could not reach Google at all". */
+const GBP_NETWORK_CODES = new Set([
+  'ENOTFOUND',
+  'EAI_AGAIN', // DNS lookup failed
+  'ECONNREFUSED', // reachable but nothing listening (often a block)
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'ESOCKETTIMEDOUT',
+  'ECONNABORTED',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_SOCKET',
+]);
+
+/**
+ * Walk an error tree and return the most specific low-level `code` we can find.
+ * For an `AggregateError` (Node undici wraps all failed connection attempts in
+ * one), we look at each inner error's `.code` / `.cause.code` — that is the real
+ * signal: ENOTFOUND = DNS, ECONNREFUSED = firewall/block, ETIMEDOUT = dropped.
+ */
+function getErrorCode(err: unknown): string | undefined {
+  if (err == null || typeof err !== 'object') return undefined;
+  const e = err as { code?: unknown; cause?: unknown };
+  if (typeof e.code === 'string' && e.code) return e.code;
+  if (e.cause) {
+    const causeCode = getErrorCode(e.cause);
+    if (causeCode) return causeCode;
+  }
+  if (err instanceof AggregateError) {
+    for (const inner of err.errors ?? []) {
+      const innerCode = getErrorCode(inner);
+      if (innerCode) return innerCode;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Return true if the error is a network-level failure (server could not reach
+ * Google), as opposed to an HTTP/auth failure (4xx/5xx from Google).
+ */
+function isNetworkFailure(err: unknown): boolean {
+  return GBP_NETWORK_CODES.has(getErrorCode(err) ?? '') || err instanceof AggregateError;
+}
+
 /**
  * Extract a human-readable message from any thrown value. GBP connect was
  * previously swallowing errors as `unknown` whenever the thrown value had no
  * `.message` (e.g. a string, a plain object, or an axios error without a
  * populated `.response.data.error_description`). This guarantees we always get
  * something actionable instead of a blank "unknown".
+ *
+ * Also unwraps `AggregateError` (Node undici's "All connection attempts failed"
+ * wrapper) so we surface the underlying DNS/connection cause instead of a
+ * useless "no message".
  */
 function getErrorMessage(err: unknown): string {
   if (err == null) return 'Unknown error (no details)';
   if (typeof err === 'string') return err;
-  if (err instanceof Error) return err.message || `${err.name}: no message`;
+
+  // AggregateError: "All connection attempts failed" — unwrap to the real cause.
+  if (err instanceof AggregateError) {
+    const inner = (err.errors ?? [])
+      .map((e) => getErrorMessage(e))
+      .filter((m): m is string => !!m && m !== 'Unknown error (no details)');
+    const code = getErrorCode(err);
+    const detail = inner.length ? inner.join('; ') : err.message || 'no inner errors';
+    return `AggregateError: ${detail}${code ? ` [code=${code}]` : ''}`;
+  }
+
+  if (err instanceof Error) {
+    const code = getErrorCode(err);
+    return code ? `${err.name}: ${err.message} (code: ${code})` : (err.message || `${err.name}: no message`);
+  }
+
   if (typeof err === 'object') {
     const e = err as Record<string, unknown>;
     if (typeof e.message === 'string' && e.message) return e.message;
     if (typeof e.error_description === 'string' && e.error_description) return e.error_description;
     if (typeof e.error === 'string' && e.error) return e.error;
+    const code = typeof e.code === 'string' ? e.code : undefined;
+    if (code) return `Error code: ${code}`;
     try {
       return JSON.stringify(err);
     } catch {
@@ -289,6 +354,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?connected=true`);
   } catch (error: any) {
     console.error('[GBP] callback error:', getErrorMessage(error));
+    console.error('[GBP] callback error code:', getErrorCode(error));
     console.error('[GBP] callback error stack:', error?.stack);
     console.error('[GBP] callback raw:', JSON.stringify(error, Object.getOwnPropertyNames(error || {}))?.substring(0, 1000));
     console.error('[GBP] callback query:', JSON.stringify(req.query));
@@ -302,6 +368,18 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=api_not_enabled`);
     } else if (error?.response?.status === 401) {
       res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_expired`);
+    } else if (isNetworkFailure(error)) {
+      // Server could NOT reach Google at all (DNS/connection). Surface a clear,
+      // actionable message so the user knows this is infra, not their config.
+      const errCode = getErrorCode(error) ?? 'UNKNOWN';
+      const hintByCode: Record<string, string> = {
+        ENOTFOUND: 'DNS lookup for oauth2.googleapis.com failed — the server cannot resolve Google hosts. Check the container DNS / network egress.',
+        EAI_AGAIN: 'DNS lookup for Google hosts timed out — check the container DNS config.',
+        ECONNREFUSED: 'Connection to Google was refused — an outbound firewall/proxy is likely blocking traffic. If the server requires a proxy for external calls, it must be wired into the GBP token exchange.',
+        ETIMEDOUT: 'Connection to Google timed out — outbound traffic to Google is being dropped. Check firewall / egress rules.',
+      };
+      const hint = hintByCode[errCode] ?? 'The server could not establish a network connection to Google. Check the container network egress.';
+      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=gbp_network_error&msg=${encodeURIComponent(`Network failure reaching Google [code=${errCode}]. ${hint}`)}`);
     } else {
       const msg = getErrorMessage(error);
       // If we STILL couldn't extract anything, send diagnostic context instead

@@ -7,6 +7,7 @@
  * so a single flaky network blip does not permanently fail a GBP/Link callback.
  */
 import axios from 'axios';
+import { getHttpsProxyAgent } from './httpProxyAgent.js';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
@@ -42,8 +43,10 @@ export async function exchangeGoogleToken(params: Record<string, string>): Promi
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const formBody = new URLSearchParams(params).toString();
+      const httpsAgent = await getHttpsProxyAgent();
       const res = await axios.post(GOOGLE_TOKEN_URL, formBody, {
         timeout: BASE_TIMEOUT_MS,
+        ...(httpsAgent ? { httpsAgent } : {}),
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
       return res.data;

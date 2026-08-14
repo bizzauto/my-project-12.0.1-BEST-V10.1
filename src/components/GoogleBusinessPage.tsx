@@ -81,6 +81,7 @@ const GoogleBusinessPage: React.FC = () => {
         'api_not_enabled': 'Google Business Profile APIs are not enabled. Go to console.cloud.google.com → APIs & Services → Enable: Business Information API + Google My Business API.',
         'rate_limited': 'Google throttled the request (429 rate limit). This usually means the OAuth app is in TEST mode or Cloud Billing is not enabled on the project. Enable Cloud Billing + publish/verify the consent screen, wait a minute, then try Connect again.',
         'token_expired': 'Authentication expired. Please try again.',
+        'gbp_network_error': `Server could not reach Google: ${detailedMsg || 'network failure'}. This is an infrastructure (DNS/firewall/proxy) issue on the server, not your Google config. If the server needs a proxy for external calls, it must be wired into the GBP token exchange.`,
         'redirect_uri_mismatch': 'Redirect URI mismatch! The redirect URI in Google Cloud Console must EXACTLY match: https://bizzautoai.com/api/google-business/auth/callback',
         'invalid_client': 'Invalid client credentials. Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file.',
         'callback_failed': `Connection failed: ${detailedMsg || 'Check GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and redirect URI in Google Cloud Console.'} See Setup Guide below.`,
