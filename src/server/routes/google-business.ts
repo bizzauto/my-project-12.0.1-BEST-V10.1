@@ -392,6 +392,42 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// ── GET /api/google-business/net-check — Live outbound connectivity probe to Google ──
+// Diagnostic-only: confirms whether THIS server process can reach Google over IPv4.
+router.get('/net-check', async (_req: AuthRequest, res: Response) => {
+  const dns = await import('dns');
+  const targets = [
+    'oauth2.googleapis.com',
+    'www.googleapis.com',
+    'mybusinessbusinessinformation.googleapis.com',
+  ];
+  const results: Record<string, unknown> = { dnsOrder: (dns as any).getDefaultResultOrder?.() ?? 'unknown' };
+  await Promise.all(targets.map(async (host) => {
+    const entry: Record<string, unknown> = {};
+    try {
+      const addrs = await new Promise<{ address: string; family: number }[]>((resolve, reject) =>
+        dns.lookup(host, { all: true }, (e: Error | null, a: { address: string; family: number }[]) =>
+          e ? reject(e) : resolve(a))
+      );
+      entry.addresses = addrs;
+      // Now actually try an IPv4 HTTPS GET from THIS process
+      const start = Date.now();
+      try {
+        await axios.get(`https://${host}/`, { family: 4, timeout: 8000, validateStatus: () => true });
+        entry.ipv4Reachable = true;
+        entry.ipv4Ms = Date.now() - start;
+      } catch (e: any) {
+        entry.ipv4Reachable = false;
+        entry.ipv4Error = e?.code || e?.message;
+      }
+    } catch (e: any) {
+      entry.dnsError = e?.code || e?.message;
+    }
+    results[host] = entry;
+  }));
+  res.json({ ok: true, timestamp: new Date().toISOString(), results });
+});
+
 // ── GET /api/google-business/setup-check — Validate configuration ──
 router.get('/setup-check', authenticate, async (req: AuthRequest, res: Response) => {
   const checks: Record<string, { ok: boolean; message: string; fix?: string }> = {};

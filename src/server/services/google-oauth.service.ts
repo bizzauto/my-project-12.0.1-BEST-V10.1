@@ -46,6 +46,7 @@ export async function exchangeGoogleToken(params: Record<string, string>): Promi
       const httpsAgent = await getHttpsProxyAgent();
       const res = await axios.post(GOOGLE_TOKEN_URL, formBody, {
         timeout: BASE_TIMEOUT_MS,
+        family: 4, // FORCE IPv4: Container IPv6 egress is broken
         ...(httpsAgent ? { httpsAgent } : {}),
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });

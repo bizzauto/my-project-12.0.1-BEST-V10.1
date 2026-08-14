@@ -90,6 +90,7 @@ async function resilientCall({ url, accessToken, method = 'GET', body, label }: 
         url,
         method,
         data: body,
+        family: 4, // FORCE IPv4: Container IPv6 egress is broken
         ...(httpsAgent ? { httpsAgent } : {}),
         headers: {
           Authorization: `Bearer ${accessToken}`,
