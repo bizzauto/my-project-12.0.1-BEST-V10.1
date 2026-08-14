@@ -75,11 +75,38 @@ function cleanupExpiredStates() {
   }
 }
 
+/**
+ * Extract a human-readable message from any thrown value. GBP connect was
+ * previously swallowing errors as `unknown` whenever the thrown value had no
+ * `.message` (e.g. a string, a plain object, or an axios error without a
+ * populated `.response.data.error_description`). This guarantees we always get
+ * something actionable instead of a blank "unknown".
+ */
+function getErrorMessage(err: unknown): string {
+  if (err == null) return 'Unknown error (no details)';
+  if (typeof err === 'string') return err;
+  if (err instanceof Error) return err.message || `${err.name}: no message`;
+  if (typeof err === 'object') {
+    const e = err as Record<string, unknown>;
+    if (typeof e.message === 'string' && e.message) return e.message;
+    if (typeof e.error_description === 'string' && e.error_description) return e.error_description;
+    if (typeof e.error === 'string' && e.error) return e.error;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return 'Unparseable error object';
+    }
+  }
+  return String(err);
+}
+
 // ── GET /api/google-business/auth/url — Generate OAuth URL ──
 router.get('/auth/url', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const redirectUri = process.env.GOOGLE_BUSINESS_REDIRECT_URL || `https://bizzautoai.com/api/google-business/auth/callback`;
+    const host = req.get('host') || process.env.GOOGLE_BUSINESS_REDIRECT_URL || 'bizzautoai.com';
+    const protocol = (req.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')).split(',')[0].trim();
+    const redirectUri = `${protocol}://${host}/api/google-business/auth/callback`;
 
     if (!clientId) {
       return res.status(500).json({ success: false, error: 'Google Client ID not configured' });
@@ -142,7 +169,12 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     oauthStates.delete(state as string);
 
     // Exchange code for tokens (with retry/timeout on transient network failures)
-    const redirectUri = process.env.GOOGLE_BUSINESS_REDIRECT_URL || `https://bizzautoai.com/api/google-business/auth/callback`;
+    // Derive the redirect URI from the incoming request origin so it always
+    // matches what Google sent the user back to — this survives localhost dev,
+    // the deployed domain, and any proxy/ingress without manual env wiring.
+    const host = req.get('host') || process.env.GOOGLE_BUSINESS_REDIRECT_URL || 'bizzautoai.com';
+    const protocol = (req.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')).split(',')[0].trim();
+    const redirectUri = `${protocol}://${host}/api/google-business/auth/callback`;
     console.log('[GBP] Exchanging code for tokens — redirect_uri:', redirectUri, 'client_id:', process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...');
     let tokenResponse: any;
     try {
@@ -157,7 +189,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       const googleErr = tokenErr?.response?.data || {};
       console.error('[GBP] Token exchange FAILED:', {
         status: tokenErr?.response?.status,
-        error: googleErr.error || tokenErr?.message,
+        error: googleErr.error || getErrorMessage(tokenErr),
         error_description: googleErr.error_description,
         redirect_uri: redirectUri,
         code: (code as string)?.substring(0, 10) + '...',
@@ -236,23 +268,29 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
 
     // Save to database
     console.log('[GBP] Saving to database — businessId:', stateData.businessId, 'accountId:', accountId, 'locationId:', locationId);
-    await prisma.business.update({
-      where: { id: stateData.businessId },
-      data: {
-        gbpAccessToken: encrypt(access_token),
-        gbpRefreshToken: refresh_token ? encrypt(refresh_token) : undefined,
-        gbpAccountId: accountId,
-        gbpLocationId: locationId,
-        gbpTokenExpiry: new Date(Date.now() + expires_in * 1000),
-      },
-    });
+    try {
+      await prisma.business.update({
+        where: { id: stateData.businessId },
+        data: {
+          gbpAccessToken: encrypt(access_token),
+          gbpRefreshToken: refresh_token ? encrypt(refresh_token) : undefined,
+          gbpAccountId: accountId,
+          gbpLocationId: locationId,
+          gbpTokenExpiry: new Date(Date.now() + expires_in * 1000),
+        },
+      });
+    } catch (dbErr: unknown) {
+      console.error('[GBP] DATABASE SAVE FAILED:', getErrorMessage(dbErr), (dbErr as { stack?: string })?.stack);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=db_save_failed&msg=${encodeURIComponent(getErrorMessage(dbErr))}`);
+    }
 
     console.log('[GBP] ✅ Database saved successfully! Redirecting to frontend...');
     // Redirect to frontend with success
     res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?connected=true`);
   } catch (error: any) {
-    console.error('[GBP] callback error:', error?.message || error);
+    console.error('[GBP] callback error:', getErrorMessage(error));
     console.error('[GBP] callback error stack:', error?.stack);
+    console.error('[GBP] callback raw:', JSON.stringify(error, Object.getOwnPropertyNames(error || {}))?.substring(0, 1000));
     console.error('[GBP] callback query:', JSON.stringify(req.query));
     console.error('[GBP] callback env check:', {
       clientIdSet: !!process.env.GOOGLE_CLIENT_ID,
@@ -265,7 +303,8 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     } else if (error?.response?.status === 401) {
       res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_expired`);
     } else {
-      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=callback_failed&msg=${encodeURIComponent(error?.response?.data?.error_description || error?.message || 'unknown')}`);
+      const msg = getErrorMessage(error) || 'unknown';
+      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=callback_failed&msg=${encodeURIComponent(msg)}`);
     }
   }
 });

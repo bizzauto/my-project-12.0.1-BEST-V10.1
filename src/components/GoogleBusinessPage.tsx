@@ -83,7 +83,8 @@ const GoogleBusinessPage: React.FC = () => {
         'token_expired': 'Authentication expired. Please try again.',
         'redirect_uri_mismatch': 'Redirect URI mismatch! The redirect URI in Google Cloud Console must EXACTLY match: https://bizzautoai.com/api/google-business/auth/callback',
         'invalid_client': 'Invalid client credentials. Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file.',
-        'callback_failed': `Connection failed: ${detailedMsg || 'Check GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and redirect URI in Google Cloud Console.'} See Setup Guide below.`
+        'callback_failed': `Connection failed: ${detailedMsg || 'Check GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and redirect URI in Google Cloud Console.'} See Setup Guide below.`,
+        'db_save_failed': `Connected to Google but could not save to database: ${detailedMsg || 'unknown error'}. Check server logs.`
       };
       toast_(errorMessages[error] || `Connection failed: ${detailedMsg || error}`, 'error');
       setSearchParams({});

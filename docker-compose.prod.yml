@@ -86,7 +86,7 @@ services:
       - WHATSAPP_REDIRECT_URL=${WHATSAPP_REDIRECT_URL}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL}
+      - GOOGLE_REDIRECT_URL=${GOOGLE_REDIRECT_URL:-https://bizzautoai.com/api/auth/google/callback}
       - GOOGLE_BUSINESS_REDIRECT_URL=${GOOGLE_BUSINESS_REDIRECT_URL:-https://bizzautoai.com/api/google-business/auth/callback}
       - GOOGLE_AUTH_REDIRECT_URL=${GOOGLE_AUTH_REDIRECT_URL:-https://bizzautoai.com/api/auth/google/callback}
       - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
