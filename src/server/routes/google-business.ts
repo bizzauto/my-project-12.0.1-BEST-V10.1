@@ -9,6 +9,13 @@ import axios from 'axios';
 
 const router = Router();
 
+// TEMP diagnostic: capture the last callback failure so we can inspect it
+// without Coolify log access. Remove once GBP connect is confirmed working.
+let lastCallbackError: Record<string, unknown> | null = null;
+export function getLastCallbackError() {
+  return lastCallbackError;
+}
+
 // Google Business OAuth scopes
 const GBP_SCOPES = [
   'https://www.googleapis.com/auth/business.manage',
@@ -358,6 +365,15 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     console.error('[GBP] callback error stack:', error?.stack);
     console.error('[GBP] callback raw:', JSON.stringify(error, Object.getOwnPropertyNames(error || {}))?.substring(0, 1000));
     console.error('[GBP] callback query:', JSON.stringify(req.query));
+    // TEMP: capture for /last-error diagnostic endpoint
+    lastCallbackError = {
+      timestamp: new Date().toISOString(),
+      message: getErrorMessage(error),
+      code: getErrorCode(error),
+      status: error?.response?.status,
+      googleBody: error?.response?.data ?? null,
+      query: req.query,
+    };
     console.error('[GBP] callback env check:', {
       clientIdSet: !!process.env.GOOGLE_CLIENT_ID,
       clientSecretSet: !!process.env.GOOGLE_CLIENT_SECRET,
@@ -441,6 +457,11 @@ router.get('/net-check', async (_req: AuthRequest, res: Response) => {
     results[host] = entry;
   }));
   res.json({ ok: true, timestamp: new Date().toISOString(), results });
+});
+
+// ── GET /api/google-business/last-error — TEMP diagnostic: last callback failure ──
+router.get('/last-error', async (_req: AuthRequest, res: Response) => {
+  res.json({ ok: true, lastCallbackError: getLastCallbackError() });
 });
 
 // ── GET /api/google-business/setup-check — Validate configuration ──
