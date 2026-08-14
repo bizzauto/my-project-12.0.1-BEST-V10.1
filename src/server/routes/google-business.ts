@@ -303,8 +303,13 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     } else if (error?.response?.status === 401) {
       res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_expired`);
     } else {
-      const msg = getErrorMessage(error) || 'unknown';
-      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=callback_failed&msg=${encodeURIComponent(msg)}`);
+      const msg = getErrorMessage(error);
+      // If we STILL couldn't extract anything, send diagnostic context instead
+      // of a blank "unknown" so the real cause is never lost.
+      const fallbackMsg = !msg || msg === 'unknown'
+        ? `Empty error object caught. query=${JSON.stringify(req.query)} clientId=${!!process.env.GOOGLE_CLIENT_ID} secret=${!!process.env.GOOGLE_CLIENT_SECRET}`
+        : msg;
+      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=callback_failed&msg=${encodeURIComponent(fallbackMsg)}`);
     }
   }
 });
