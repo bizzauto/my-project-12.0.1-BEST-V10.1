@@ -368,6 +368,21 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=api_not_enabled`);
     } else if (error?.response?.status === 401) {
       res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_expired`);
+    } else if (error?.response?.status === 400) {
+      // Google returned Bad Request on the token exchange. Most common reasons:
+      //  - invalid_grant / bad_verification_code → the OAuth code was already
+      //    used or expired (happens when the user refreshes the callback URL).
+      //  - redirect_uri_mismatch → the registered redirect URI doesn't match.
+      const gErr: { error?: string; error_description?: string } = error?.response?.data || {};
+      const reason = gErr.error || 'invalid_request';
+      const desc = gErr.error_description || '';
+      if (reason === 'invalid_grant' || reason === 'bad_verification_code') {
+        res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=code_already_used&msg=${encodeURIComponent('The Google authorization code was already used or has expired. This happens if you refresh the page after Google redirects back. Please click Connect again (do NOT refresh) and complete the flow once.')}`);
+      } else if (reason === 'redirect_uri_mismatch') {
+        res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=redirect_mismatch&msg=${encodeURIComponent(`Google says the redirect URI doesn't match what's registered: ${desc}. Register this exact URI in Google Cloud Console.`)}`);
+      } else {
+        res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_400&msg=${encodeURIComponent(`Google rejected the token request [${reason}]: ${desc}`)}`);
+      }
     } else if (isNetworkFailure(error)) {
       // Server could NOT reach Google at all (DNS/connection). Surface a clear,
       // actionable message so the user knows this is infra, not their config.

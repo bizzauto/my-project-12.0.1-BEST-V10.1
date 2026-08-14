@@ -83,6 +83,8 @@ const GoogleBusinessPage: React.FC = () => {
         'token_expired': 'Authentication expired. Please try again.',
         'gbp_network_error': `Server could not reach Google: ${detailedMsg || 'network failure'}. This is an infrastructure (DNS/firewall/proxy) issue on the server, not your Google config. If the server needs a proxy for external calls, it must be wired into the GBP token exchange.`,
         'redirect_uri_mismatch': 'Redirect URI mismatch! The redirect URI in Google Cloud Console must EXACTLY match: https://bizzautoai.com/api/google-business/auth/callback',
+        'code_already_used': 'Authorization code already used or expired. This happens if you refresh the page after Google redirects back. Click Connect again and do NOT refresh — complete the flow once.',
+        'token_400': `Google rejected the token request: ${detailedMsg || 'bad request'}. See Setup Guide below.`,
         'invalid_client': 'Invalid client credentials. Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env file.',
         'callback_failed': `Connection failed: ${detailedMsg || 'Check GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and redirect URI in Google Cloud Console.'} See Setup Guide below.`,
         'db_save_failed': `Connected to Google but could not save to database: ${detailedMsg || 'unknown error'}. Check server logs.`
