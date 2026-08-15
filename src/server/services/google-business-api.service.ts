@@ -160,35 +160,25 @@ async function resilientCall({ url, accessToken, method = 'GET', body, label, ma
 export const GoogleBusinessApi = {
   /** Fetch the authenticated user's GBP accounts. */
     async getAccounts(accessToken: string) {
-      // Primary: account-management API (the documented endpoint for listing
-      // accounts). Fall back to the business-information API if it 429s —
-      // they sit behind different quota buckets so a transient throttle on one
-      // often leaves the other usable.
-      try {
-        const res = await resilientCall({
-          url: `${BUSINESS_MGMT_BASE}/accounts`,
-          accessToken,
-          label: 'accounts',
-          // No retries during enrichment: the per-minute TEST-mode quota is tiny,
-          // so a single 429 means the window is hot. Retrying (even once) just
-          // doubles quota burn and pushes recovery further out. The caller's
-          // cooldown re-tries later, after the window resets.
-          maxRetries: 0,
-        });
-        return res.data?.accounts ?? [];
-      } catch (err) {
-        if (err instanceof GBPQuotaError && err.status === 429) {
-          console.warn('[GBP API] accounts (mgmt) 429 — falling back to business-info API');
-          const res = await resilientCall({
-            url: `${BUSINESS_INFO_BASE}/accounts`,
-            accessToken,
-            label: 'accounts-fallback',
-            maxRetries: 0,
-          });
-          return res.data?.accounts ?? [];
-        }
-        throw err;
-      }
+      // SINGLE request, no fallback. Google routes BOTH
+      // mybusinessbusinessinformation.googleapis.com/v1/accounts and
+      // mybusinessaccountmanagement.googleapis.com/v1/accounts to the SAME
+      // quota bucket ('mybusinessaccountmanagement.googleapis.com' service) for
+      // this project, so a fallback NEVER helps — it just burns a second blast
+      // of the already-exhausted 1 req/min TEST-mode quota and pushes recovery
+      // further out. One clean attempt + let the caller's cooldown retry after
+      // the window resets is the only strategy that converges.
+      const res = await resilientCall({
+        url: `${BUSINESS_MGMT_BASE}/accounts`,
+        accessToken,
+        label: 'accounts',
+        // No retries during enrichment: the per-minute TEST-mode quota is tiny,
+        // so a single 429 means the window is hot. Retrying (even once) just
+        // doubles quota burn and pushes recovery further out. The caller's
+        // cooldown re-tries later, after the window resets.
+        maxRetries: 0,
+      });
+      return res.data?.accounts ?? [];
     },
 
   /** Fetch the authenticated user's basic profile (email/name) via OAuth2 userinfo. */
