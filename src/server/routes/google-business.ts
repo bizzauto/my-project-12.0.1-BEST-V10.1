@@ -16,6 +16,22 @@ export function getLastCallbackError() {
   return lastCallbackError;
 }
 
+// ── Single, deterministic redirect URI for the entire OAuth flow ──
+// Previous dynamic derivation from `Host` / `x-forwarded-proto` headers was
+// fragile: the /auth/url (AJAX) and /auth/callback (browser redirect) legs
+// can arrive under different proxy hops, producing subtly different URIs.
+// Google requires them to be BYTE-IDENTICAL or it returns `invalid_grant`.
+// Using a fixed value here (with env-var override for dev) eliminates that
+// class of bug entirely. Register the exact value in Google Cloud Console →
+// Credentials → Authorized redirect URIs.
+const GBP_REDIRECT_URI = (() => {
+  const raw = process.env.GOOGLE_BUSINESS_REDIRECT_URL;
+  // If the env var is a FULL URL (contains "://"), use it directly.
+  if (raw && raw.includes('://')) return raw;
+  // If it's a bare hostname (legacy), fall back to production default.
+  return 'https://bizzautoai.com/api/google-business/auth/callback';
+})();
+
 // Google Business OAuth scopes
 const GBP_SCOPES = [
   'https://www.googleapis.com/auth/business.manage',
@@ -176,9 +192,7 @@ function getErrorMessage(err: unknown): string {
 router.get('/auth/url', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const host = req.get('host') || process.env.GOOGLE_BUSINESS_REDIRECT_URL || 'bizzautoai.com';
-    const protocol = (req.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')).split(',')[0].trim();
-    const redirectUri = `${protocol}://${host}/api/google-business/auth/callback`;
+    const redirectUri = GBP_REDIRECT_URI;
 
     if (!clientId) {
       return res.status(500).json({ success: false, error: 'Google Client ID not configured' });
@@ -222,12 +236,9 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=missing_params`);
     }
 
-    // Derive the redirect URI up-front (in outer scope) so the catch block can
-    // surface it — Google's `invalid_grant` is ambiguous and frequently means a
-    // redirect_uri / client_secret mismatch, not just a reused code.
-    const host = req.get('host') || process.env.GOOGLE_BUSINESS_REDIRECT_URL || 'bizzautoai.com';
-    const protocol = (req.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')).split(',')[0].trim();
-    const redirectUri = `${protocol}://${host}/api/google-business/auth/callback`;
+    // Deterministic redirect URI (module-level constant) — NOT derived from
+    // request headers, so it is byte-identical to the one sent to /auth/url.
+    const redirectUri = GBP_REDIRECT_URI;
 
     // Validate state - try Map first, then decode directly
     cleanupExpiredStates();
