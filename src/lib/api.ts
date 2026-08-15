@@ -518,6 +518,7 @@ export const googleBusinessAPI = {
   triggerAutoPost: () => apiClient.post('/google-business/auto-post/trigger'),
   getAutoPostStatus: () => apiClient.get('/google-business/auto-post/status'),
   setupCheck: () => apiClient.get('/google-business/setup-check'),
+  enrich: () => apiClient.post('/google-business/enrich'),
 };
 
 // Social Accounts API

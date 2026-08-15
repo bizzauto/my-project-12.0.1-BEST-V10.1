@@ -99,26 +99,43 @@ async function getValidAccessToken(businessId: string): Promise<string> {
   return token;
 }
 
-// ── Helper: Best-effort account/location enrichment ──
+// ── Helper: Recover account/location enrichment ──
 // The OAuth connect flow saves the access token FIRST and enriches
 // account/location best-effort afterward (Google TEST-mode apps throttle the
 // mybusiness APIs to ~1 req/15s → 429). If that enrichment was throttled at
-// connect time, gbpAccountId stays null and the reviews/posts features can't
-// work. This helper recovers the enrichment lazily: it runs on a /status poll
-// (after the user has waited a moment and the throttle window has likely
-// cleared) and fills in the missing account/location in the background. Failures
-// are swallowed — enrichment is strictly optional for "connected" status.
-async function enrichGBPAccountIfMissing(businessId: string): Promise<void> {
+// connect time, gbpAccountId/locationId stay null and the reviews/posts
+// features can't work. This helper recovers the enrichment on demand, returns a
+// typed result (so the frontend / an explicit endpoint can surface the real
+// Google error instead of failing silently), and persists what it finds.
+interface GBPEnrichResult {
+  ok: boolean;
+  accountId: string | null;
+  locationId: string | null;
+  error?: string;
+  status?: number;
+}
+
+async function enrichGBPAccountIfMissing(businessId: string): Promise<GBPEnrichResult> {
+  const result: GBPEnrichResult = { ok: false, accountId: null, locationId: null };
   try {
     const business = await prisma.business.findUnique({
       where: { id: businessId },
       select: { gbpAccessToken: true, gbpAccountId: true },
     });
-    if (business?.gbpAccountId || !business?.gbpAccessToken) return;
+    if (business?.gbpAccountId) {
+      return { ok: true, accountId: business.gbpAccountId, locationId: business.gbpLocationId };
+    }
+    if (!business?.gbpAccessToken) {
+      result.error = 'Not connected';
+      return result;
+    }
 
     const accessToken = decrypt(business.gbpAccessToken);
     const accounts = await GoogleBusinessApi.getAccounts(accessToken);
-    if (accounts.length === 0) return;
+    if (accounts.length === 0) {
+      result.error = 'Google returned no Business Profile accounts for this Google account';
+      return result;
+    }
 
     const account = accounts[0];
     const accountId = account.name?.replace('accounts/', '') || account.accountId;
@@ -129,17 +146,24 @@ async function enrichGBPAccountIfMissing(businessId: string): Promise<void> {
         locationId = locations[0].name?.replace(`accounts/${accountId}/locations/`, '') || locations[0].locationId;
       }
     } catch (locErr: unknown) {
-      console.warn('[GBP] lazy enrichment locations skipped (non-fatal):', getErrorMessage(locErr));
+      console.warn('[GBP] enrichment locations lookup failed (non-fatal):', getErrorMessage(locErr));
     }
     await prisma.business
       .update({ where: { id: businessId }, data: { gbpAccountId: accountId, gbpLocationId: locationId } })
-      .catch((e: unknown) => console.warn('[GBP] lazy enrichment save skipped (non-fatal):', getErrorMessage(e)));
-    console.log('[GBP] lazy enrichment succeeded — accountId:', accountId, 'locationId:', locationId);
+      .catch((e: unknown) => console.warn('[GBP] enrichment save skipped (non-fatal):', getErrorMessage(e)));
+    result.accountId = accountId;
+    result.locationId = locationId;
+    result.ok = true;
+    console.log('[GBP] enrichment succeeded — accountId:', accountId, 'locationId:', locationId);
   } catch (err: unknown) {
-    // Swallow: throttle/403/401 here must never break /status. It will retry on
-    // the next poll once the quota window resets.
-    console.warn('[GBP] lazy enrichment attempt failed (non-fatal):', getErrorMessage(err));
+    // Throttle/403/401: surface so the caller can explain it. Retried on the
+    // next poll/enrich once the quota window resets.
+    const status = (err as { status?: number })?.status ?? (err as { response?: { status?: number } })?.response?.status;
+    result.status = status;
+    result.error = getErrorMessage(err);
+    console.warn('[GBP] enrichment attempt failed:', status, result.error);
   }
+  return result;
 }
 
 // Store OAuth state temporarily (in production, use Redis)
@@ -711,6 +735,48 @@ router.post('/disconnect', authenticate, async (req: AuthRequest, res: Response)
   } catch (error: any) {
     console.error('GBP disconnect error:', error);
     res.status(500).json({ success: false, error: 'Failed to disconnect', details: error.message });
+  }
+});
+
+// Recover account/location enrichment on demand.
+// The OAuth connect flow saves the token first and enriches best-effort, so a
+// successful connect can still have a null gbpAccountId/locationId when Google
+// TEST-mode throttles the mybusiness APIs (429). Features (reviews/posts) need
+// both, so this lets the frontend explicitly retry the enrichment AFTER the
+// throttle window clears, and surfaces the real Google error instead of failing
+// silently. Returns the resulting account/location + status so the UI can show
+// a precise message.
+router.post('/enrich', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const business = await prisma.business.findUnique({
+      where: { id: req.user.businessId },
+      select: { gbpAccessToken: true, gbpAccountId: true, gbpLocationId: true },
+    });
+    if (!business?.gbpAccessToken) {
+      return res.status(400).json({ success: false, error: 'Google Business not connected' });
+    }
+    if (business.gbpAccountId) {
+      return res.json({
+        success: true,
+        alreadyEnriched: true,
+        data: { accountId: business.gbpAccountId, locationId: business.gbpLocationId },
+      });
+    }
+    const enrichment = await enrichGBPAccountIfMissing(req.user.businessId);
+    if (!enrichment.ok) {
+      return res.status(424).json({
+        success: false,
+        error: enrichment.error || 'Enrichment failed',
+        status: enrichment.status,
+      });
+    }
+    return res.json({
+      success: true,
+      data: { accountId: enrichment.accountId, locationId: enrichment.locationId },
+    });
+  } catch (error: unknown) {
+    console.error('[GBP] /enrich error:', getErrorMessage(error));
+    res.status(500).json({ success: false, error: 'Failed to sync Business Profile', details: getErrorMessage(error) });
   }
 });
 

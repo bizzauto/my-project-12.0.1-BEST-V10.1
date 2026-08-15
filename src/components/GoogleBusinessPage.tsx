@@ -26,6 +26,9 @@ const GoogleBusinessPage: React.FC = () => {
   const [posts, setPosts] = useState<BusinessPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [needsEnrichment, setNeedsEnrichment] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichMsg, setEnrichMsg] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [replyOpen, setReplyOpen] = useState<string | null>(null);
   const [replyTxt, setReplyTxt] = useState('');
@@ -105,6 +108,15 @@ const GoogleBusinessPage: React.FC = () => {
       const statusRes = await googleBusinessAPI.getStatus();
       if (statusRes.data?.success && statusRes.data?.data?.connected) {
         setConnected(true);
+        setNeedsEnrichment(!!statusRes.data?.data?.needsEnrichment);
+        // If the account/location enrichment is still pending (Google throttled
+        // it at connect time), skip feature fetches — they need gbpAccountId +
+        // gbpLocationId. The enrichment recovers in the background (or via the
+        // "Sync now" button); once it lands, we re-fetch.
+        if (statusRes.data?.data?.needsEnrichment) {
+          setLoading(false);
+          return;
+        }
         // Fetch reviews
         try {
           const reviewsRes = await googleBusinessAPI.getReviews();
@@ -117,7 +129,7 @@ const GoogleBusinessPage: React.FC = () => {
             })) : []);
           }
         } catch { /* Reviews not available */ }
-        
+
         // Fetch posts
         try {
           const postsRes = await googleBusinessAPI.getPosts();
@@ -142,16 +154,70 @@ const GoogleBusinessPage: React.FC = () => {
         }
       } else {
         setConnected(false);
+        setNeedsEnrichment(false);
         setReviews([]);
         setPosts([]);
       }
     } catch (err) {
       console.error('[GoogleBusiness] Fetch error:', err);
       setConnected(false);
+      setNeedsEnrichment(false);
       setReviews([]);
       setPosts([]);
     } finally { setLoading(false); }
   }, []);
+
+  // Auto-retry enrichment when it's still pending after connect. Google TEST-mode
+  // throttles the mybusiness APIs (~1 req/15s → 429), so a connect-time
+  // enrichment may fail and recover a few seconds later. We poll /enrich on an
+  // interval while it is pending, then re-fetch features. Capped so it stops if
+  // Google keeps throttling — the user can hit "Sync now" manually after that.
+  useEffect(() => {
+    if (!needsEnrichment) return;
+    let cancelled = false;
+    let attempts = 0;
+    const MAX_AUTO_ATTEMPTS = 6;
+    const interval = setInterval(async () => {
+      if (cancelled || attempts >= MAX_AUTO_ATTEMPTS) {
+        clearInterval(interval);
+        if (attempts >= MAX_AUTO_ATTEMPTS) {
+          setEnrichMsg('Google is still rate-limiting access. Click "Sync now" once the limit resets (usually within a minute).');
+        }
+        return;
+      }
+      attempts += 1;
+      try {
+        const res = await googleBusinessAPI.enrich();
+        if (res.data?.success && !res.data?.alreadyEnriched) {
+          setNeedsEnrichment(false);
+          setEnrichMsg(null);
+          clearInterval(interval);
+          fetchData();
+        }
+      } catch {
+        // 424/429/throttle — keep polling until it succeeds or the user retries.
+      }
+    }, 8000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [needsEnrichment, fetchData]);
+
+  const handleSyncNow = async () => {
+    setEnriching(true);
+    setEnrichMsg(null);
+    try {
+      const res = await googleBusinessAPI.enrich();
+      if (res.data?.success) {
+        setNeedsEnrichment(false);
+        setEnrichMsg(null);
+        toast_('Business Profile synced successfully!', 'success');
+        fetchData();
+      } else {
+        setEnrichMsg(res.data?.error || 'Sync failed — Google may still be rate-limiting. Try again in a moment.');
+      }
+    } catch (err: any) {
+      setEnrichMsg(err?.response?.data?.error || 'Sync failed — Google may still be rate-limiting. Try again in a moment.');
+    } finally { setEnriching(false); }
+  };
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -421,6 +487,7 @@ const GoogleBusinessPage: React.FC = () => {
               try {
                 await googleBusinessAPI.disconnect();
                 setConnected(false);
+                setNeedsEnrichment(false);
                 setReviews([]);
                 setPosts([]);
                 toast_('Google Business disconnected', 'success');
@@ -431,6 +498,24 @@ const GoogleBusinessPage: React.FC = () => {
             className="flex items-center gap-2 px-3 py-1.5 text-sm border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 whitespace-nowrap"
           >
             Disconnect
+          </button>
+        </div>
+      )}
+
+      {connected && needsEnrichment && (
+        <div className="mb-6 p-4 rounded-xl flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+          <RefreshCw size={24} className={enriching ? 'text-amber-500 animate-spin' : 'text-amber-500'} />
+          <div className="flex-1">
+            <p className="font-medium text-amber-800 dark:text-amber-300">Syncing your Business Profile…</p>
+            <p className="text-sm text-amber-600 dark:text-amber-400">Google is still provisioning access (TEST-mode apps are rate-limited). Reviews & posts will appear shortly — you can speed it up below.</p>
+            {enrichMsg && <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">{enrichMsg}</p>}
+          </div>
+          <button
+            onClick={handleSyncNow}
+            disabled={enriching}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 whitespace-nowrap disabled:opacity-50"
+          >
+            {enriching ? <><Loader2 size={14} className="animate-spin" /> Syncing…</> : 'Sync now'}
           </button>
         </div>
       )}
