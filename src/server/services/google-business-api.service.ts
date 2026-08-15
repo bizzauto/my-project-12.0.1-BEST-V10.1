@@ -26,6 +26,7 @@ import axios, { AxiosError } from 'axios';
 import { getHttpsProxyAgent } from './httpProxyAgent.js';
 
 const BUSINESS_INFO_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
+const BUSINESS_MGMT_BASE = 'https://mybusinessaccountmanagement.googleapis.com/v1';
 const BUSINESS_API_BASE = 'https://mybusiness.googleapis.com/v4';
 
 // Keep the OAuth *connect* callback well under nginx's 60s proxy_read_timeout.
@@ -116,7 +117,13 @@ async function resilientCall({ url, accessToken, method = 'GET', body, label, ma
       const status = axiosErr.response?.status;
 
       if (!status || !RETRYABLE_STATUS.has(status)) break; // non-retryable
-      if (attempt === MAX_RETRIES) break;
+            // FIX: honour the per-call maxRetries param. Previously this compared
+            // against the global MAX_RETRIES (3), so enrichment calls that passed
+            // maxRetries: 0 still made 4 requests (~3.3s apart) against Google's
+            // ~1 req/min TEST-mode quota — exhausting the entire window in one
+            // attempt and guaranteeing the next attempt also 429s. With the fix, a
+            // single 429 exits immediately and the caller's cooldown retries later.
+            if (attempt === maxRetries) break;
 
       const retryAfter = parseRetryAfter(axiosErr.response?.headers['retry-after'] as string | undefined);
       const computed = Math.min(BASE_BACKOFF_MS * 2 ** attempt, MAX_BACKOFF_MS);
@@ -152,19 +159,37 @@ async function resilientCall({ url, accessToken, method = 'GET', body, label, ma
 
 export const GoogleBusinessApi = {
   /** Fetch the authenticated user's GBP accounts. */
-  async getAccounts(accessToken: string) {
-    const res = await resilientCall({
-      url: `${BUSINESS_INFO_BASE}/accounts`,
-      accessToken,
-      label: 'accounts',
-      // No retries during enrichment: the per-minute TEST-mode quota is tiny,
-      // so a single 429 means the window is hot. Retrying (even once) just
-      // doubles quota burn and pushes recovery further out. The caller's
-      // cooldown re-tries later, after the window resets.
-      maxRetries: 0,
-    });
-    return res.data?.accounts ?? [];
-  },
+    async getAccounts(accessToken: string) {
+      // Primary: account-management API (the documented endpoint for listing
+      // accounts). Fall back to the business-information API if it 429s —
+      // they sit behind different quota buckets so a transient throttle on one
+      // often leaves the other usable.
+      try {
+        const res = await resilientCall({
+          url: `${BUSINESS_MGMT_BASE}/accounts`,
+          accessToken,
+          label: 'accounts',
+          // No retries during enrichment: the per-minute TEST-mode quota is tiny,
+          // so a single 429 means the window is hot. Retrying (even once) just
+          // doubles quota burn and pushes recovery further out. The caller's
+          // cooldown re-tries later, after the window resets.
+          maxRetries: 0,
+        });
+        return res.data?.accounts ?? [];
+      } catch (err) {
+        if (err instanceof GBPQuotaError && err.status === 429) {
+          console.warn('[GBP API] accounts (mgmt) 429 — falling back to business-info API');
+          const res = await resilientCall({
+            url: `${BUSINESS_INFO_BASE}/accounts`,
+            accessToken,
+            label: 'accounts-fallback',
+            maxRetries: 0,
+          });
+          return res.data?.accounts ?? [];
+        }
+        throw err;
+      }
+    },
 
   /** Fetch the authenticated user's basic profile (email/name) via OAuth2 userinfo. */
   async getUserInfo(accessToken: string) {
