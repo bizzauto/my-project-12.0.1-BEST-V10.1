@@ -311,61 +311,18 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     console.log('[GBP] Token exchange OK — has access_token:', !!tokenData.access_token, 'has refresh_token:', !!tokenData.refresh_token, 'expires_in:', tokenData.expires_in);
     const { access_token, refresh_token, expires_in } = tokenData;
 
-    // Get Business accounts (resilient: retries on Google 429/5xx)
-    let accounts;
-    try {
-      accounts = await GoogleBusinessApi.getAccounts(access_token);
-    } catch (apiErr: any) {
-      const status = apiErr?.status ?? apiErr?.response?.status;
-      const isQuota = apiErr instanceof GBPQuotaError;
-      console.error(`[GBP] Accounts API error: ${status}`, isQuota ? apiErr.message : apiErr?.message);
-      if (status === 403) {
-        console.error('[GBP] 403 — Google Business Profile API may need approval. Visit: https://developers.google.com/my-business/content/basic-setup');
-        return safeRedirect(res, `${frontendBase}/google-business?error=api_not_enabled`);
-      }
-      if (status === 401) {
-        return safeRedirect(res, `${frontendBase}/google-business?error=token_expired`);
-      }
-      if (isQuota && status === 429) {
-        return safeRedirect(res, `${frontendBase}/google-business?error=rate_limited`);
-      }
-      throw apiErr;
-    }
-
-    if (accounts.length === 0) {
-      return safeRedirect(res, `${frontendBase}/google-business?error=no_business_found`);
-    }
-
-    // Use first account (or let user select)
-    const account = accounts[0];
-    const accountId = account.name?.replace('accounts/', '') || account.accountId;
-    console.log('[GBP] Found account:', accountId, 'total accounts:', accounts.length);
-
-    // Get locations for this account (resilient: retries on Google 429/5xx).
-    // Best-effort: a missing location is non-fatal, we still connect.
-    let locationId = null;
-    try {
-      const locations = await GoogleBusinessApi.getLocations(access_token, accountId);
-      if (locations.length > 0) {
-        locationId = locations[0].name?.replace(`accounts/${accountId}/locations/`, '') || locations[0].locationId;
-      }
-    } catch (locErr: any) {
-      if (locErr instanceof GBPQuotaError && locErr.status === 429) {
-        return safeRedirect(res, `${frontendBase}/google-business?error=rate_limited`);
-      }
-      console.warn('Could not fetch locations:', locErr?.message);
-    }
-
-    // Save to database
-    console.log('[GBP] Saving to database — businessId:', stateData.businessId, 'accountId:', accountId, 'locationId:', locationId);
+    // SAVE THE TOKEN FIRST so the business is always connected — even if Google
+    // throttles the downstream mybusiness calls (TEST-mode apps return 429
+    // aggressively ~1 req/15s). A throttle on accounts/locations must NEVER fail
+    // the connect. We enrich accountId/locationId best-effort afterwards and the
+    // frontend retries enrichment once quota resets.
+    console.log('[GBP] Saving token — businessId:', stateData.businessId);
     try {
       await prisma.business.update({
         where: { id: stateData.businessId },
         data: {
           gbpAccessToken: encrypt(access_token),
           gbpRefreshToken: refresh_token ? encrypt(refresh_token) : undefined,
-          gbpAccountId: accountId,
-          gbpLocationId: locationId,
           gbpTokenExpiry: new Date(Date.now() + expires_in * 1000),
         },
       });
@@ -374,8 +331,40 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       return safeRedirect(res, `${frontendBase}/google-business?error=db_save_failed&msg=${encodeURIComponent(getErrorMessage(dbErr))}`);
     }
 
-    console.log('[GBP] ✅ Database saved successfully! Redirecting to frontend...');
-    // Redirect to frontend with success
+    // Best-effort account + location enrichment. Throttling/403/401 here is
+    // NON-FATAL — the token is already saved above, so the user is connected.
+    let accountId: string | null = null;
+    let locationId: string | null = null;
+    try {
+      const accounts = await GoogleBusinessApi.getAccounts(access_token);
+      if (accounts.length > 0) {
+        const account = accounts[0];
+        accountId = account.name?.replace('accounts/', '') || account.accountId;
+        console.log('[GBP] Found account:', accountId, 'total accounts:', accounts.length);
+        try {
+          const locations = await GoogleBusinessApi.getLocations(access_token, accountId);
+          if (locations.length > 0) {
+            locationId = locations[0].name?.replace(`accounts/${accountId}/locations/`, '') || locations[0].locationId;
+          }
+        } catch (locErr: any) {
+          console.warn('[GBP] locations lookup skipped (non-fatal):', locErr?.message);
+        }
+        await prisma.business
+          .update({
+            where: { id: stateData.businessId },
+            data: { gbpAccountId: accountId, gbpLocationId: locationId },
+          })
+          .catch((e) => console.warn('[GBP] enrichment save skipped (non-fatal):', getErrorMessage(e)));
+      } else {
+        console.warn('[GBP] Google returned no accounts for this token');
+      }
+    } catch (apiErr: any) {
+      const status = apiErr?.status ?? apiErr?.response?.status;
+      console.warn(`[GBP] accounts lookup throttled/blocked (non-fatal, token already saved): ${status}`, getErrorMessage(apiErr));
+    }
+
+    console.log('[GBP] ✅ Connected (token saved). accountId:', accountId, 'locationId:', locationId);
+    // Redirect to frontend with success — connect NEVER fails on Google throttling.
     return safeRedirect(res, `${frontendBase}/google-business?connected=true`);
   } catch (error: any) {
     console.error('[GBP] callback error:', getErrorMessage(error));
