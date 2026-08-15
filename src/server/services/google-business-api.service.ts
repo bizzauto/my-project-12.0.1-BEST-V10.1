@@ -127,7 +127,7 @@ async function resilientCall({ url, accessToken, method = 'GET', body, label, ma
       const backoff = Math.round(base * (1 + Math.random() * 0.25));
 
       console.warn(
-        `[GBP API] ${label} call 429/5xx (attempt ${attempt + 1}/${MAX_RETRIES + 1}, status ${status}) — backing off ${backoff}ms`
+        `[GBP API] ${label} call 429/5xx (attempt ${attempt + 1}/${maxRetries + 1}, status ${status}) — backing off ${backoff}ms`
       );
       await sleep(backoff);
     }
@@ -157,10 +157,11 @@ export const GoogleBusinessApi = {
       url: `${BUSINESS_INFO_BASE}/accounts`,
       accessToken,
       label: 'accounts',
-      // Single attempt during enrichment: a 429 here means the TEST-mode quota
-      // window is hot. Retrying just burns more quota and pushes recovery
-      // further out. The caller retries later, after the window resets.
-      maxRetries: 1,
+      // No retries during enrichment: the per-minute TEST-mode quota is tiny,
+      // so a single 429 means the window is hot. Retrying (even once) just
+      // doubles quota burn and pushes recovery further out. The caller's
+      // cooldown re-tries later, after the window resets.
+      maxRetries: 0,
     });
     return res.data?.accounts ?? [];
   },
@@ -181,8 +182,8 @@ export const GoogleBusinessApi = {
       url: `${BUSINESS_INFO_BASE}/accounts/${accountId}/locations`,
       accessToken,
       label: 'locations',
-      // Single attempt — see getAccounts for rationale.
-      maxRetries: 1,
+      // No retries — see getAccounts for rationale.
+      maxRetries: 0,
     });
     return res.data?.locations ?? [];
   },
