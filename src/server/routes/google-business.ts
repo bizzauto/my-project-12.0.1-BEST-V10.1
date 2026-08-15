@@ -222,6 +222,13 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=missing_params`);
     }
 
+    // Derive the redirect URI up-front (in outer scope) so the catch block can
+    // surface it — Google's `invalid_grant` is ambiguous and frequently means a
+    // redirect_uri / client_secret mismatch, not just a reused code.
+    const host = req.get('host') || process.env.GOOGLE_BUSINESS_REDIRECT_URL || 'bizzautoai.com';
+    const protocol = (req.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')).split(',')[0].trim();
+    const redirectUri = `${protocol}://${host}/api/google-business/auth/callback`;
+
     // Validate state - try Map first, then decode directly
     cleanupExpiredStates();
     let stateData = oauthStates.get(state as string);
@@ -241,12 +248,6 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     oauthStates.delete(state as string);
 
     // Exchange code for tokens (with retry/timeout on transient network failures)
-    // Derive the redirect URI from the incoming request origin so it always
-    // matches what Google sent the user back to — this survives localhost dev,
-    // the deployed domain, and any proxy/ingress without manual env wiring.
-    const host = req.get('host') || process.env.GOOGLE_BUSINESS_REDIRECT_URL || 'bizzautoai.com';
-    const protocol = (req.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')).split(',')[0].trim();
-    const redirectUri = `${protocol}://${host}/api/google-business/auth/callback`;
     console.log('[GBP] Exchanging code for tokens — redirect_uri:', redirectUri, 'client_id:', process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...');
     let tokenResponse: any;
     try {
@@ -393,9 +394,16 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       const reason = gErr.error || 'invalid_request';
       const desc = gErr.error_description || '';
       if (reason === 'invalid_grant' || reason === 'bad_verification_code') {
-        res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=code_already_used&msg=${encodeURIComponent('The Google authorization code was already used or has expired. This happens if you refresh the page after Google redirects back. Please click Connect again (do NOT refresh) and complete the flow once.')}`);
+        // `invalid_grant` is AMBIGUOUS. It means ONE of:
+        //   (a) code already used / expired (user refreshed the callback page), OR
+        //   (b) redirect_uri mismatch between what we sent and what's registered, OR
+        //   (c) the client_id / client_secret pair is wrong.
+        // We surface the exact redirect_uri the server used so the user can compare
+        // it against Google Cloud Console → Credentials → Authorized redirect URIs.
+        const detail = `Google rejected the OAuth code (invalid_grant). Server used redirect_uri: ${redirectUri}. This usually means (1) you refreshed the page after Google redirected back — click Connect again WITHOUT refreshing, or (2) this redirect_uri is NOT registered in Google Cloud Console → APIs & Services → Credentials → OAuth Client → Authorized redirect URIs. Add it exactly (https, no www, no trailing slash) and retry.`;
+        res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=code_already_used&msg=${encodeURIComponent(detail)}`);
       } else if (reason === 'redirect_uri_mismatch') {
-        res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=redirect_mismatch&msg=${encodeURIComponent(`Google says the redirect URI doesn't match what's registered: ${desc}. Register this exact URI in Google Cloud Console.`)}`);
+        res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=redirect_mismatch&msg=${encodeURIComponent(`Google says the redirect URI doesn't match what's registered: ${desc}. Register this exact URI in Google Cloud Console: ${redirectUri}`)}`);
       } else {
         res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_400&msg=${encodeURIComponent(`Google rejected the token request [${reason}]: ${desc}`)}`);
       }
