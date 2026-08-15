@@ -29,6 +29,8 @@ const GoogleBusinessPage: React.FC = () => {
   const [needsEnrichment, setNeedsEnrichment] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [enrichMsg, setEnrichMsg] = useState<string | null>(null);
+  const [enrichError, setEnrichError] = useState<string | null>(null);
+  const [enrichStatus, setEnrichStatus] = useState<number | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [replyOpen, setReplyOpen] = useState<string | null>(null);
   const [replyTxt, setReplyTxt] = useState('');
@@ -109,6 +111,10 @@ const GoogleBusinessPage: React.FC = () => {
       if (statusRes.data?.success && statusRes.data?.data?.connected) {
         setConnected(true);
         setNeedsEnrichment(!!statusRes.data?.data?.needsEnrichment);
+        // Surface the REAL last Google error from the server-side cache so the
+        // banner shows the precise cause (e.g. quota 429) instead of guessing.
+        setEnrichError(statusRes.data?.data?.enrichError ?? null);
+        setEnrichStatus(statusRes.data?.data?.enrichStatus ?? null);
         // If the account/location enrichment is still pending (Google throttled
         // it at connect time), skip feature fetches — they need gbpAccountId +
         // gbpLocationId. The enrichment recovers in the background (or via the
@@ -514,7 +520,13 @@ const GoogleBusinessPage: React.FC = () => {
           <div className="flex-1">
             <p className="font-medium text-amber-800 dark:text-amber-300">Syncing your Business Profile…</p>
             <p className="text-sm text-amber-600 dark:text-amber-400">Google is still provisioning access (TEST-mode apps are rate-limited). Reviews & posts will appear shortly — you can speed it up below.</p>
-            {enrichMsg && <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">{enrichMsg}</p>}
+            {enrichError ? (
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                Last Google response{enrichStatus ? ` (${enrichStatus})` : ''}: {enrichError}
+              </p>
+            ) : enrichMsg ? (
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">{enrichMsg}</p>
+            ) : null}
           </div>
           <button
             onClick={handleSyncNow}

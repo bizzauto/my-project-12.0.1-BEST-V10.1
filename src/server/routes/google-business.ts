@@ -9,13 +9,6 @@ import axios from 'axios';
 
 const router = Router();
 
-// TEMP diagnostic: capture the last callback failure so we can inspect it
-// without Coolify log access. Remove once GBP connect is confirmed working.
-let lastCallbackError: Record<string, unknown> | null = null;
-export function getLastCallbackError() {
-  return lastCallbackError;
-}
-
 // ── Single, deterministic redirect URI for the entire OAuth flow ──
 // Previous dynamic derivation from `Host` / `x-forwarded-proto` headers was
 // fragile: the /auth/url (AJAX) and /auth/callback (browser redirect) legs
@@ -101,12 +94,12 @@ async function getValidAccessToken(businessId: string): Promise<string> {
 
 // ── Helper: Recover account/location enrichment ──
 // The OAuth connect flow saves the access token FIRST and enriches
-// account/location best-effort afterward (Google TEST-mode apps throttle the
-// mybusiness APIs to ~1 req/15s → 429). If that enrichment was throttled at
-// connect time, gbpAccountId/locationId stay null and the reviews/posts
-// features can't work. This helper recovers the enrichment on demand, returns a
-// typed result (so the frontend / an explicit endpoint can surface the real
-// Google error instead of failing silently), and persists what it finds.
+// account/location best-effort afterward (Google throttles the mybusiness
+// APIs → 429). If that enrichment was throttled, gbpAccountId/locationId stay
+// null and the reviews/posts features can't work. This helper recovers the
+// enrichment on demand, returns a typed result (so the frontend / an explicit
+// endpoint can surface the real Google error instead of failing silently), and
+// persists what it finds.
 interface GBPEnrichResult {
   ok: boolean;
   accountId: string | null;
@@ -115,12 +108,34 @@ interface GBPEnrichResult {
   status?: number;
 }
 
+/**
+ * Rate-limit guard. Google throttles `mybusinessaccountmanagement.googleapis.com`
+ * to a handful of requests PER MINUTE per project. The previous code fired this
+ * enrichment on every /status poll; the frontend polls every ~15s plus reloads
+ * plus manual "Sync now", which blew straight past that quota and locked us in a
+ * permanent 429 loop (the connect banner never cleared because enrichment kept
+ * failing). We fix it here at the source:
+ *   1. Never call Google more than once per ENRICH_COOLDOWN_MS per business.
+ *   2. Cache the last result so /status can report the *real* Google error
+ *      without re-calling Google at all during the cooldown window.
+ * This makes the retry cadence server-enforced and independent of how
+ * aggressively the frontend polls.
+ */
+const ENRICH_COOLDOWN_MS = 60_000;
+const lastEnrichAttemptAt = new Map<string, number>();
+const lastEnrichResult = new Map<string, { result: GBPEnrichResult; at: number }>();
+
+function clearEnrichCache(businessId: string): void {
+  lastEnrichAttemptAt.delete(businessId);
+  lastEnrichResult.delete(businessId);
+}
+
 async function enrichGBPAccountIfMissing(businessId: string): Promise<GBPEnrichResult> {
   const result: GBPEnrichResult = { ok: false, accountId: null, locationId: null };
   try {
     const business = await prisma.business.findUnique({
       where: { id: businessId },
-      select: { gbpAccessToken: true, gbpAccountId: true },
+      select: { gbpAccessToken: true, gbpAccountId: true, gbpLocationId: true },
     });
     if (business?.gbpAccountId) {
       return { ok: true, accountId: business.gbpAccountId, locationId: business.gbpLocationId };
@@ -130,10 +145,22 @@ async function enrichGBPAccountIfMissing(businessId: string): Promise<GBPEnrichR
       return result;
     }
 
+    // COOLDOWN: if we already attempted (and cached a result) within the window,
+    // return the cached outcome instead of hammering Google again. This is what
+    // stops the 429 storm — even a misbehaving client can't exceed one call/min.
+    const now = Date.now();
+    const lastAt = lastEnrichAttemptAt.get(businessId) ?? 0;
+    const cached = lastEnrichResult.get(businessId);
+    if (cached && now - lastAt < ENRICH_COOLDOWN_MS) {
+      return cached.result;
+    }
+    lastEnrichAttemptAt.set(businessId, now);
+
     const accessToken = decrypt(business.gbpAccessToken);
     const accounts = await GoogleBusinessApi.getAccounts(accessToken);
     if (accounts.length === 0) {
       result.error = 'Google returned no Business Profile accounts for this Google account';
+      lastEnrichResult.set(businessId, { result, at: now });
       return result;
     }
 
@@ -154,13 +181,17 @@ async function enrichGBPAccountIfMissing(businessId: string): Promise<GBPEnrichR
     result.accountId = accountId;
     result.locationId = locationId;
     result.ok = true;
+    lastEnrichResult.set(businessId, { result, at: now });
     console.log('[GBP] enrichment succeeded — accountId:', accountId, 'locationId:', locationId);
   } catch (err: unknown) {
-    // Throttle/403/401: surface so the caller can explain it. Retried on the
-    // next poll/enrich once the quota window resets.
+    // Throttle/403/401: surface so the caller can explain it. Retried after the
+    // cooldown window resets (next /status or /enrich call past the cooldown).
     const status = (err as { status?: number })?.status ?? (err as { response?: { status?: number } })?.response?.status;
     result.status = status;
     result.error = getErrorMessage(err);
+    const now = Date.now();
+    lastEnrichAttemptAt.set(businessId, now);
+    lastEnrichResult.set(businessId, { result, at: now });
     console.warn('[GBP] enrichment attempt failed:', status, result.error);
   }
   return result;
@@ -439,15 +470,6 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     console.error('[GBP] callback error stack:', error?.stack);
     console.error('[GBP] callback raw:', JSON.stringify(error, Object.getOwnPropertyNames(error || {}))?.substring(0, 1000));
     console.error('[GBP] callback query:', JSON.stringify(req.query));
-    // TEMP: capture for /last-error diagnostic endpoint
-    lastCallbackError = {
-      timestamp: new Date().toISOString(),
-      message: getErrorMessage(error),
-      code: getErrorCode(error),
-      status: error?.response?.status,
-      googleBody: error?.response?.data ?? null,
-      query: req.query,
-    };
     console.error('[GBP] callback env check:', {
       clientIdSet: !!process.env.GOOGLE_CLIENT_ID,
       clientSecretSet: !!process.env.GOOGLE_CLIENT_SECRET,
@@ -502,47 +524,6 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       safeRedirect(res, `${frontendBase}/google-business?error=callback_failed&msg=${encodeURIComponent(fallbackMsg)}`);
     }
   }
-});
-
-// ── GET /api/google-business/net-check — Live outbound connectivity probe to Google ──
-// Diagnostic-only: confirms whether THIS server process can reach Google over IPv4.
-router.get('/net-check', async (_req: AuthRequest, res: Response) => {
-  const dns = await import('dns');
-  const targets = [
-    'oauth2.googleapis.com',
-    'www.googleapis.com',
-    'mybusinessbusinessinformation.googleapis.com',
-  ];
-  const results: Record<string, unknown> = { dnsOrder: (dns as any).getDefaultResultOrder?.() ?? 'unknown' };
-  await Promise.all(targets.map(async (host) => {
-    const entry: Record<string, unknown> = {};
-    try {
-      const addrs = await new Promise<{ address: string; family: number }[]>((resolve, reject) =>
-        dns.lookup(host, { all: true }, (e: Error | null, a: { address: string; family: number }[]) =>
-          e ? reject(e) : resolve(a))
-      );
-      entry.addresses = addrs;
-      // Now actually try an IPv4 HTTPS GET from THIS process
-      const start = Date.now();
-      try {
-        await axios.get(`https://${host}/`, { family: 4, timeout: 8000, validateStatus: () => true });
-        entry.ipv4Reachable = true;
-        entry.ipv4Ms = Date.now() - start;
-      } catch (e: any) {
-        entry.ipv4Reachable = false;
-        entry.ipv4Error = e?.code || e?.message;
-      }
-    } catch (e: any) {
-      entry.dnsError = e?.code || e?.message;
-    }
-    results[host] = entry;
-  }));
-  res.json({ ok: true, timestamp: new Date().toISOString(), results });
-});
-
-// ── GET /api/google-business/last-error — TEMP diagnostic: last callback failure ──
-router.get('/last-error', async (_req: AuthRequest, res: Response) => {
-  res.json({ ok: true, lastCallbackError: getLastCallbackError() });
 });
 
 // ── GET /api/google-business/setup-check — Validate configuration ──
@@ -656,18 +637,28 @@ router.get('/status', authenticate, async (req: AuthRequest, res: Response) => {
     const needsEnrichment = isConnected && !business?.gbpAccountId;
 
     // Fire-and-forget: if the connect flow's best-effort enrichment was throttled
-    // by Google (TEST-mode 429), recover the account/location on a later /status
-    // poll (throttle window has likely cleared by now). This must NOT block the
-    // status response — enrichment is optional and its errors are swallowed.
+    // by Google, recover the account/location on a later /status poll. enrichment
+    // enforces its own per-business cooldown (see enrichGBPAccountIfMissing), so
+    // this is safe even under aggressive polling — it will simply return the
+    // cached result instead of calling Google again during the cooldown window.
+    // This must NOT block the status response — enrichment is optional.
     if (needsEnrichment) {
       void enrichGBPAccountIfMissing(req.user.businessId);
     }
+
+    // Surface the most recent enrichment outcome (incl. the REAL Google error,
+    // e.g. quota/429) so the UI can show a precise message instead of guessing.
+    const cached = lastEnrichResult.get(req.user.businessId);
+    const enrichError = cached?.result.ok ? null : cached?.result.error ?? null;
+    const enrichStatus = cached?.result.ok ? null : cached?.result.status ?? null;
 
     res.json({
       success: true,
       data: {
         connected: isConnected,
         needsEnrichment,
+        enrichError,
+        enrichStatus,
         accountId: business?.gbpAccountId || null,
         locationId: business?.gbpLocationId || null,
         businessName: business?.name || null,
@@ -717,6 +708,7 @@ router.post('/connect', authenticate, async (req: AuthRequest, res: Response) =>
 // Disconnect Google Business Profile
 router.post('/disconnect', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    clearEnrichCache(req.user.businessId);
     await prisma.business.update({
       where: { id: req.user.businessId },
       data: {
