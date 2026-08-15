@@ -99,6 +99,49 @@ async function getValidAccessToken(businessId: string): Promise<string> {
   return token;
 }
 
+// ── Helper: Best-effort account/location enrichment ──
+// The OAuth connect flow saves the access token FIRST and enriches
+// account/location best-effort afterward (Google TEST-mode apps throttle the
+// mybusiness APIs to ~1 req/15s → 429). If that enrichment was throttled at
+// connect time, gbpAccountId stays null and the reviews/posts features can't
+// work. This helper recovers the enrichment lazily: it runs on a /status poll
+// (after the user has waited a moment and the throttle window has likely
+// cleared) and fills in the missing account/location in the background. Failures
+// are swallowed — enrichment is strictly optional for "connected" status.
+async function enrichGBPAccountIfMissing(businessId: string): Promise<void> {
+  try {
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { gbpAccessToken: true, gbpAccountId: true },
+    });
+    if (business?.gbpAccountId || !business?.gbpAccessToken) return;
+
+    const accessToken = decrypt(business.gbpAccessToken);
+    const accounts = await GoogleBusinessApi.getAccounts(accessToken);
+    if (accounts.length === 0) return;
+
+    const account = accounts[0];
+    const accountId = account.name?.replace('accounts/', '') || account.accountId;
+    let locationId: string | null = null;
+    try {
+      const locations = await GoogleBusinessApi.getLocations(accessToken, accountId);
+      if (locations.length > 0) {
+        locationId = locations[0].name?.replace(`accounts/${accountId}/locations/`, '') || locations[0].locationId;
+      }
+    } catch (locErr: unknown) {
+      console.warn('[GBP] lazy enrichment locations skipped (non-fatal):', getErrorMessage(locErr));
+    }
+    await prisma.business
+      .update({ where: { id: businessId }, data: { gbpAccountId: accountId, gbpLocationId: locationId } })
+      .catch((e: unknown) => console.warn('[GBP] lazy enrichment save skipped (non-fatal):', getErrorMessage(e)));
+    console.log('[GBP] lazy enrichment succeeded — accountId:', accountId, 'locationId:', locationId);
+  } catch (err: unknown) {
+    // Swallow: throttle/403/401 here must never break /status. It will retry on
+    // the next poll once the quota window resets.
+    console.warn('[GBP] lazy enrichment attempt failed (non-fatal):', getErrorMessage(err));
+  }
+}
+
 // Store OAuth state temporarily (in production, use Redis)
 const oauthStates = new Map<string, { businessId: string; expiresAt: number }>();
 
@@ -577,12 +620,30 @@ router.get('/status', authenticate, async (req: AuthRequest, res: Response) => {
       },
     });
 
-    const isConnected = !!(business?.gbpAccessToken && business?.gbpAccountId); // fixed: was triple-negation (inverted)
+    // A business is "connected" the moment Google returns a valid access token
+    // and we persist it. The downstream account/location enrichment is BEST-EFFORT
+    // (Google TEST-mode apps throttle the mybusiness APIs to ~1 req/15s and return
+    // 429), so gbpAccountId/locationId may still be null even though the OAuth
+    // connect SUCCEEDED. Requiring gbpAccountId here made /status report
+    // "not connected" right after a successful connect, which is why the frontend
+    // banner flipped back to "Not Connected". Tokens are still valid without the
+    // enrichment, so treat a saved access token as connected.
+    const isConnected = !!business?.gbpAccessToken;
+    const needsEnrichment = isConnected && !business?.gbpAccountId;
+
+    // Fire-and-forget: if the connect flow's best-effort enrichment was throttled
+    // by Google (TEST-mode 429), recover the account/location on a later /status
+    // poll (throttle window has likely cleared by now). This must NOT block the
+    // status response — enrichment is optional and its errors are swallowed.
+    if (needsEnrichment) {
+      void enrichGBPAccountIfMissing(req.user.businessId);
+    }
 
     res.json({
       success: true,
       data: {
         connected: isConnected,
+        needsEnrichment,
         accountId: business?.gbpAccountId || null,
         locationId: business?.gbpLocationId || null,
         businessName: business?.name || null,

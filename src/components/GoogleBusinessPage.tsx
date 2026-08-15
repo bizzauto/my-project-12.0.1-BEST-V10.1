@@ -70,6 +70,10 @@ const GoogleBusinessPage: React.FC = () => {
     
     if (connected === 'true') {
       toast_('Google Business connected successfully!', 'success');
+      // Optimistically flip the UI into the connected state immediately. The
+      // /status poll in fetchData() will confirm/refresh, but we must not leave
+      // the page on the "Not Connected" banner while the query param is present.
+      setConnected(true);
       setSearchParams({});
     } else if (error) {
       const detailedMsg = searchParams.get('msg');
