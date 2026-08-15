@@ -135,14 +135,10 @@ async function enrichGBPAccountIfMissing(businessId: string): Promise<GBPEnrichR
   try {
     const business = await prisma.business.findUnique({
       where: { id: businessId },
-      select: { gbpAccessToken: true, gbpAccountId: true, gbpLocationId: true },
+      select: { gbpAccountId: true, gbpLocationId: true },
     });
     if (business?.gbpAccountId) {
       return { ok: true, accountId: business.gbpAccountId, locationId: business.gbpLocationId };
-    }
-    if (!business?.gbpAccessToken) {
-      result.error = 'Not connected';
-      return result;
     }
 
     // COOLDOWN: if we already attempted (and cached a result) within the window,
@@ -156,7 +152,14 @@ async function enrichGBPAccountIfMissing(businessId: string): Promise<GBPEnrichR
     }
     lastEnrichAttemptAt.set(businessId, now);
 
-    const accessToken = decrypt(business.gbpAccessToken);
+    // Obtain a VALID access token. The stored access token expires in ~1h; using
+    // it raw after expiry returns a Google 401 ("invalid authentication
+    // credentials"). getValidAccessToken is the ONLY path that refreshes an
+    // expired token via the refresh token, so we MUST go through it here rather
+    // than decrypting gbpAccessToken directly (the previous bug). It throws if
+    // the business isn't connected or the refresh fails — that's caught below
+    // and surfaced as the enrichment error.
+    const accessToken = await getValidAccessToken(businessId);
     const accounts = await GoogleBusinessApi.getAccounts(accessToken);
     if (accounts.length === 0) {
       result.error = 'Google returned no Business Profile accounts for this Google account';
