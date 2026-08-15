@@ -45,6 +45,15 @@ function safeRedirect(res: Response, url: string): void {
 }
 
 // ── Helper: Refresh expired GBP access token ──
+// Returns:
+//   - the fresh access token on success
+//   - null when the business is simply not connected (no tokens)
+//   - THROWS when the refresh token is DEAD (Google 401 invalid_grant). The
+//     caller (getValidAccessToken) then clears the stored GBP tokens so the
+//     UI flips to "Not Connected" and the user can re-connect with a fresh
+//     OAuth flow. Previously a dead refresh token returned null and the app
+//     looped forever: "Refreshing expired access token → 401 → null →
+//     GOOGLE_BUSINESS_NOT_CONNECTED" while the DB kept the stale tokens.
 async function refreshGBPToken(businessId: string): Promise<string | null> {
   try {
     const business = await prisma.business.findUnique({
@@ -61,12 +70,44 @@ async function refreshGBPToken(businessId: string): Promise<string | null> {
     // Token expired or about to expire — refresh it
     console.log('[GBP] Refreshing expired access token for business:', businessId);
     const refreshToken = decrypt(business.gbpRefreshToken);
-    const tokenResponse = await exchangeGoogleToken({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    });
+    let tokenResponse: any;
+    try {
+      tokenResponse = await exchangeGoogleToken({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      });
+    } catch (err: any) {
+      const status = err?.response?.status ?? err?.status;
+      const gErr = err?.response?.data ?? {};
+      // A 401 with invalid_grant / bad_verification_code means the refresh
+      // token is REVOKED or belongs to a different OAuth client. Retrying is
+      // pointless — the only recovery is a fresh OAuth connect. Mark it dead:
+      // drop the stored tokens so /status reports "not connected" and the
+      // frontend shows the Connect button again. Fail fast instead of the
+      // previous silent-null endless loop.
+      if (status === 401 || (gErr.error === 'invalid_grant' || gErr.error === 'invalid_client')) {
+        console.error('[GBP] Refresh token REVOKED/INVALID (401) — clearing stored GBP tokens for business:', businessId, JSON.stringify(gErr));
+        await prisma.business
+          .update({
+            where: { id: businessId },
+            data: {
+              gbpAccessToken: null,
+              gbpRefreshToken: null,
+              gbpTokenExpiry: null,
+              gbpAccountId: null,
+              gbpLocationId: null,
+            },
+          })
+          .catch((e) => console.warn('[GBP] failed to clear dead tokens:', e?.message));
+        const deadErr = new Error('GBP_REFRESH_TOKEN_REVOKED');
+        (deadErr as any).gbpCleared = true;
+        throw deadErr;
+      }
+      console.warn('[GBP] refresh exchange failed (non-401, keeping tokens):', status, JSON.stringify(gErr));
+      throw err;
+    }
 
     const refreshData = tokenResponse?.access_token ? tokenResponse : tokenResponse?.data;
     const { access_token, expires_in } = refreshData;
@@ -80,6 +121,9 @@ async function refreshGBPToken(businessId: string): Promise<string | null> {
     console.log('[GBP] Token refreshed successfully');
     return access_token;
   } catch (err: any) {
+    // Re-throw the "revoked" marker so getValidAccessToken can react; log
+    // everything else as before but still surface it.
+    if (err?.message === 'GBP_REFRESH_TOKEN_REVOKED') throw err;
     console.error('[GBP] Token refresh failed:', err?.message);
     return null;
   }
