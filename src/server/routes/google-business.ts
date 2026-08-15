@@ -39,6 +39,18 @@ const GBP_SCOPES = [
   'https://www.googleapis.com/auth/userinfo.profile',
 ].join(' ');
 
+// Defensive redirect: never attempt to send a second response on a request
+// whose headers were already flushed. A stray second res.redirect throws
+// ERR_HTTP_HEADERS_SENT which nginx surfaces to the user as a 502 Bad Gateway.
+// Always go through this instead of calling res.redirect directly.
+function safeRedirect(res: Response, url: string): void {
+  if (res.headersSent) {
+    console.warn('[GBP] safeRedirect skipped — headers already sent');
+    return;
+  }
+  res.redirect(url);
+}
+
 // ── Helper: Refresh expired GBP access token ──
 async function refreshGBPToken(businessId: string): Promise<string | null> {
   try {
@@ -224,21 +236,29 @@ router.get('/auth/url', authenticate, async (req: AuthRequest, res: Response) =>
 });
 
 // ── GET /api/google-business/auth/callback — OAuth Callback ──
+// NOTE: every response goes through safeRedirect so a stray second response can
+// never throw ERR_HTTP_HEADERS_SENT (which nginx surfaces as a 502). The connect
+// flow is kept deliberately FAST: token exchange, then accounts, then a
+// best-effort locations lookup — no slow userinfo round-trip. Retry budgets in
+// google-business-api.service.ts are sized to keep the whole flow under nginx's
+// 60s proxy_read_timeout.
 router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
+  // Declared at handler scope (NOT inside try) so the catch block can reference
+  // it when building the error redirect. A previous version declared it inside
+  // the try block, which made `redirectUri` a ReferenceError in the catch path
+  // — that produced the "invalid_grant → 502" symptom.
+  const redirectUri = GBP_REDIRECT_URI;
+  const frontendBase = process.env.FRONTEND_URL || 'https://bizzautoai.com';
   try {
     const { code, state, error } = req.query;
 
     if (error) {
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=${error}`);
+      return safeRedirect(res, `${frontendBase}/google-business?error=${error}`);
     }
 
     if (!code || !state) {
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=missing_params`);
+      return safeRedirect(res, `${frontendBase}/google-business?error=missing_params`);
     }
-
-    // Deterministic redirect URI (module-level constant) — NOT derived from
-    // request headers, so it is byte-identical to the one sent to /auth/url.
-    const redirectUri = GBP_REDIRECT_URI;
 
     // Validate state - try Map first, then decode directly
     cleanupExpiredStates();
@@ -254,7 +274,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       } catch {}
     }
     if (!stateData) {
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=invalid_state`);
+      return safeRedirect(res, `${frontendBase}/google-business?error=invalid_state`);
     }
     oauthStates.delete(state as string);
 
@@ -291,21 +311,6 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     console.log('[GBP] Token exchange OK — has access_token:', !!tokenData.access_token, 'has refresh_token:', !!tokenData.refresh_token, 'expires_in:', tokenData.expires_in);
     const { access_token, refresh_token, expires_in } = tokenData;
 
-    // Get user info (resilient: retries on Google 429/5xx)
-    console.log('[GBP] Fetching user info...');
-    let userInfo;
-    try {
-      userInfo = await GoogleBusinessApi.getUserInfo(access_token);
-    } catch (uiErr: any) {
-      const status = uiErr?.status ?? uiErr?.response?.status;
-      if (uiErr instanceof GBPQuotaError && status === 429) {
-        return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=rate_limited`);
-      }
-      console.error('[GBP] User info error:', uiErr?.message);
-      throw uiErr;
-    }
-    console.log('[GBP] User info OK:', userInfo?.email);
-
     // Get Business accounts (resilient: retries on Google 429/5xx)
     let accounts;
     try {
@@ -316,19 +321,19 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       console.error(`[GBP] Accounts API error: ${status}`, isQuota ? apiErr.message : apiErr?.message);
       if (status === 403) {
         console.error('[GBP] 403 — Google Business Profile API may need approval. Visit: https://developers.google.com/my-business/content/basic-setup');
-        return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=api_not_enabled`);
+        return safeRedirect(res, `${frontendBase}/google-business?error=api_not_enabled`);
       }
       if (status === 401) {
-        return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_expired`);
+        return safeRedirect(res, `${frontendBase}/google-business?error=token_expired`);
       }
       if (isQuota && status === 429) {
-        return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=rate_limited`);
+        return safeRedirect(res, `${frontendBase}/google-business?error=rate_limited`);
       }
       throw apiErr;
     }
 
     if (accounts.length === 0) {
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=no_business_found`);
+      return safeRedirect(res, `${frontendBase}/google-business?error=no_business_found`);
     }
 
     // Use first account (or let user select)
@@ -336,7 +341,8 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
     const accountId = account.name?.replace('accounts/', '') || account.accountId;
     console.log('[GBP] Found account:', accountId, 'total accounts:', accounts.length);
 
-    // Get locations for this account (resilient: retries on Google 429/5xx)
+    // Get locations for this account (resilient: retries on Google 429/5xx).
+    // Best-effort: a missing location is non-fatal, we still connect.
     let locationId = null;
     try {
       const locations = await GoogleBusinessApi.getLocations(access_token, accountId);
@@ -345,7 +351,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       }
     } catch (locErr: any) {
       if (locErr instanceof GBPQuotaError && locErr.status === 429) {
-        return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=rate_limited`);
+        return safeRedirect(res, `${frontendBase}/google-business?error=rate_limited`);
       }
       console.warn('Could not fetch locations:', locErr?.message);
     }
@@ -365,12 +371,12 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       });
     } catch (dbErr: unknown) {
       console.error('[GBP] DATABASE SAVE FAILED:', getErrorMessage(dbErr), (dbErr as { stack?: string })?.stack);
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=db_save_failed&msg=${encodeURIComponent(getErrorMessage(dbErr))}`);
+      return safeRedirect(res, `${frontendBase}/google-business?error=db_save_failed&msg=${encodeURIComponent(getErrorMessage(dbErr))}`);
     }
 
     console.log('[GBP] ✅ Database saved successfully! Redirecting to frontend...');
     // Redirect to frontend with success
-    return res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?connected=true`);
+    return safeRedirect(res, `${frontendBase}/google-business?connected=true`);
   } catch (error: any) {
     console.error('[GBP] callback error:', getErrorMessage(error));
     console.error('[GBP] callback error code:', getErrorCode(error));
@@ -393,9 +399,9 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       clientIdPrefix: process.env.GOOGLE_CLIENT_ID?.substring(0, 20),
     });
     if (error?.response?.status === 403) {
-      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=api_not_enabled`);
+      safeRedirect(res, `${frontendBase}/google-business?error=api_not_enabled`);
     } else if (error?.response?.status === 401) {
-      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_expired`);
+      safeRedirect(res, `${frontendBase}/google-business?error=token_expired`);
     } else if (error?.response?.status === 400) {
       // Google returned Bad Request on the token exchange. Most common reasons:
       //  - invalid_grant / bad_verification_code → the OAuth code was already
@@ -412,11 +418,11 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
         // We surface the exact redirect_uri the server used so the user can compare
         // it against Google Cloud Console → Credentials → Authorized redirect URIs.
         const detail = `Google rejected the OAuth code (invalid_grant). Server used redirect_uri: ${redirectUri}. This usually means (1) you refreshed the page after Google redirected back — click Connect again WITHOUT refreshing, or (2) this redirect_uri is NOT registered in Google Cloud Console → APIs & Services → Credentials → OAuth Client → Authorized redirect URIs. Add it exactly (https, no www, no trailing slash) and retry.`;
-        res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=code_already_used&msg=${encodeURIComponent(detail)}`);
+        safeRedirect(res, `${frontendBase}/google-business?error=code_already_used&msg=${encodeURIComponent(detail)}`);
       } else if (reason === 'redirect_uri_mismatch') {
-        res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=redirect_mismatch&msg=${encodeURIComponent(`Google says the redirect URI doesn't match what's registered: ${desc}. Register this exact URI in Google Cloud Console: ${redirectUri}`)}`);
+        safeRedirect(res, `${frontendBase}/google-business?error=redirect_mismatch&msg=${encodeURIComponent(`Google says the redirect URI doesn't match what's registered: ${desc}. Register this exact URI in Google Cloud Console: ${redirectUri}`)}`);
       } else {
-        res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=token_400&msg=${encodeURIComponent(`Google rejected the token request [${reason}]: ${desc}`)}`);
+        safeRedirect(res, `${frontendBase}/google-business?error=token_400&msg=${encodeURIComponent(`Google rejected the token request [${reason}]: ${desc}`)}`);
       }
     } else if (isNetworkFailure(error)) {
       // Server could NOT reach Google at all (DNS/connection). Surface a clear,
@@ -429,7 +435,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
         ETIMEDOUT: 'Connection to Google timed out — outbound traffic to Google is being dropped. Check firewall / egress rules.',
       };
       const hint = hintByCode[errCode] ?? 'The server could not establish a network connection to Google. Check the container network egress.';
-      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=gbp_network_error&msg=${encodeURIComponent(`Network failure reaching Google [code=${errCode}]. ${hint}`)}`);
+      safeRedirect(res, `${frontendBase}/google-business?error=gbp_network_error&msg=${encodeURIComponent(`Network failure reaching Google [code=${errCode}]. ${hint}`)}`);
     } else {
       const msg = getErrorMessage(error);
       // If we STILL couldn't extract anything, send diagnostic context instead
@@ -437,7 +443,7 @@ router.get('/auth/callback', async (req: AuthRequest, res: Response) => {
       const fallbackMsg = !msg || msg === 'unknown'
         ? `Empty error object caught. query=${JSON.stringify(req.query)} clientId=${!!process.env.GOOGLE_CLIENT_ID} secret=${!!process.env.GOOGLE_CLIENT_SECRET}`
         : msg;
-      res.redirect(`${process.env.FRONTEND_URL || 'https://bizzautoai.com'}/google-business?error=callback_failed&msg=${encodeURIComponent(fallbackMsg)}`);
+      safeRedirect(res, `${frontendBase}/google-business?error=callback_failed&msg=${encodeURIComponent(fallbackMsg)}`);
     }
   }
 });

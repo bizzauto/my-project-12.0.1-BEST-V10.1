@@ -28,14 +28,18 @@ import { getHttpsProxyAgent } from './httpProxyAgent.js';
 const BUSINESS_INFO_BASE = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 const BUSINESS_API_BASE = 'https://mybusiness.googleapis.com/v4';
 
-const MAX_RETRIES = 5;
-const BASE_BACKOFF_MS = 800; // first retry after ~0.8s, grows ×2
-const MAX_BACKOFF_MS = 32_000;
+// Keep the OAuth *connect* callback well under nginx's 60s proxy_read_timeout.
+// Worst-case connect flow = token(1s) + accounts(3 retries) + locations(3
+// retries) + db(~0.5s). With MAX_RETRIES=3 and floor=3s the absolute ceiling
+// is ~20s, leaving a comfortable margin before nginx would 502.
+const MAX_RETRIES = 3;
+const BASE_BACKOFF_MS = 600; // first retry after ~0.6s, grows ×2
+const MAX_BACKOFF_MS = 12_000;
 // Google TEST-mode (unverified consent screen) throttles to ~1 req / 15s.
 // A backoff below this window just re-hits the same 429, so floor retries for
 // 429 specifically to give the throttle time to reset. Capped well under the
 // nginx 60s proxy_read_timeout so the OAuth callback never 502s on backoff.
-const RATE_LIMIT_FLOOR_MS = 8_000;
+const RATE_LIMIT_FLOOR_MS = 3_000;
 
 // HTTP statuses worth retrying (transient throttling / upstream hiccups).
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
