@@ -120,8 +120,14 @@ interface GBPEnrichResult {
  *      without re-calling Google at all during the cooldown window.
  * This makes the retry cadence server-enforced and independent of how
  * aggressively the frontend polls.
+ *
+ * Enrichment is a ONE-TIME recovery: once it succeeds, gbpAccountId is saved and
+ * /status stops firing it entirely. So a long cooldown costs nothing — we just
+ * retry gently every 2 minutes until Google's quota window opens. Even a
+ * freshly-lifted quota (project was TEST-mode, billing enabled, still warming
+ * up) is never exceeded: max 2 calls (accounts + locations) per 2 min.
  */
-const ENRICH_COOLDOWN_MS = 60_000;
+const ENRICH_COOLDOWN_MS = 120_000;
 const lastEnrichAttemptAt = new Map<string, number>();
 const lastEnrichResult = new Map<string, { result: GBPEnrichResult; at: number }>();
 

@@ -519,7 +519,7 @@ const GoogleBusinessPage: React.FC = () => {
           <RefreshCw size={24} className={enriching ? 'text-amber-500 animate-spin' : 'text-amber-500'} />
           <div className="flex-1">
             <p className="font-medium text-amber-800 dark:text-amber-300">Syncing your Business Profile…</p>
-            <p className="text-sm text-amber-600 dark:text-amber-400">Google is still provisioning access (TEST-mode apps are rate-limited). Reviews & posts will appear shortly — you can speed it up below.</p>
+            <p className="text-sm text-amber-600 dark:text-amber-400">Google is still warming up access to your Business Profile — this is a temporary rate limit from Google and resolves on its own. Reviews & posts will appear once it clears (usually within a few minutes). You can speed it up below.</p>
             {enrichError ? (
               <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
                 Last Google response{enrichStatus ? ` (${enrichStatus})` : ''}: {enrichError}
