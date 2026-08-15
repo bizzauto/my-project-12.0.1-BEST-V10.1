@@ -169,23 +169,24 @@ const GoogleBusinessPage: React.FC = () => {
 
   // Auto-retry enrichment when it's still pending after connect. Google TEST-mode
   // throttles the mybusiness APIs (~1 req/15s → 429), so a connect-time
-  // enrichment may fail and recover a few seconds later. We poll /enrich on an
-  // interval while it is pending, then re-fetch features. Capped so it stops if
-  // Google keeps throttling — the user can hit "Sync now" manually after that.
+  // enrichment may fail and recover a few seconds later. We retry on a SPARSE,
+  // growing backoff (15s → 30s → 60s) so we do NOT hammer Google and burn more
+  // quota (that only delays recovery). Capped at 3 auto attempts; after that the
+  // banner tells the user to click "Sync now" once the limit resets.
   useEffect(() => {
     if (!needsEnrichment) return;
     let cancelled = false;
-    let attempts = 0;
-    const MAX_AUTO_ATTEMPTS = 6;
+    let attempt = 0;
+    const MAX_AUTO_ATTEMPTS = 3;
+    const delays = [15000, 30000, 60000]; // sparse, growing backoff
     const interval = setInterval(async () => {
-      if (cancelled || attempts >= MAX_AUTO_ATTEMPTS) {
+      if (cancelled) return;
+      if (attempt >= MAX_AUTO_ATTEMPTS) {
         clearInterval(interval);
-        if (attempts >= MAX_AUTO_ATTEMPTS) {
-          setEnrichMsg('Google is still rate-limiting access. Click "Sync now" once the limit resets (usually within a minute).');
-        }
+        setEnrichMsg('Google is still rate-limiting access. Click "Sync now" once the limit resets (usually within a minute).');
         return;
       }
-      attempts += 1;
+      attempt += 1;
       try {
         const res = await googleBusinessAPI.enrich();
         if (res.data?.success && !res.data?.alreadyEnriched) {
@@ -193,11 +194,16 @@ const GoogleBusinessPage: React.FC = () => {
           setEnrichMsg(null);
           clearInterval(interval);
           fetchData();
+          return;
         }
       } catch {
-        // 424/429/throttle — keep polling until it succeeds or the user retries.
+        // 424/429/throttle — keep waiting; the next sparse tick retries.
       }
-    }, 8000);
+      if (attempt >= MAX_AUTO_ATTEMPTS) {
+        clearInterval(interval);
+        setEnrichMsg('Google is still rate-limiting access. Click "Sync now" once the limit resets (usually within a minute).');
+      }
+    }, 15000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [needsEnrichment, fetchData]);
 

@@ -77,6 +77,13 @@ interface CallArgs {
   body?: unknown;
   /** Label used in logs + the thrown error, e.g. "accounts". */
   label: string;
+  /**
+   * Override the global MAX_RETRIES. The enrichment (getAccounts/getLocations)
+   * path uses 1: a single 429 in TEST-mode means the quota window is hot, so
+   * hammering with 3 retries just burns more quota and delays recovery. One
+   * clean attempt + let the caller retry later (after the window resets).
+   */
+  maxRetries?: number;
 }
 
 /**
@@ -84,12 +91,12 @@ interface CallArgs {
  * honours Google's Retry-After header, then throws a GBPQuotaError carrying
  * actionable guidance on a persistent failure.
  */
-async function resilientCall({ url, accessToken, method = 'GET', body, label }: CallArgs) {
+async function resilientCall({ url, accessToken, method = 'GET', body, label, maxRetries = MAX_RETRIES }: CallArgs) {
   let lastErr: AxiosError | null = null;
 
   const httpsAgent = await getHttpsProxyAgent();
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await axios({
         url,
@@ -150,6 +157,10 @@ export const GoogleBusinessApi = {
       url: `${BUSINESS_INFO_BASE}/accounts`,
       accessToken,
       label: 'accounts',
+      // Single attempt during enrichment: a 429 here means the TEST-mode quota
+      // window is hot. Retrying just burns more quota and pushes recovery
+      // further out. The caller retries later, after the window resets.
+      maxRetries: 1,
     });
     return res.data?.accounts ?? [];
   },
@@ -170,6 +181,8 @@ export const GoogleBusinessApi = {
       url: `${BUSINESS_INFO_BASE}/accounts/${accountId}/locations`,
       accessToken,
       label: 'locations',
+      // Single attempt — see getAccounts for rationale.
+      maxRetries: 1,
     });
     return res.data?.locations ?? [];
   },
