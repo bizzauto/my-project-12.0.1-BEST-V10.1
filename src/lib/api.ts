@@ -311,6 +311,19 @@ export const reviewsAPI = {
   stats: () => apiClient.get('/reviews/stats'),
 };
 
+// Google Reviews QR API — pre-written review templates + interstitial (/r/<slug>)
+export const reviewQrAPI = {
+  list: () => apiClient.get('/review-qr'),
+  getSettings: () => apiClient.get('/review-qr/settings'),
+  create: (data: { name: string; url: string; fgColor?: string; bgColor?: string; suggestedReviews?: string[] }) =>
+    apiClient.post('/review-qr', data),
+  update: (id: string, data: { name?: string; url?: string; fgColor?: string; bgColor?: string; status?: 'active' | 'paused'; suggestedReviews?: string[] }) =>
+    apiClient.put(`/review-qr/${id}`, data),
+  remove: (id: string) => apiClient.delete(`/review-qr/${id}`),
+  updateSettings: (data: { autoReplyEnabled?: boolean; negativeRedirectUrl?: string }) =>
+    apiClient.put('/review-qr/settings', data),
+};
+
 // Business API
 export const businessAPI = {
   get: () => apiClient.get('/business'),
