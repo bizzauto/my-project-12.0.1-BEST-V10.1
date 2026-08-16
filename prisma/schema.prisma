@@ -8,36 +8,36 @@ datasource db {
 }
 
 model User {
-  id                   String            @id @default(cuid())
-  email                String            @unique
-  name                 String?
-  password             String?
-  phone                String?
-  role                 Role              @default(OWNER)
-  businessId           String?
-  emailVerified        DateTime?
-  image                String?
-  avatar               String?
-  isActive             Boolean           @default(true)
-  isVerified           Boolean           @default(false)
-  lastLoginAt          DateTime?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-  resetToken           String?
-  csrfToken            String?
-  csrfTokenExpiresAt   DateTime?
-  appleId              String?           @unique
-  googleId             String?           @unique
-  resetTokenExpiresAt  DateTime?
-  tokenExpiry          DateTime?
-  verificationToken    String?
-  aiContents           AIContent[]
-  agencies             Agency[]
-  notifications        Notification[]
-  platformReferral     PlatformReferral?
-  themePref            ThemePreference?
-  business             Business?         @relation(fields: [businessId], references: [id])
-  courseEnrollments    CourseEnrollment[]
+  id                  String             @id @default(cuid())
+  email               String             @unique
+  name                String?
+  password            String?
+  phone               String?
+  role                Role               @default(OWNER)
+  businessId          String?
+  emailVerified       DateTime?
+  image               String?
+  avatar              String?
+  isActive            Boolean            @default(true)
+  isVerified          Boolean            @default(false)
+  lastLoginAt         DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  resetToken          String?
+  csrfToken           String?
+  csrfTokenExpiresAt  DateTime?
+  appleId             String?            @unique
+  googleId            String?            @unique
+  resetTokenExpiresAt DateTime?
+  tokenExpiry         DateTime?
+  verificationToken   String?
+  aiContents          AIContent[]
+  agencies            Agency[]
+  notifications       Notification[]
+  platformReferral    PlatformReferral?
+  themePref           ThemePreference?
+  business            Business?          @relation(fields: [businessId], references: [id])
+  courseEnrollments   CourseEnrollment[]
 
   @@index([businessId])
   @@index([appleId])
@@ -46,169 +46,172 @@ model User {
 }
 
 model Business {
-  id                     String                  @id @default(cuid())
-  name                   String
-  type                   String
-  phone                  String?
-  email                  String?
-  city                   String?
-  state                  String?
-  country                String                  @default("India")
-  address                String?
-  website                String?
-  logoUrl                String?
-  brandColors            Json?
-  timezone               String                  @default("Asia/Kolkata")
-  contactsLimit          Int                     @default(500)
-  messagesLimit          Int                     @default(1000)
-  usersLimit             Int                     @default(1)
-  plan                   Plan                    @default(FREE)
-  planStartedAt          DateTime?
-  planExpiresAt          DateTime?
-  razorpaySubId          String?
-  razorpayOrderId        String?
-  wabaId                 String?
-  waPhoneNumberId        String?
-  waAccessToken          String?
-  waWebhookSecret        String?
-  waPhoneNumber          String?
-  fbPageId               String?
-  fbAccessToken          String?
-  igUserId               String?
-  igAccessToken          String?
-  linkedinPageId         String?
-  linkedinAccessToken    String?
-  twitterUserId          String?
-  twitterAccessToken     String?
-  gbpAccessToken         String?
-  gbpAccountId           String?
-  gbpLocationId          String?
-  autoReplyEnabled       Boolean                 @default(false)
-  autoReplyMessage       String?
-  businessHours          Json?
-  totalMessages          Int                     @default(0)
-  totalContacts          Int                     @default(0)
-  aiCreditsUsed          Int                     @default(0)
-  aiCreditsLimit         Int                     @default(100)
-  aiCreditsPurchased     Int                     @default(0)
-  imageCreditsUsed       Int                     @default(0)
-  imageCreditsLimit      Int                     @default(1)
-  imageCreditsPurchased  Int                     @default(0)
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  admissionCompleted     Boolean                 @default(false)
-  onboardingCompleted   Boolean                 @default(false)
-  dograhApiKey           String?
-  dograhApiUrl           String?
-  dograhDefaultAgentId   Int?
-  dograhEnabled          Boolean                 @default(false)
-  dograhWebhookSecret    String?
-  gbpAutoPostDays        Json                    @default("[\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\"]")
-  gbpAutoPostEnabled     Boolean                 @default(false)
-  gbpAutoPostLastPosted  DateTime?
-  gbpAutoPostTemplates   Json                    @default("[]")
-  gbpAutoPostTime        String                  @default("09:00")
-  gbpAutoPostTimezone    String                  @default("Asia/Kolkata")
-  gbpRefreshToken        String?
-  gbpTokenExpiry         DateTime?
-  leadWebhookSecret      String?
-  telephonyProvider      String                  @default("twilio")
-  youtubeAccessToken     String?
-  youtubeChannelId       String?
-  aiFollowUps            AIFollowUp[]
-  activities             Activity[]
-  analyticsIntegration   AnalyticsIntegration?
-  apiKeys                ApiKey[]
-  externalIntegrations   ExternalIntegration[]
-  appointments           Appointment[]
-  appointmentReminders   AppointmentReminder[]
-  auditLogs              AuditLog[]
-  autoReplies            AutoReply[]
-  automationRules        AutomationRule[]
-  autopilotSettings      AutopilotSettings?
-  blogCategories         BlogCategory[]
-  blogPosts              BlogPost[]
-  callLogs               CallLog[]
-  campaigns              Campaign[]
-  carts                  Cart[]
-  cartRecoveries         CartRecovery[]
-  chatbotFlows           ChatbotFlow[]
-  clientPortals          ClientPortal[]
-  contacts               Contact[]
-  coupons                Coupon[]
-  courses                Course[]
-  customRoles            CustomRole[]
-  customFields           CustomField[]
-  customerSegments       CustomerSegment[]
-  discountRules          DiscountRule[]
-  documents              Document[]
-  documentTemplates      DocumentTemplate[]
-  dripCampaigns          DripCampaign[]
-  eCommerceStore         ECommerceStore?
-  emailLists             EmailList[]
-  emailTemplates         EmailTemplate[]
-  flashSales             FlashSale[]
-  funnels                Funnel[]
-  funnelPageViews        FunnelPageView[]
-  giftCards              GiftCard[]
-  goals                  Goal[]
-  integrations           Integration[]
-  invoices               Invoice[]
-  leadFinderSearches     LeadFinderSearch[]
-  leadScores             LeadScore[]
-  leads                  Lead[]
-  ledgerEntries          LedgerEntry[]
-  landingPages           LandingPage[]
-  liveChatSessions       LiveChatSession[]
-  liveChatWidget         LiveChatWidget?
-  lowStockAlerts         LowStockAlert[]
-  loyaltyPoints          LoyaltyPoints[]
-  loyaltyProgram         LoyaltyProgram?
-  loyaltyRewards         LoyaltyReward[]
-  messageTemplates       MessageTemplate[]
-  newEmailTemplates      NewEmailTemplate[]
-  orderNotifications     OrderNotification[]
-  outreachCampaigns      OutreachCampaign[]
-  outreachLogs           OutreachLog[]
-  paymentLinks           PaymentLink[]
-  pipelines              Pipeline[]
-  posts                  Post[]
-  posterTemplates        PosterTemplate[]
-  products               Product[]
-  productBundles         ProductBundle[]
-  productReviews         ProductReview[]
-  referrals              Referral[]
-  referralProgram        ReferralProgram?
-  returnRequests         ReturnRequest[]
-  reviews                Review[]
-  reviewRequests         ReviewRequest[]
-  reviewRequestCampaigns ReviewRequestCampaign[]
-  smsCampaigns           SMSCampaign[]
-  smsMessages            SMSMessage[]
-  scheduledMessages      ScheduledMessage[]
-  shippingRules          ShippingRule[]
-  sizeGuides             SizeGuide[]
-  stockAlerts            StockAlert[]
-  storeTheme             StoreTheme?
-  storeTranslations      StoreTranslation[]
-  subAccounts            SubAccount[]
-  subscriptions          Subscription[]
-  subscriptionPlans      SubscriptionPlan[]
-  supportTickets         SupportTicket[]
-  surveys                Survey[]
-  triggerLinks           TriggerLink[]
-  users                  User[]
-  videoMeetings          VideoMeeting[]
-  wallet                 Wallet?
-  webhooks               Webhook[]
-  whatsappCatalogs       WhatsAppCatalog[]
-  whiteLabel             WhiteLabel?
-  wingsStore             WingsStore[]
-  wishlists              Wishlist[]
-  workflows              Workflow[]
-  workflowExecutions     WorkflowExecution[]
-  workflowRuns           WorkflowRun[]
-  vCards                 VCard[]
+  id                          String                  @id @default(cuid())
+  name                        String
+  type                        String
+  phone                       String?
+  email                       String?
+  city                        String?
+  state                       String?
+  country                     String                  @default("India")
+  address                     String?
+  website                     String?
+  logoUrl                     String?
+  brandColors                 Json?
+  timezone                    String                  @default("Asia/Kolkata")
+  contactsLimit               Int                     @default(500)
+  messagesLimit               Int                     @default(1000)
+  usersLimit                  Int                     @default(1)
+  plan                        Plan                    @default(FREE)
+  planStartedAt               DateTime?
+  planExpiresAt               DateTime?
+  razorpaySubId               String?
+  razorpayOrderId             String?
+  wabaId                      String?
+  waPhoneNumberId             String?
+  waAccessToken               String?
+  waWebhookSecret             String?
+  waPhoneNumber               String?
+  fbPageId                    String?
+  fbAccessToken               String?
+  igUserId                    String?
+  igAccessToken               String?
+  linkedinPageId              String?
+  linkedinAccessToken         String?
+  twitterUserId               String?
+  twitterAccessToken          String?
+  gbpAccessToken              String?
+  gbpAccountId                String?
+  gbpLocationId               String?
+  autoReplyEnabled            Boolean                 @default(false)
+  autoReplyMessage            String?
+  businessHours               Json?
+  totalMessages               Int                     @default(0)
+  totalContacts               Int                     @default(0)
+  aiCreditsUsed               Int                     @default(0)
+  aiCreditsLimit              Int                     @default(100)
+  aiCreditsPurchased          Int                     @default(0)
+  imageCreditsUsed            Int                     @default(0)
+  imageCreditsLimit           Int                     @default(1)
+  imageCreditsPurchased       Int                     @default(0)
+  createdAt                   DateTime                @default(now())
+  updatedAt                   DateTime                @updatedAt
+  admissionCompleted          Boolean                 @default(false)
+  onboardingCompleted         Boolean                 @default(false)
+  dograhApiKey                String?
+  dograhApiUrl                String?
+  dograhDefaultAgentId        Int?
+  dograhEnabled               Boolean                 @default(false)
+  dograhWebhookSecret         String?
+  gbpAutoPostDays             Json                    @default("[\"monday\", \"tuesday\", \"wednesday\", \"thursday\", \"friday\"]")
+  gbpAutoPostEnabled          Boolean                 @default(false)
+  gbpAutoPostLastPosted       DateTime?
+  gbpAutoPostTemplates        Json                    @default("[]")
+  gbpAutoPostTime             String                  @default("09:00")
+  gbpAutoPostTimezone         String                  @default("Asia/Kolkata")
+  gbpRefreshToken             String?
+  gbpTokenExpiry              DateTime?
+  reviewQrAutoReplyEnabled    Boolean                 @default(false)
+  reviewQrNegativeRedirectUrl String?
+  leadWebhookSecret           String?
+  telephonyProvider           String                  @default("twilio")
+  youtubeAccessToken          String?
+  youtubeChannelId            String?
+  aiFollowUps                 AIFollowUp[]
+  activities                  Activity[]
+  analyticsIntegration        AnalyticsIntegration?
+  apiKeys                     ApiKey[]
+  externalIntegrations        ExternalIntegration[]
+  appointments                Appointment[]
+  appointmentReminders        AppointmentReminder[]
+  auditLogs                   AuditLog[]
+  autoReplies                 AutoReply[]
+  automationRules             AutomationRule[]
+  autopilotSettings           AutopilotSettings?
+  blogCategories              BlogCategory[]
+  blogPosts                   BlogPost[]
+  callLogs                    CallLog[]
+  campaigns                   Campaign[]
+  carts                       Cart[]
+  cartRecoveries              CartRecovery[]
+  chatbotFlows                ChatbotFlow[]
+  clientPortals               ClientPortal[]
+  contacts                    Contact[]
+  coupons                     Coupon[]
+  courses                     Course[]
+  customRoles                 CustomRole[]
+  customFields                CustomField[]
+  customerSegments            CustomerSegment[]
+  discountRules               DiscountRule[]
+  documents                   Document[]
+  documentTemplates           DocumentTemplate[]
+  dripCampaigns               DripCampaign[]
+  eCommerceStore              ECommerceStore?
+  emailLists                  EmailList[]
+  emailTemplates              EmailTemplate[]
+  flashSales                  FlashSale[]
+  funnels                     Funnel[]
+  funnelPageViews             FunnelPageView[]
+  giftCards                   GiftCard[]
+  goals                       Goal[]
+  integrations                Integration[]
+  invoices                    Invoice[]
+  leadFinderSearches          LeadFinderSearch[]
+  leadScores                  LeadScore[]
+  leads                       Lead[]
+  ledgerEntries               LedgerEntry[]
+  landingPages                LandingPage[]
+  liveChatSessions            LiveChatSession[]
+  liveChatWidget              LiveChatWidget?
+  lowStockAlerts              LowStockAlert[]
+  loyaltyPoints               LoyaltyPoints[]
+  loyaltyProgram              LoyaltyProgram?
+  loyaltyRewards              LoyaltyReward[]
+  messageTemplates            MessageTemplate[]
+  newEmailTemplates           NewEmailTemplate[]
+  orderNotifications          OrderNotification[]
+  outreachCampaigns           OutreachCampaign[]
+  outreachLogs                OutreachLog[]
+  paymentLinks                PaymentLink[]
+  pipelines                   Pipeline[]
+  posts                       Post[]
+  posterTemplates             PosterTemplate[]
+  products                    Product[]
+  productBundles              ProductBundle[]
+  productReviews              ProductReview[]
+  referrals                   Referral[]
+  referralProgram             ReferralProgram?
+  returnRequests              ReturnRequest[]
+  reviews                     Review[]
+  reviewRequests              ReviewRequest[]
+  reviewRequestCampaigns      ReviewRequestCampaign[]
+  reviewQrCodes               ReviewQRCode[]
+  smsCampaigns                SMSCampaign[]
+  smsMessages                 SMSMessage[]
+  scheduledMessages           ScheduledMessage[]
+  shippingRules               ShippingRule[]
+  sizeGuides                  SizeGuide[]
+  stockAlerts                 StockAlert[]
+  storeTheme                  StoreTheme?
+  storeTranslations           StoreTranslation[]
+  subAccounts                 SubAccount[]
+  subscriptions               Subscription[]
+  subscriptionPlans           SubscriptionPlan[]
+  supportTickets              SupportTicket[]
+  surveys                     Survey[]
+  triggerLinks                TriggerLink[]
+  users                       User[]
+  videoMeetings               VideoMeeting[]
+  wallet                      Wallet?
+  webhooks                    Webhook[]
+  whatsappCatalogs            WhatsAppCatalog[]
+  whiteLabel                  WhiteLabel?
+  wingsStore                  WingsStore[]
+  wishlists                   Wishlist[]
+  workflows                   Workflow[]
+  workflowExecutions          WorkflowExecution[]
+  workflowRuns                WorkflowRun[]
+  vCards                      VCard[]
 
   @@index([plan])
 }
@@ -418,11 +421,11 @@ model MessageTemplate {
   name         String
   language     String    @default("en")
   category     String    @default("UTILITY")
-  content      String?   // Simple text content for marketing messages
-  components   Json      // WhatsApp Business API template components
+  content      String? // Simple text content for marketing messages
+  components   Json // WhatsApp Business API template components
   status       String    @default("PENDING")
   isActive     Boolean   @default(true) // For marketing follow-up templates
-  variables    String[]  // Template variables like {{name}}, {{product}}
+  variables    String[] // Template variables like {{name}}, {{product}}
   waTemplateId String?
   waStatus     String?
   usageCount   Int       @default(0)
@@ -1535,19 +1538,19 @@ model ApiKey {
 }
 
 model ExternalIntegration {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   businessId      String
-  provider        String   // "whatsapp", "shopify", "razorpay", "hubspot", "custom", etc.
-  name            String   // User-friendly name
-  apiKeyEncrypted String   // AES-256-GCM encrypted
-  config          Json?    // Base URL, webhook secrets, additional fields
-  isActive        Boolean  @default(true)
+  provider        String // "whatsapp", "shopify", "razorpay", "hubspot", "custom", etc.
+  name            String // User-friendly name
+  apiKeyEncrypted String // AES-256-GCM encrypted
+  config          Json? // Base URL, webhook secrets, additional fields
+  isActive        Boolean   @default(true)
   lastTestedAt    DateTime?
-  lastTestStatus  String?  // "success" | "failed"
+  lastTestStatus  String? // "success" | "failed"
   lastTestError   String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  business        Business @relation(fields: [businessId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  business        Business  @relation(fields: [businessId], references: [id])
 
   @@index([businessId, provider])
   @@index([businessId])
@@ -1581,7 +1584,7 @@ model ScheduledMessage {
   status           String    @default("pending")
   priority         String    @default("normal") // high, normal, low
   error            String?
-  metadata         Json?     // Additional data (type, templateId, etc.)
+  metadata         Json? // Additional data (type, templateId, etc.)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   mediaType        String?
@@ -2117,6 +2120,25 @@ model ReviewRequestCampaign {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   business        Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId])
+}
+
+model ReviewQRCode {
+  id               String   @id @default(cuid())
+  businessId       String
+  name             String
+  slug             String   @unique
+  url              String
+  fgColor          String   @default("#000000")
+  bgColor          String   @default("#ffffff")
+  status           String   @default("active")
+  scans            Int      @default(0)
+  reviews          Int      @default(0)
+  suggestedReviews String[] @default([])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  business         Business @relation(fields: [businessId], references: [id])
 
   @@index([businessId])
 }
@@ -2892,32 +2914,32 @@ model WlReseller {
   password     String
   company      String     @default("My Company")
   phone        String?
-  plan          String     @default("STARTER")
-  domain        String?
-  logo          String?
-  primaryColor  String     @default("#6366f1")
-  revenue       Float      @default(0)
-  isActive      Boolean    @default(true)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  clients       WlClient[]
+  plan         String     @default("STARTER")
+  domain       String?
+  logo         String?
+  primaryColor String     @default("#6366f1")
+  revenue      Float      @default(0)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  clients      WlClient[]
 
   @@index([email])
   @@index([isActive])
 }
 
 model WlClient {
-  id          String     @id @default(cuid())
-  resellerId  String
-  name        String
-  email       String
-  phone       String     @default("")
-  product     String     @default("google-reviews")
-  plan        String     @default("STARTER")
-  status      String     @default("pending")
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  reseller    WlReseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  id         String     @id @default(cuid())
+  resellerId String
+  name       String
+  email      String
+  phone      String     @default("")
+  product    String     @default("google-reviews")
+  plan       String     @default("STARTER")
+  status     String     @default("pending")
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  reseller   WlReseller @relation(fields: [resellerId], references: [id], onDelete: Cascade)
 
   @@index([resellerId])
   @@index([status])

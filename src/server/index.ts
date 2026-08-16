@@ -83,6 +83,9 @@ import agencyRoutes from './routes/agency.js';
 import coursesRoutes from './routes/courses.js';
 import triggerLinksRoutes from './routes/trigger-links.js';
 import reviewRequestsRoutes from './routes/review-requests.js';
+import reviewQrRoutes, {
+  publicRouter as reviewQrPublicRouter,
+} from './routes/review-qr.js';
 import customFieldsRoutes from './routes/custom-fields.js';
 import funnelsRoutes from './routes/funnels.js';
 import smsMarketingRoutes from './routes/sms-marketing.js';
@@ -408,6 +411,8 @@ app.use('/api/agency', agencyRoutes);
 app.use('/api/courses', coursesRoutes);
 app.use('/api/trigger-links', triggerLinksRoutes);
 app.use('/api/review-requests', reviewRequestsRoutes);
+app.use('/api/review-qr', reviewQrRoutes);
+app.use('/r', reviewQrPublicRouter);
 app.use('/api/custom-fields', customFieldsRoutes);
 app.use('/api/funnels', funnelsRoutes);
 app.use('/api/sms-marketing', smsMarketingRoutes);
