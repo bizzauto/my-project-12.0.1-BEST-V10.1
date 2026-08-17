@@ -311,6 +311,28 @@ export const reviewsAPI = {
   stats: () => apiClient.get('/reviews/stats'),
 };
 
+// Enhanced Reviews V2 API — uses @openpromo/google-business-profile SDK
+// Features: AI reply generation, GBP posts, insights, enhanced sync
+export const reviewsV2API = {
+  list: (params?: any) => apiClient.get('/reviews/v2', { params }),
+  get: (id: string) => apiClient.get(`/reviews/v2/${id}`),
+  reply: (id: string, reply: string) => apiClient.put(`/reviews/v2/${id}/reply`, { replyText: reply }),
+  sync: () => apiClient.post('/reviews/v2/sync'),
+  stats: () => apiClient.get('/reviews/v2/stats'),
+  generateAIReply: (id: string, options?: { tone?: string; maxLength?: number; includeName?: boolean }) =>
+    apiClient.post(`/reviews/v2/${id}/ai-reply`, options || {}),
+  postReply: (id: string, replyText: string) => apiClient.post(`/reviews/v2/${id}/post-reply`, { replyText }),
+  markRead: (id: string) => apiClient.put(`/reviews/v2/${id}/read`),
+  bulkMarkRead: (ids: string[]) => apiClient.put('/reviews/v2/bulk/read', { ids }),
+  gbpStatus: () => apiClient.get('/reviews/v2/gbp/status'),
+  gbpLocations: () => apiClient.get('/reviews/v2/gbp/locations'),
+  createPost: (data: any) => apiClient.post('/reviews/v2/gbp/posts', data),
+  getPosts: () => apiClient.get('/reviews/v2/gbp/posts'),
+  deletePost: (postName: string) => apiClient.delete(`/reviews/v2/gbp/posts/${encodeURIComponent(postName)}`),
+  getInsights: (params?: any) => apiClient.get('/reviews/v2/gbp/insights', { params }),
+  isAIEnabled: () => apiClient.get('/reviews/v2/ai-status'),
+};
+
 // Google Reviews QR API — pre-written review templates + interstitial (/r/<slug>)
 export const reviewQrAPI = {
   list: () => apiClient.get('/review-qr'),
@@ -538,17 +560,32 @@ export const googleBusinessAPI = {
 export const socialAccountsAPI = {
   list: () => apiClient.get('/social-accounts'),
   getStatus: () => apiClient.get('/social-accounts'),
-  connectFacebook: (data: { fbPageId: string; fbAccessToken: string }) =>
-    apiClient.post('/social-accounts/facebook/connect', data),
+  
+  // Facebook
+  getFacebookAuthUrl: () => apiClient.get('/social-accounts/facebook/auth/url'),
+  getFacebookPages: () => apiClient.get('/social-accounts/facebook/pages'),
+  selectFacebookPage: (data: { pageId: string; pageAccessToken: string }) =>
+    apiClient.post('/social-accounts/facebook/select-page', data),
   disconnectFacebook: () => apiClient.delete('/social-accounts/facebook/disconnect'),
-  connectLinkedIn: (data: { linkedinPageId: string; linkedinAccessToken: string }) =>
-    apiClient.post('/social-accounts/linkedin/connect', data),
+  
+  // LinkedIn
+  getLinkedInAuthUrl: () => apiClient.get('/social-accounts/linkedin/auth/url'),
+  getLinkedInOrganizations: () => apiClient.get('/social-accounts/linkedin/organizations'),
+  selectLinkedInOrganization: (data: { organizationId: string; accessToken: string }) =>
+    apiClient.post('/social-accounts/linkedin/select-organization', data),
   disconnectLinkedIn: () => apiClient.delete('/social-accounts/linkedin/disconnect'),
-  connectTwitter: (data: { twitterUserId: string; twitterAccessToken: string }) =>
-    apiClient.post('/social-accounts/twitter/connect', data),
+  
+  // Twitter/X
+  getTwitterAuthUrl: () => apiClient.get('/social-accounts/twitter/auth/url'),
+  refreshTwitterToken: () => apiClient.post('/social-accounts/twitter/refresh'),
   disconnectTwitter: () => apiClient.delete('/social-accounts/twitter/disconnect'),
-  connectYouTube: (data: { youtubeChannelId: string; youtubeAccessToken: string }) =>
-    apiClient.post('/social-accounts/youtube/connect', data),
+  
+  // YouTube
+  getYouTubeAuthUrl: () => apiClient.get('/social-accounts/youtube/auth/url'),
+  getYouTubeChannels: () => apiClient.get('/social-accounts/youtube/channels'),
+  selectYouTubeChannel: (data: { channelId: string; accessToken: string; refreshToken?: string }) =>
+    apiClient.post('/social-accounts/youtube/select-channel', data),
+  refreshYouTubeToken: () => apiClient.post('/social-accounts/youtube/refresh'),
   disconnectYouTube: () => apiClient.delete('/social-accounts/youtube/disconnect'),
 };
 
@@ -580,6 +617,52 @@ export const instagramAPI = {
   getMedia: (limit?: number) => apiClient.get('/instagram/media', { params: { limit } }),
   getMediaInsights: (mediaId: string) =>
     apiClient.get(`/instagram/media/${mediaId}/insights`),
+};
+
+// Facebook API
+export const facebookAPI = {
+  getAccount: () => apiClient.get('/social-accounts/facebook/account'),
+  uploadMedia: (formData: FormData) =>
+    apiClient.post('/social-accounts/facebook/media/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  publish: (data: { mediaUrl: string; caption?: string; mediaType?: string }) =>
+    apiClient.post('/social-accounts/facebook/publish', data),
+  publishCarousel: (data: { children: Array<{ mediaUrl: string; mediaType?: string }>; caption?: string }) =>
+    apiClient.post('/social-accounts/facebook/carousel', data),
+  publishPost: (postId: string) =>
+    apiClient.post(`/social-accounts/facebook/post/${postId}/publish`),
+  getMedia: (limit?: number) => apiClient.get('/social-accounts/facebook/media', { params: { limit } }),
+  getMediaInsights: (mediaId: string) =>
+    apiClient.get(`/social-accounts/facebook/media/${mediaId}/insights`),
+};
+
+// LinkedIn API
+export const linkedinAPI = {
+  getAccount: () => apiClient.get('/social-accounts/linkedin/account'),
+  publish: (data: { content: string; mediaUrls?: string[] }) =>
+    apiClient.post('/social-accounts/linkedin/publish', data),
+  getPosts: (limit?: number) => apiClient.get('/social-accounts/linkedin/posts', { params: { limit } }),
+};
+
+// Twitter/X API
+export const twitterAPI = {
+  getAccount: () => apiClient.get('/social-accounts/twitter/account'),
+  publish: (data: { content: string; mediaUrls?: string[] }) =>
+    apiClient.post('/social-accounts/twitter/publish', data),
+  getPosts: (limit?: number) => apiClient.get('/social-accounts/twitter/posts', { params: { limit } }),
+};
+
+// YouTube API
+export const youtubeAPI = {
+  getAccount: () => apiClient.get('/social-accounts/youtube/account'),
+  uploadVideo: (formData: FormData) =>
+    apiClient.post('/social-accounts/youtube/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  getVideos: (limit?: number) => apiClient.get('/social-accounts/youtube/videos', { params: { limit } }),
+  getVideoInsights: (videoId: string) =>
+    apiClient.get(`/social-accounts/youtube/videos/${videoId}/insights`),
 };
 
 // Conversations / Unified Inbox API

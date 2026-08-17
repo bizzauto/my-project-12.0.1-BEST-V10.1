@@ -20,9 +20,10 @@ import {
   Loader2,
   Link as LinkIcon,
   AlertCircle,
+  Bot,
 } from "lucide-react";
 import { useToast } from "./Toast";
-import { googleBusinessAPI, reviewsAPI, reviewQrAPI } from "../lib/api";
+import { googleBusinessAPI, reviewsAPI, reviewQrAPI, reviewsV2API } from "../lib/api";
 
 interface QRCodeItem {
   id: string;
@@ -90,6 +91,10 @@ export default function GoogleReviewsQRPage() {
   // Auto-reply rules
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
+
+  // AI Review Reply state
+  const [aiReplyGenerating, setAiReplyGenerating] = useState<string | null>(null);
+  const [aiReplyCache, setAiReplyCache] = useState<Record<string, string>>({});
 
   // Load QR codes + settings from backend
   const fetchQrData = useCallback(async () => {
@@ -362,6 +367,56 @@ export default function GoogleReviewsQRPage() {
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
     toast.success("Review link copied!");
+  };
+
+  // ─── AI Review Reply ───────────────────────────────────────────────────
+  const generateAIReply = async (reviewId: string) => {
+    if (aiReplyGenerating) return;
+
+    setAiReplyGenerating(reviewId);
+    try {
+      const res = await reviewsV2API.generateAIReply(reviewId, {
+        tone: "empathetic",
+        maxLength: 300,
+        includeName: true,
+      });
+
+      const reply = res.data?.data?.reply || "";
+      setAiReplyCache((prev) => ({ ...prev, [reviewId]: reply }));
+      toast.success("AI reply generated!");
+    } catch (err: any) {
+      console.error("AI reply failed:", err);
+      toast.error(err.response?.data?.error || "Failed to generate AI reply");
+    } finally {
+      setAiReplyGenerating(null);
+    }
+  };
+
+  const postReplyToGoogle = async (reviewId: string) => {
+    const cachedReply = aiReplyCache[reviewId];
+    if (!cachedReply) {
+      toast.error("Generate a reply first");
+      return;
+    }
+
+    try {
+      await reviewsV2API.postReply(reviewId, cachedReply);
+      toast.success("Reply posted to Google!");
+      // Update the review in state to show replied status
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === reviewId ? { ...r, replied: true, replyText: cachedReply } : r
+        )
+      );
+      setAiReplyCache((prev) => {
+        const copy = { ...prev };
+        delete copy[reviewId];
+        return copy;
+      });
+    } catch (err: any) {
+      console.error("Post reply failed:", err);
+      toast.error(err.response?.data?.error || "Failed to post reply to Google");
+    }
   };
 
   // ─── Pre-written review templates (suggestedReviews) ───────────────────
@@ -837,6 +892,51 @@ export default function GoogleReviewsQRPage() {
                         <p className="text-sm text-gray-600 dark:text-gray-300">
                           {review.text}
                         </p>
+                        {/* AI Reply Action Buttons */}
+                        {googleConnected && (
+                          <div className="mt-2 flex gap-2">
+                            {aiReplyGenerating === review.id ? (
+                              <div className="flex items-center gap-1 text-xs text-amber-600">
+                                <Loader2 size={12} className="animate-spin" /> Generating AI reply...
+                              </div>
+                            ) : aiReplyCache[review.id] ? (
+                              <>
+                                <textarea
+                                  readOnly
+                                  value={aiReplyCache[review.id]}
+                                  onChange={() => {}}
+                                  rows={3}
+                                  className="w-full px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                                />
+                                <div className="flex gap-2 mt-1">
+                                  <button
+                                    onClick={() => postReplyToGoogle(review.id)}
+                                    className="px-2 py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700 flex items-center gap-1"
+                                  >
+                                    <Check size={12} /> Post to Google
+                                  </button>
+                                  <button
+                                    onClick={() => setAiReplyCache((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[review.id];
+                                      return copy;
+                                    })}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                                  >
+                                    Discard
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => generateAIReply(review.id)}
+                                className="px-2 py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700 flex items-center gap-1"
+                              >
+                                <Bot size={12} /> AI Reply
+                              </button>
+                            )}
+                          </div>
+                        )}
                         {review.replied && (
                           <div className="mt-2 pl-3 border-l-2 border-green-300 dark:border-green-600">
                             <p className="text-xs text-green-600 dark:text-green-400 font-medium">
