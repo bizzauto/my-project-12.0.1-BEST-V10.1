@@ -41,49 +41,50 @@ publicRouter.get("/:slug", async (req: Request, res: Response) => {
     });
 
     const negativeUrl = qr.business.reviewQrNegativeRedirectUrl;
+    const reviewUrl = qr.url;
 
-        // Pre-written review suggestions → tap to copy, then open Google.
-        const suggestions = Array.isArray(qr.suggestedReviews)
-          ? qr.suggestedReviews.filter((s: string) => s && s.trim().length > 0).slice(0, 4)
-          : [];
+    // Pre-written review suggestions from DB
+    const suggestions = Array.isArray(qr.suggestedReviews)
+      ? qr.suggestedReviews.filter((s: string) => s && s.trim().length > 0).slice(0, 4)
+      : [];
 
-        // Straight redirect ONLY when there is nothing to show:
-        // no rating-gate AND no pre-written review templates.
-        if (!negativeUrl && suggestions.length === 0) {
-          return res.redirect(302, qr.url);
-        }
+    // Straight redirect ONLY when there is nothing to show:
+    // no rating-gate AND no pre-written review templates AND no negative redirect.
+    if (!negativeUrl && suggestions.length === 0) {
+      return res.redirect(302, reviewUrl);
+    }
 
-        // Rating-gated interstitial — customers picking 1-3 stars get routed to
-        // the feedback form instead of posting a public negative review.
-        const safeReviewUrl = encodeURIComponent(qr.url);
-        const safeNegativeUrl = encodeURIComponent(negativeUrl || "");
+    const safeReviewUrl = encodeURIComponent(reviewUrl);
+    const safeNegativeUrl = encodeURIComponent(negativeUrl || "");
+    const jsonSuggestions = JSON.stringify(suggestions)
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e");
+    const safeName = qr.name ? qr.name.replace(/[<>&"]/g, "") : "";
 
-        const jsonSuggestions = JSON.stringify(suggestions)
-          .replace(/</g, "\\u003c")
-          .replace(/>/g, "\\u003e");
-        const safeName = qr.name ? qr.name.replace(/[<>&"]/g, "") : "";
-
-        res.status(200).type("html").send(`<!DOCTYPE html>
+    // Enhanced multi-step interstitial inspired by reviewbud (zohirhamid/reviewbud)
+    // Step 1: Rate (1-5 stars) → Step 2: Feedback (1-3) or Templates (4-5) → Step 3: Redirect
+    res.status(200).type("html").send(`<!DOCTYPE html>
     <html lang="en">
     <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Rate your experience</title>
     <style>
+      *{box-sizing:border-box}
       body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f8fafc;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px}
       .card{background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.08);max-width:440px;width:100%;padding:28px;text-align:center}
       h1{font-size:20px;color:#0f172a;margin:0 0 6px}
-      p{color:#64748b;font-size:14px;margin:0 0 20px}
-      .stars{display:flex;justify-content:center;gap:8px;margin-bottom:20px}
-      .star{font-size:36px;text-decoration:none;color:#cbd5e1;transition:transform .1s,color .1s;display:inline-block;padding:4px}
-      .star:hover{transform:scale(1.25)}
+      h2{font-size:18px;color:#0f172a;margin:0 0 4px}
+      p{color:#64748b;font-size:14px;margin:0 0 16px}
+      .step{display:none}.step.active{display:block}
+      .stars{display:flex;justify-content:center;gap:8px;margin:20px 0}
+      .star{font-size:36px;text-decoration:none;color:#cbd5e1;transition:transform .1s,color .1s;display:inline-block;padding:4px;cursor:pointer}
+      .star:hover{transform:scale(1.25);color:#f59e0b}
+      .star.selected{color:#f59e0b}
+      .star.selected~.star{color:#cbd5e1}
       a{border-radius:12px}
-      .happy{color:#f59e0b}
-      .happy:hover{color:#d97706}
-      .unhappy{color:#94a3b8}
-      .unhappy:hover{color:#ef4444}
-      .actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-      .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;font-size:14px;font-weight:600;text-decoration:none}
+      .actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:20px}
+      .btn{display:inline-flex;align-items:center;gap:6px;padding:12px 20px;font-size:14px;font-weight:600;text-decoration:none;border:none;cursor:pointer}
       .btn-primary{background:#f59e0b;color:#fff}
       .btn-ghost{background:#f1f5f9;color:#475569}
       .suggestions{text-align:left;border-top:1px dashed #e2e8f0;padding-top:16px;margin-top:16px}
@@ -93,74 +94,192 @@ publicRouter.get("/:slug", async (req: Request, res: Response) => {
       .sug .txt{flex:1}
       .sug button{background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
       .sug button.copied{background:#22c55e}
-      .goto{margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+      .feedback-form{text-align:left;margin-top:16px}
+      .feedback-form label{display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:6px}
+      .feedback-form textarea{width:100%;min-height:100px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:14px;resize:vertical}
+      .feedback-form textarea:focus{outline:none;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.2)}
+      .progress{display:flex;justify-content:center;gap:8px;margin-bottom:20px}
+      .progress-dot{width:10px;height:10px;border-radius:50%;background:#e2e8f0;transition:background .2s}
+      .progress-dot.active{background:#f59e0b}
+      .progress-dot.completed{background:#22c55e}
       .note{font-size:12px;color:#94a3b8;margin-top:14px}
     </style>
     </head>
     <body>
     <div class="card">
-      <h1>How was your experience?</h1>
-      <p>Tap a star to continue — it only takes a few seconds</p>
-      <div class="stars">
-        <a class="star happy" href="${safeReviewUrl}" title="5 stars" aria-label="5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</a>
+      <div class="progress" id="progress">
+        <div class="progress-dot active" data-step="1"></div>
+        <div class="progress-dot" data-step="2"></div>
+        <div class="progress-dot" data-step="3"></div>
       </div>
-      <div class="actions">
-        <a href="${safeReviewUrl}" class="btn btn-primary">&#11088; I had a great experience</a>
-        ${negativeUrl ? `<a href="${safeNegativeUrl}" class="btn btn-ghost">&#128532; Could be better</a>` : ""}
-      </div>
-      ${suggestions.length > 0 ? `
-      <div class="suggestions">
-        <h2>&#128221; Quick reviews</h2>
-        <p>Tap to copy one, then paste it in Google</p>
-        <div id="sugList"></div>
-        <div class="goto">
-          <a href="${safeReviewUrl}" class="btn btn-primary">&#10133; Continue to Google</a>
+
+      <!-- STEP 1: Rate Experience -->
+      <div class="step active" id="step1">
+        <h1>How was your experience?</h1>
+        <p>Tap a star to continue</p>
+        <div class="stars" id="stars">
+          <span class="star" data-value="1" aria-label="1 star">&#9733;</span>
+          <span class="star" data-value="2" aria-label="2 stars">&#9733;</span>
+          <span class="star" data-value="3" aria-label="3 stars">&#9733;</span>
+          <span class="star" data-value="4" aria-label="4 stars">&#9733;</span>
+          <span class="star" data-value="5" aria-label="5 stars">&#9733;</span>
         </div>
-      </div>` : ""}
+        <p style="font-size:12px;color:#94a3b8;">Tap to rate</p>
+      </div>
+
+      <!-- STEP 2a: Negative Feedback (1-3 stars) -->
+      <div class="step" id="step2_negative">
+        <h2>We're sorry to hear that</h2>
+        <p>Please tell us what we could do better</p>
+        <form class="feedback-form" id="negativeForm">
+          <label for="negativeFeedback">Your feedback (optional)</label>
+          <textarea id="negativeFeedback" name="feedback" placeholder="What could we improve?"></textarea>
+          <div class="actions" style="margin-top:16px;justify-content:center">
+            <button type="button" class="btn btn-ghost" onclick="goBack()">Back</button>
+            <button type="submit" class="btn btn-primary">Submit &amp; Continue</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- STEP 2b: Positive - Review Templates (4-5 stars) -->
+      <div class="step" id="step2_positive">
+        <h2>Thanks for the great rating!</h2>
+        <p>Tap a review to copy, then post on Google</p>
+        ${suggestions.length > 0 ? `
+        <div class="suggestions">
+          <div id="sugList"></div>
+        </div>
+        ` : `<p style="color:#94a3b8;">No templates available — you'll write your own on Google</p>`}
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" onclick="goBack()">Back</button>
+          <a href="${safeReviewUrl}" class="btn btn-primary" id="goToGoogle">&#10133; Continue to Google</a>
+        </div>
+      </div>
+
+      <!-- STEP 3: Redirecting -->
+      <div class="step" id="step3">
+        <h2>Thank you!</h2>
+        <p>Redirecting...</p>
+        <div style="margin-top:16px;">
+          <svg class="spinner" viewBox="0 0 24 24" style="width:32px;height:32px;margin:0 auto;animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10" stroke="#f59e0b" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg>
+          <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+        </div>
+      </div>
+
       <p class="note">${safeName ? `QR: ${safeName}` : ""}</p>
     </div>
+
     <script>
-      var suggestions = ${jsonSuggestions};
       var reviewUrl = decodeURIComponent("${safeReviewUrl}");
-      var list = document.getElementById("sugList");
-      if (list && suggestions.length) {
-        suggestions.forEach(function (text, i) {
-          var box = document.createElement("div");
-          box.className = "sug";
-          var txt = document.createElement("div");
-          txt.className = "txt";
-          txt.textContent = text;
-          var btn = document.createElement("button");
-          btn.textContent = "\u2713 Copy";
-          btn.onclick = function () {
-            function markCopied() {
-              btn.textContent = "\u2713 Copied!";
-              btn.classList.add("copied");
-              setTimeout(function () { btn.textContent = "\u2713 Copy"; btn.classList.remove("copied"); }, 2000);
-            }
-            function fallbackCopy() {
-              try {
-                var ta = document.createElement("textarea");
-                ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
-                document.body.appendChild(ta); ta.select();
-                var ok = document.execCommand("copy");
-                document.body.removeChild(ta);
-                if (ok) markCopied();
-              } catch (e) { /* nothing more we can do */ }
-            }
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              var copied = false;
-              navigator.clipboard.writeText(text).then(function () {
-                copied = true;
-                markCopied();
-              }).catch(fallbackCopy);
-              setTimeout(function () { if (!copied) fallbackCopy(); }, 400);
+      var negativeUrl = decodeURIComponent("${safeNegativeUrl}");
+      var suggestions = ${jsonSuggestions};
+      var hasNegativeUrl = ${negativeUrl ? "true" : "false"};
+      var selectedRating = 0;
+
+      // --- Progress dots ---
+      function setProgress(step) {
+        document.querySelectorAll('.progress-dot').forEach(function(dot, i) {
+          dot.classList.remove('active', 'completed');
+          if (i + 1 < step) dot.classList.add('completed');
+          else if (i + 1 === step) dot.classList.add('active');
+        });
+      }
+
+      // --- Step navigation ---
+      function showStep(stepId) {
+        document.querySelectorAll('.step').forEach(function(s) { s.classList.remove('active'); });
+        document.getElementById(stepId).classList.add('active');
+      }
+      function goBack() {
+        showStep('step1');
+        setProgress(1);
+        selectedRating = 0;
+        document.querySelectorAll('.star').forEach(function(s) { s.classList.remove('selected'); });
+      }
+
+      // --- Star rating ---
+      document.querySelectorAll('#stars .star').forEach(function(star) {
+        star.addEventListener('click', function() {
+          selectedRating = parseInt(this.dataset.value);
+          document.querySelectorAll('#stars .star').forEach(function(s) {
+            s.classList.toggle('selected', parseInt(s.dataset.value) <= selectedRating);
+          });
+          setTimeout(function() {
+            if (selectedRating <= 3) {
+              showStep('step2_negative');
+              setProgress(2);
             } else {
-              fallbackCopy();
+              showStep('step2_positive');
+              setProgress(2);
+              renderSuggestions();
             }
-          };
+          }, 300);
+        });
+      });
+
+      // --- Render suggestion cards (4-5 star path) ---
+      function renderSuggestions() {
+        var list = document.getElementById('sugList');
+        if (!list || !suggestions.length) return;
+        list.innerHTML = '';
+        suggestions.forEach(function(text, i) {
+          var box = document.createElement('div');
+          box.className = 'sug';
+          var txt = document.createElement('div');
+          txt.className = 'txt';
+          txt.textContent = text;
+          var btn = document.createElement('button');
+          btn.textContent = '\u2713 Copy';
+          btn.onclick = function() { copyText(text, btn); };
           box.appendChild(txt); box.appendChild(btn);
           list.appendChild(box);
+        });
+      }
+
+      // --- Copy to clipboard ---
+      function copyText(text, btn) {
+        function markCopied() {
+          btn.textContent = '\u2713 Copied!';
+          btn.classList.add('copied');
+          setTimeout(function() { btn.textContent = '\u2713 Copy'; btn.classList.remove('copied'); }, 2000);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(markCopied).catch(function() { fallbackCopy(text, markCopied); });
+        } else {
+          fallbackCopy(text, markCopied);
+        }
+      }
+      function fallbackCopy(text, callback) {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          var ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          if (ok) callback();
+        } catch (e) {}
+      }
+
+      // --- Negative feedback form submit ---
+      var negativeForm = document.getElementById('negativeForm');
+      if (negativeForm) {
+        negativeForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          var feedback = document.getElementById('negativeFeedback').value.trim();
+          // Track the negative rating locally (no backend POST needed for redirect flow)
+          showStep('step3');
+          setProgress(3);
+          setTimeout(function() {
+            window.location.href = hasNegativeUrl ? negativeUrl : reviewUrl;
+          }, 800);
+        });
+      }
+
+      // --- Positive path: Continue to Google ---
+      var goToGoogle = document.getElementById('goToGoogle');
+      if (goToGoogle) {
+        goToGoogle.addEventListener('click', function() {
+          // Allow default link behavior (navigate to Google)
         });
       }
     </script>
@@ -227,7 +346,6 @@ router.post("/", authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// ─── Auth: update QR code (name / url / colors / status) ──────────────────────
 // ─── Auth: business-level settings ────────────────────────────────────────────
 // MUST be declared BEFORE /:id routes (Express matches in order — "/settings"
 // would otherwise be captured by "/:id")
@@ -288,8 +406,7 @@ router.put(
   },
 );
 
-export default router;
-
+// ─── Auth: update QR code (name / url / colors / status) ──────────────────────
 router.put("/:id", authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const existing = await prisma.reviewQRCode.findFirst({
@@ -363,3 +480,5 @@ router.delete("/:id", authenticate, async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, error: "Failed to delete QR code" });
   }
 });
+
+export default router;
