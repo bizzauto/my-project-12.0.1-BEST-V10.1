@@ -39,7 +39,7 @@ publicRouter.get("/:slug", async (req: Request, res: Response) => {
         url: "https://g.page/bizzauto/review",
         name: "Review",
         suggestedReviews: [],
-        business: { reviewQrNegativeRedirectUrl: null },
+        business: { reviewQrNegativeRedirectUrl: "https://bizzautoai.com/feedback?rating=low" },
       } as any;
     }
 
