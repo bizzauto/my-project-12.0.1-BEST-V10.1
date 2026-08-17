@@ -25,20 +25,31 @@ export const publicRouter = Router();
 
 publicRouter.get("/:slug", async (req: Request, res: Response) => {
   try {
-    const qr = await prisma.reviewQRCode.findUnique({
+    let qr = await prisma.reviewQRCode.findUnique({
       where: { slug: req.params.slug },
       include: { business: { select: { reviewQrNegativeRedirectUrl: true } } },
     });
 
     if (!qr || qr.status !== "active") {
-      return res.status(404).send("Review link not found.");
+      // Graceful fallback: unknown/expired slug still shows the rating gate
+      // with the default Google review URL — printed QRs never die.
+      console.warn(`[ReviewQR] slug not found/inactive: ${req.params.slug}`);
+      qr = {
+        id: "fallback",
+        url: "https://g.page/bizzauto/review",
+        name: "Review",
+        suggestedReviews: [],
+        business: { reviewQrNegativeRedirectUrl: null },
+      } as any;
     }
 
-    // Increment scan counter (fire-and-forget)
-    await prisma.reviewQRCode.update({
-      where: { id: qr.id },
-      data: { scans: { increment: 1 } },
-    });
+    // Increment scan counter (only for real DB-backed QRs)
+    if (qr.id !== "fallback") {
+      await prisma.reviewQRCode.update({
+        where: { id: qr.id },
+        data: { scans: { increment: 1 } },
+      });
+    }
 
     const negativeUrl = qr.business.reviewQrNegativeRedirectUrl;
     const reviewUrl = qr.url;
