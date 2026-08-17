@@ -186,6 +186,7 @@ model Business {
   reviewRequests              ReviewRequest[]
   reviewRequestCampaigns      ReviewRequestCampaign[]
   reviewQrCodes               ReviewQRCode[]
+  negativeFeedbacks           NegativeFeedback[]
   smsCampaigns                SMSCampaign[]
   smsMessages                 SMSMessage[]
   scheduledMessages           ScheduledMessage[]
@@ -2122,6 +2123,23 @@ model ReviewRequestCampaign {
   business        Business @relation(fields: [businessId], references: [id])
 
   @@index([businessId])
+}
+
+// Internal record of NEGATIVE reviews captured via QR scan gate.
+// These are deliberately NEVER posted to Google — the QR flow intercepts
+// 1-3 star ratings and routes them here (or to the business's internal
+// feedback form) so they never reach the public GBP review page.
+model NegativeFeedback {
+  id         String   @id @default(cuid())
+  businessId String
+  qrSlug     String?
+  rating     Int
+  feedback   String?
+  createdAt  DateTime @default(now())
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId])
+  @@index([createdAt])
 }
 
 model ReviewQRCode {

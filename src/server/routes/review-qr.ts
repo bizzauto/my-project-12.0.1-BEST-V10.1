@@ -281,13 +281,40 @@ publicRouter.get("/:slug", async (req: Request, res: Response) => {
         negativeForm.addEventListener('submit', function(e) {
           e.preventDefault();
           var feedback = document.getElementById('negativeFeedback').value.trim();
-          // Track the negative rating locally (no backend POST needed for redirect flow)
+          // NEGATIVE reviews (1-3 stars) MUST NEVER reach Google.
+          // Persist the feedback server-side (internal record only) and only
+          // redirect to the business's internal feedback form (negativeUrl).
+          // If no negativeUrl is configured, we intentionally stay on the
+          // thank-you screen and do NOT fall back to the Google review URL —
+          // that would leak a negative review publicly.
+          persistNegativeFeedback(selectedRating, feedback);
           showStep('step3');
           setProgress(3);
           setTimeout(function() {
-            window.location.href = hasNegativeUrl ? negativeUrl : reviewUrl;
+            if (hasNegativeUrl) {
+              window.location.href = negativeUrl;
+            }
+            // else: keep the user on the thank-you screen. Negative feedback
+            // is deliberately kept off Google.
           }, 800);
         });
+      }
+
+      // Best-effort persist of negative feedback to the server. Never blocks
+      // the redirect. This keeps an internal record (DB) without ever posting
+      // to Google.
+      function persistNegativeFeedback(rating, feedback) {
+        try {
+          var payload = { rating: rating, feedback: feedback, slug: "${qr.slug}" };
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon('/api/review-qr/feedback', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+          } else {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/review-qr/feedback', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify(payload));
+          }
+        } catch (e) { /* non-fatal */ }
       }
 
       // --- Positive path: Continue to Google ---
@@ -497,3 +524,42 @@ router.delete("/:id", authenticate, async (req: AuthRequest, res: Response) => {
 });
 
 export default router;
+
+// ─── Public: persist negative feedback (NEVER posted to Google) ────────────────
+// Called via sendBeacon from the QR interstitial when a 1-3 star rating is
+// submitted. Stores the feedback internally so the business can follow up,
+// but it is NEVER forwarded to Google Business Profile.
+publicRouter.post("/feedback", async (req: Request, res: Response) => {
+  try {
+    const { rating, feedback, slug } = req.body || {};
+    const r = parseInt(rating, 10);
+    if (!r || r < 1 || r > 3) {
+      // Only persist genuine negative feedback. Anything else is ignored.
+      return res.status(204).end();
+    }
+    // Resolve businessId from the QR slug (public endpoint — no auth).
+    let businessId: string | undefined;
+    if (slug) {
+      const qr = await prisma.reviewQRCode.findUnique({
+        where: { slug },
+        select: { businessId: true },
+      });
+      businessId = qr?.businessId;
+    }
+    if (!businessId) {
+      return res.status(204).end();
+    }
+    await prisma.negativeFeedback.create({
+      data: {
+        businessId,
+        qrSlug: slug || null,
+        rating: r,
+        feedback: feedback ? String(feedback).slice(0, 5000) : null,
+      },
+    });
+    res.status(204).end();
+  } catch (error: any) {
+    console.error("[ReviewQR] negative feedback persist error:", error.message);
+    res.status(204).end();
+  }
+});
