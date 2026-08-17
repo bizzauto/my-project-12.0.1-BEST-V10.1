@@ -66,7 +66,11 @@ publicRouter.get("/:slug", async (req: Request, res: Response) => {
     }
 
     const safeReviewUrl = encodeURIComponent(reviewUrl);
-    const safeNegativeUrl = encodeURIComponent(negativeUrl || "");
+        const safeNegativeUrl = encodeURIComponent(negativeUrl || "");
+        // HTML-escaped raw URL for href attributes — encodeURIComponent values are
+        // NOT safe for href= (browser treats them as relative URLs → loops back to /r/<slug>).
+        const htmlReviewUrl = reviewUrl.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const htmlNegativeUrl = (negativeUrl || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const jsonSuggestions = JSON.stringify(suggestions)
       .replace(/</g, "\\u003c")
       .replace(/>/g, "\\u003e");
@@ -163,7 +167,7 @@ publicRouter.get("/:slug", async (req: Request, res: Response) => {
         ` : `<p style="color:#94a3b8;">No templates available — you'll write your own on Google</p>`}
         <div class="actions">
           <button type="button" class="btn btn-ghost" onclick="goBack()">Back</button>
-          <a href="${safeReviewUrl}" class="btn btn-primary" id="goToGoogle" target="_blank" rel="noopener">&#10133; Continue to Google</a>
+          <a href="${htmlReviewUrl}" class="btn btn-primary" id="goToGoogle" target="_blank" rel="noopener">&#10133; Continue to Google</a>
         </div>
       </div>
 
