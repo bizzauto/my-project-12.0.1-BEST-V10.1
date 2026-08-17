@@ -163,7 +163,7 @@ publicRouter.get("/:slug", async (req: Request, res: Response) => {
         ` : `<p style="color:#94a3b8;">No templates available — you'll write your own on Google</p>`}
         <div class="actions">
           <button type="button" class="btn btn-ghost" onclick="goBack()">Back</button>
-          <a href="${safeReviewUrl}" class="btn btn-primary" id="goToGoogle">&#10133; Continue to Google</a>
+          <a href="${safeReviewUrl}" class="btn btn-primary" id="goToGoogle" target="_blank" rel="noopener">&#10133; Continue to Google</a>
         </div>
       </div>
 
