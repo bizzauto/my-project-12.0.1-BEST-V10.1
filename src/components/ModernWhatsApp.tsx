@@ -9,15 +9,91 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../lib/authStore';
+import { evolutionAPI } from '../lib/api';
+import WhatsAppConnectModal from './WhatsAppConnectModal';
+import type { EvolutionStatus } from './WhatsAppConnectModal';
 import AnimatedCounter from './AnimatedCounter';
 
 type Tab = 'broadcast' | 'inbox' | 'templates' | 'campaigns' | 'settings' | 'analytics';
 
-const ModernWhatsApp: React.FC = () => {
+interface ModernWhatsAppProps {
+  /** True when this business has a prior Evolution integration; triggers auto re-pair. */
+  everConnected?: boolean;
+}
+
+const ModernWhatsApp: React.FC<ModernWhatsAppProps> = ({ everConnected: everConnectedProp = false }) => {
   const navigate = useNavigate();
   const { user, isDemoMode } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('broadcast');
   const [message, setMessage] = useState('');
+
+  // Live Evolution WhatsApp connection state
+  const [evoStatus, setEvoStatus] = useState<EvolutionStatus['status']>('disconnected');
+  const [evoInfo, setEvoInfo] = useState<EvolutionStatus | null>(null);
+  const [evoLoading, setEvoLoading] = useState(true);
+  const [connectOpen, setConnectOpen] = useState(false);
+  // Tracks whether this business has ever connected via Evolution before
+  // (persisted so mobile auto-reconnect works across app launches).
+  const [everConnected, setEverConnected] = useState<boolean>(() => {
+    try {
+      return everConnectedProp || localStorage.getItem('evo_ever_connected') === '1';
+    } catch {
+      return everConnectedProp;
+    }
+  });
+
+  const refreshStatus = useCallback(async () => {
+    try {
+      const resp: any = await evolutionAPI.getStatus();
+      const data: EvolutionStatus = resp?.data?.data || resp?.data || {};
+      setEvoInfo(data);
+      setEvoStatus(data.status || 'disconnected');
+      if (data.status === 'connected' || data.status === 'scanning') {
+        setEverConnected(true);
+        try { localStorage.setItem('evo_ever_connected', '1'); } catch {}
+      }
+      return data;
+    } catch {
+      setEvoStatus('disconnected');
+      return null;
+    } finally {
+      setEvoLoading(false);
+    }
+  }, []);
+
+  // App-launch auto-connect: check live status; if connected show it,
+  // if scanning or a prior integration exists, re-pair and show QR modal,
+  // otherwise show a "Connect WhatsApp" button.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const data = await refreshStatus();
+      if (cancelled) return;
+      if (data?.status === 'connected') {
+        // Already connected — live state shown above.
+      } else if (data?.status === 'scanning' || everConnected) {
+        // Auto re-pair: refresh the session and open the QR modal.
+        setConnectOpen(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshStatus, everConnected]);
+
+  const handleEvoConnected = useCallback(
+    async (info: EvolutionStatus) => {
+      setEvoInfo(info);
+      setEvoStatus('connected');
+      setEverConnected(true);
+      try { localStorage.setItem('evo_ever_connected', '1'); } catch {}
+      setConnectOpen(false);
+      // Re-fetch authoritative status.
+      await refreshStatus();
+    },
+    [refreshStatus]
+  );
+
 
   // Demo state for chat/inbox
   const [conversations, setConversations] = useState([
@@ -89,6 +165,23 @@ const ModernWhatsApp: React.FC = () => {
               <p className="text-base sm:text-xl font-black text-white"><AnimatedCounter value={523} /></p>
             </div>
           </div>
+
+          <div className="flex items-center gap-2 mt-3 sm:mt-0">
+            {evoLoading ? (
+              <span className="text-[11px] px-3 py-1.5 ai-glass rounded-full text-slate-300">Checking WhatsApp…</span>
+            ) : evoStatus === 'connected' ? (
+              <span className="text-[11px] px-3 py-1.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 flex items-center gap-1.5">
+                <CheckCircle2 size={12} /> Connected{evoInfo?.phone ? ` · ${evoInfo.phone}` : ''}
+              </span>
+            ) : (
+              <button
+                onClick={() => setConnectOpen(true)}
+                className="ai-btn-primary text-[11px] sm:text-xs px-3 py-1.5 flex items-center gap-1.5"
+              >
+                <Phone size={12} /> Connect WhatsApp
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -116,7 +209,14 @@ const ModernWhatsApp: React.FC = () => {
       {activeTab === 'templates' && <TemplatesView />}
       {activeTab === 'campaigns' && <CampaignsView />}
       {activeTab === 'analytics' && <AnalyticsView />}
-      {activeTab === 'settings' && <SettingsView />}
+      {activeTab === 'settings' && <SettingsView evoLoading={evoLoading} evoStatus={evoStatus} />}
+
+      <WhatsAppConnectModal
+        open={connectOpen}
+        everConnected={everConnected}
+        onClose={() => setConnectOpen(false)}
+        onConnected={handleEvoConnected}
+      />
     </div>
   );
 };
@@ -509,11 +609,16 @@ const AnalyticsView: React.FC = () => {
 };
 
 // SETTINGS TAB
-const SettingsView: React.FC = () => {
+interface SettingsViewProps {
+  evoLoading: boolean;
+  evoStatus: EvolutionStatus['status'];
+}
+
+const SettingsView: React.FC<SettingsViewProps> = ({ evoLoading, evoStatus }) => {
   return (
     <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
       {[
-        { title: 'WhatsApp API', desc: 'Connect Meta Cloud API or Evolution', icon: <Phone size={18} />, gradient: 'from-emerald-500 to-teal-500', status: 'Connected' },
+        { title: 'WhatsApp API', desc: 'Connect Meta Cloud API or Evolution', icon: <Phone size={18} />, gradient: 'from-emerald-500 to-teal-500', status: evoLoading ? 'Checking…' : evoStatus === 'connected' ? 'Connected' : evoStatus === 'scanning' ? 'Scanning' : 'Disconnected' },
         { title: 'AI Provider', desc: 'Claude AI for smart messaging', icon: <Brain size={18} />, gradient: 'from-violet-500 to-fuchsia-500', status: 'Active' },
         { title: 'SMS Fallback', desc: 'Auto-send SMS if WhatsApp fails', icon: <MessageSquare size={18} />, gradient: 'from-amber-500 to-orange-500', status: 'Ready' },
         { title: 'Anti-Block Drip', desc: 'Human-like sending patterns', icon: <Shield size={18} />, gradient: 'from-cyan-500 to-blue-500', status: 'Enabled' },
