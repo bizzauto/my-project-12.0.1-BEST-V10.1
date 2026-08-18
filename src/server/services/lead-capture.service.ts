@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { prisma } from '../db.js';
-import { WhatsAppService } from './whatsapp.service.js';
 import { WhatsAppRateLimiter } from './whatsapp-rate-limiter.service.js';
 import { HotLeadProcessor } from './hot-lead-processor.service.js';
 import { EmailService } from './email.service.js';
@@ -62,7 +61,7 @@ export class LeadCaptureService {
       },
     });
 
-    // Send auto-reply via WhatsApp
+    // Send auto-reply via WhatsApp (routed: Meta or Evolution)
     try {
       const business = await prisma.business.findUnique({
         where: { id: businessId },
@@ -73,7 +72,8 @@ export class LeadCaptureService {
         `Hi ${leadData.name}! 👋\n\nThank you for your inquiry about ${leadData.product || 'our products'} on IndiaMART.\n\nWe've received your requirement and our team will get back to you shortly.\n\nFor immediate assistance, please call us at ${business?.phone || 'our office'}.\n\nBest regards,\n${business?.name || 'Our Team'}`;
 
 
-      await WhatsAppService.sendTextMessage(businessId, leadData.phone, welcomeMessage, {
+      const { WhatsAppSendRouter } = await import('./whatsapp-send-router.service.js');
+      await WhatsAppSendRouter.sendText(businessId, leadData.phone, welcomeMessage, {
         messageId: contact.id,
       });
     } catch (error: any) {
@@ -175,7 +175,8 @@ export class LeadCaptureService {
       const welcomeMessage = business?.autoReplyMessage ||
         `Hi ${leadData.name}! 👋\n\nThank you for finding us on JustDial.\n\nWe've received your query about ${leadData.service || 'our services'} and will contact you soon.\n\nBest regards,\n${business?.name || 'Our Team'}`;
 
-      await WhatsAppService.sendTextMessage(businessId, leadData.phone, welcomeMessage, {
+      const { WhatsAppSendRouter } = await import('./whatsapp-send-router.service.js');
+      await WhatsAppSendRouter.sendText(businessId, leadData.phone, welcomeMessage, {
         messageId: contact.id,
       });
     } catch (error: any) {
@@ -246,7 +247,8 @@ export class LeadCaptureService {
         const welcomeMessage = business?.autoReplyMessage ||
           `Hi ${leadData.name}! 👋\n\nThanks for your interest! We received your inquiry from our Facebook ad.\n\nOur team will contact you shortly.\n\nBest regards,\n${business?.name || 'Our Team'}`;
 
-        await WhatsAppService.sendTextMessage(businessId, leadData.phone, welcomeMessage, {
+        const { WhatsAppSendRouter } = await import('./whatsapp-send-router.service.js');
+        await WhatsAppSendRouter.sendText(businessId, leadData.phone, welcomeMessage, {
           messageId: contact.id,
         });
       } catch (error: any) {
@@ -316,7 +318,8 @@ export class LeadCaptureService {
         const welcomeMessage = business?.autoReplyMessage ||
           `Hi ${leadData.name}! 👋\n\nThanks for your interest from our Instagram ad!\n\nWe'll get back to you soon.\n\nBest regards,\n${business?.name || 'Our Team'}`;
 
-        await WhatsAppService.sendTextMessage(businessId, leadData.phone, welcomeMessage, {
+        const { WhatsAppSendRouter } = await import('./whatsapp-send-router.service.js');
+        await WhatsAppSendRouter.sendText(businessId, leadData.phone, welcomeMessage, {
           messageId: contact.id,
         });
       } catch (error: any) {
