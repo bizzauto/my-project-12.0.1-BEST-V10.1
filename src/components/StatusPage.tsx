@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, AlertTriangle, XCircle, Clock, RefreshCw } from 'lucide-react';
+import { statusAPI } from '../lib/api';
 
 interface ServiceStatus {
   name: string;
@@ -30,22 +31,28 @@ const StatusPage: React.FC = () => {
   const [lastChecked, setLastChecked] = useState(new Date());
   const [loading, setLoading] = useState(false);
 
+  // Map real backend health booleans onto the static service list.
+  const applyHealth = (health: { whatsapp: boolean; n8n: boolean; ai: boolean; db: boolean }) => {
+    setServices(prev => prev.map(s => {
+      let ok: boolean | null = null;
+      if (s.name === 'WhatsApp Integration') ok = health.whatsapp;
+      else if (s.name === 'AI Services') ok = health.ai;
+      else if (s.name === 'Database') ok = health.db;
+      else if (s.name === 'Webhooks' || s.name === 'Email Service') ok = health.n8n;
+      if (ok === null) return s;
+      return { ...s, status: (ok ? 'operational' : 'outage') as ServiceStatus['status'] };
+    }));
+  };
+
   const checkStatus = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/health');
-      if (res.ok) {
-        setServices(prev => prev.map(s => ({
-          ...s,
-          status: 'operational' as const,
-          responseTime: Math.floor(Math.random() * 100) + 20,
-        })));
+      const res = await statusAPI.getHealth();
+      if (res.data?.success && res.data?.data) {
+        applyHealth(res.data.data);
       }
     } catch {
-      setServices(prev => prev.map(s => ({
-        ...s,
-        status: 'outage' as const,
-      })));
+      // leave prior statuses on network failure
     } finally {
       setLastChecked(new Date());
       setLoading(false);

@@ -52,6 +52,30 @@ router.put('/', authenticate, async (req: any, res: any) => {
   }
 });
 
+// Persist onboarding progress (Phase E.1) — not sensitive, no encryption needed
+router.put('/onboarding', authenticate, async (req: any, res: any) => {
+  try {
+    const { onboardingCompleted, onboardingStep } = req.body;
+    const updateData: any = {};
+    if (typeof onboardingCompleted === 'boolean') updateData.onboardingCompleted = onboardingCompleted;
+    if (typeof onboardingStep === 'number') updateData.onboardingStep = onboardingStep;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ success: false, error: 'No onboarding fields provided' });
+    }
+
+    const business = await prisma.business.update({
+      where: { id: req.user.businessId },
+      data: updateData,
+    });
+
+    res.json({ success: true, data: { onboardingCompleted: business.onboardingCompleted, onboardingStep: business.onboardingStep } });
+  } catch (error: any) {
+    console.error('[Business] Onboarding update error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to update onboarding' });
+  }
+});
+
 // Get business settings (alias for frontend compatibility)
 router.get('/settings', authenticate, async (req: any, res: any) => {
   try {

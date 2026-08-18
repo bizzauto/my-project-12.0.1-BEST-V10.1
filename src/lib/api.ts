@@ -372,6 +372,11 @@ export const businessAPI = {
     apiClient.put('/business/onboarding', data),
 };
 
+// Status / Health API (Phase E.5)
+export const statusAPI = {
+  getHealth: () => apiClient.get('/status/health'),
+};
+
 // Subscriptions API
 export const subscriptionsAPI = {
   getCurrent: () => apiClient.get('/subscriptions/current'),

@@ -98,6 +98,7 @@ model Business {
   updatedAt                   DateTime                @updatedAt
   admissionCompleted          Boolean                 @default(false)
   onboardingCompleted         Boolean                 @default(false)
+  onboardingStep              Int                     @default(0)
   dograhApiKey                String?
   dograhApiUrl                String?
   dograhDefaultAgentId        Int?
