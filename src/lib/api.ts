@@ -219,6 +219,18 @@ export const whatsappAPI = {
   disconnect: () => apiClient.post('/whatsapp/disconnect'),
 };
 
+// Evolution WhatsApp API (mobile QR auto-connect)
+export const evolutionAPI = {
+  getConfig: () => apiClient.get('/evolution/config'),
+  saveConfig: (data: any) => apiClient.post('/evolution/config', data),
+  connect: (data?: any) => apiClient.post('/evolution/connect', data || {}),
+  getStatus: () => apiClient.get('/evolution/status'),
+  disconnect: () => apiClient.post('/evolution/disconnect'),
+  deleteInstance: () => apiClient.delete('/evolution/instance'),
+  sendText: (data: any) => apiClient.post('/evolution/send/text', data),
+  chats: () => apiClient.get('/evolution/chats'),
+};
+
 // Campaigns API
 export const campaignsAPI = {
   list: (params?: any) => apiClient.get('/campaigns', { params }),
