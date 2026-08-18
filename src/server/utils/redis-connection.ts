@@ -143,17 +143,20 @@ function connectToRedis(url: string, opts?: { bullMQ?: boolean }) {
   const client = new IORedis(url, {
     maxRetriesPerRequest: null,
     retryStrategy(times: number) {
-      // Allow 3 retries with exponential backoff before giving up
-      if (times > 3) {
-        console.log(`[Redis] ⛔ Connection failed after ${times} attempts — marking Redis as unreachable.`);
-        redisUnreachable = true;
-        return null;
-      }
+      // IMPORTANT: never return null here. Returning null permanently kills the
+      // client, and a dropped connection (Redis container restart, network blip)
+      // would then leave BullMQ workers dead in a crash loop with
+      // "Stream isn't writeable and enableOfflineQueue options is false".
+      // Keep retrying with exponential backoff instead — ioredis reconnects
+      // automatically and BullMQ resumes blocking pops once the stream is live.
       const delay = Math.min(times * 1000, 5000);
-      console.log(`[Redis] Retry attempt ${times + 1} in ${delay}ms...`);
+      console.log(`[Redis] Reconnect attempt ${times + 1} in ${delay}ms...`);
       return delay;
     },
-    enableOfflineQueue: false,
+    // MUST be true (BullMQ default) so commands issued during a reconnect gap
+    // are buffered and flushed on reconnect instead of throwing
+    // "Stream isn't writeable" and crashing the worker.
+    enableOfflineQueue: true,
     connectTimeout,
     commandTimeout: effectiveCommandTimeout,
     lazyConnect: true,
@@ -173,14 +176,13 @@ function connectToRedis(url: string, opts?: { bullMQ?: boolean }) {
 
   client.on('error', (err: any) => {
     if (handleNoAuth('error event')(err)) return;
-    if (err?.message?.includes('timed out')) {
-      console.error(`[Redis] ⏱ Command timed out after ${commandTimeout}ms. Redis marked UNREACHABLE — no further Redis activity. Error: ${err.message}`);
-      redisUnreachable = true;
-      redisDisabled = true;
-      try { client.quit(); } catch {}
-    } else {
-      console.error(`[Redis] Connection error: ${err.message}`);
-    }
+    // Transient errors (ECONNRESET, "Stream isn't writeable", broken pipe, etc.)
+    // are EXPECTED during a Redis restart/network blip. Do NOT mark Redis
+    // unreachable here — ioredis's retryStrategy (above) keeps reconnecting and
+    // the worker resumes automatically. Only genuine auth failures disable it
+    // (handled by handleNoAuth). A command timeout is normal for BullMQ
+    // blocking pops, so it is also just logged, not fatal.
+    console.error(`[Redis] Connection error (transient — retrying): ${err.message}`);
   });
 
   client.on('connect', () => {
@@ -201,22 +203,21 @@ function connectToRedis(url: string, opts?: { bullMQ?: boolean }) {
   client.on('reconnected', () => {
     console.log('[Redis] ✅ Reconnected successfully — queues are operational again');
     redisDisabled = false;
+    redisUnreachable = false;
   });
 
   client.on('close', () => {
-    console.log('[Redis] Connection closed');
+    // Connection closed (Redis restart, keepalive drop). This is transient —
+    // ioredis will reconnect automatically. Do NOT mark unreachable.
+    console.log('[Redis] Connection closed (will auto-reconnect via retryStrategy)');
   });
 
   client.connect().catch((err: any) => {
     if (handleNoAuth('on connect')(err)) return;
-    if (err?.message?.includes('timed out') || err?.message?.includes('ETIMEDOUT')) {
-      console.error(`[Redis] ⏱ Connection timed out after ${connectTimeout}ms. Redis marked UNREACHABLE — no further Redis activity. Check that Redis is running and reachable. Set REDIS_ENABLED=false in env vars to fully disable. Error: ${err.message}`);
-      redisUnreachable = true;
-    } else {
-      console.error(`[Redis] Connect failed: ${err.message}`);
-    }
-    redisDisabled = true;
-    try { client.quit(); } catch {}
+    // Transient connect failure (Redis not up yet, DNS, blip). Do NOT quit the
+    // client or mark it disabled — ioredis will keep retrying via retryStrategy
+    // and the 'ready'/'reconnected' events will reset the flags on success.
+    console.error(`[Redis] Initial connect failed (will retry automatically): ${err.message}`);
   });
 
   return client;
