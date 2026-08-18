@@ -357,13 +357,19 @@ export async function validateWebhook(
       select: { leadWebhookSecret: true },
     });
 
-    if (!business || !business.leadWebhookSecret) {
+    // A global secret may be configured via env (e.g. a single shared secret
+    // for IndiaMART). This is an extra accepted secret, not a replacement for
+    // the per-business secret.
+    const globalSecret = process.env.LEAD_WEBHOOK_SECRET;
+
+    const storedSecret = business?.leadWebhookSecret || globalSecret;
+    if (!storedSecret) {
       res.status(401).json({ success: false, error: 'Webhook not configured for this business. Generate a webhook secret in Settings > Integrations.' });
       return;
     }
 
     // Constant-time comparison to prevent timing attacks
-    const expected = Buffer.from(business.leadWebhookSecret);
+    const expected = Buffer.from(storedSecret);
     const received = Buffer.from(webhookSecret);
     if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
       res.status(403).json({ success: false, error: 'Invalid webhook secret' });

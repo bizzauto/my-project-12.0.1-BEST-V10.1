@@ -47,16 +47,43 @@ router.post('/indiamart/:businessId', leadCaptureLimiter, validateWebhook, async
       });
     }
 
-    const contact = await LeadCaptureService.captureIndiaMARTLead(businessId, {
-      name: leadData.name || '',
-      phone: leadData.phone || '',
-      email: leadData.email,
-      company: leadData.company,
-      product: leadData.product || leadData.service,
-      requirement: leadData.requirement || leadData.message,
-      city: leadData.city,
-      state: leadData.state,
-    });
+    // Idempotency: IndiaMART resends lead notifications. Use a stable key
+    // derived from the source message so a duplicate webhook delivery never
+    // creates a second Contact. Falls back to phone+email if no id is present.
+    const idempotencyKey =
+      leadData.idempotencyKey ||
+      leadData.messageId ||
+      leadData.id ||
+      leadData.leadId ||
+      (leadData.phone || leadData.email
+        ? `${leadData.phone || ''}|${leadData.email || ''}`
+        : undefined);
+
+    const contact = await LeadCaptureService.captureIndiaMARTLead(
+      businessId,
+      {
+        name: leadData.name || '',
+        phone: leadData.phone || '',
+        email: leadData.email,
+        company: leadData.company,
+        product: leadData.product || leadData.service,
+        requirement: leadData.requirement || leadData.message,
+        city: leadData.city,
+        state: leadData.state,
+      },
+      idempotencyKey,
+    );
+
+    // captureIndiaMARTLead returns { duplicate: true } when the idempotency
+    // key was seen recently — surface it instead of pretending it's new.
+    if (contact && (contact as any).duplicate) {
+      return res.status(200).json({
+        success: true,
+        duplicate: true,
+        message: 'Lead already captured (duplicate webhook delivery ignored)',
+        data: contact,
+      });
+    }
 
     res.json({
       success: true,

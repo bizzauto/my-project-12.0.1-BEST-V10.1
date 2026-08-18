@@ -46,6 +46,17 @@ export const queues = redisAvailable ? {
   webhookRetry: webhookDeliveryQueue,
 } : {} as any;
 
+// ==================== INDIA MART AUTOSYNC POLLER ====================
+// Automatically pulls IndiaMART enquiry emails into the CRM so leads flow
+// without manual intervention. The poller logic lives in
+// services/indiamart-sync.service.ts (kept out of this heavy worker graph so
+// it is cheaply unit-testable); we re-export it here for the worker entry.
+export {
+  indiamartAutosyncTick,
+  startIndiaMARTAutosync,
+  getIndiaMARTAutosyncState,
+} from '../services/indiamart-sync.service.js';
+
 // Export shutdown for graceful worker teardown
 export function shutdownAllWorkers(): Promise<void> {
   const workers = [whatsappWorker, emailWorker, socialPublishWorker, googleSheetsSyncWorker, leadProcessingWorker, campaignSchedulerWorker, gbpAutoPostWorker, scheduledMessageWorker];

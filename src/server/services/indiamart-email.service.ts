@@ -21,23 +21,38 @@ export class IndiaMARTEmailService {
   } | null {
     const content = text || this.htmlToText(html);
 
-    // IndiaMART email patterns - multiple formats supported
+    // IndiaMART email patterns - multiple formats supported.
+    // NOTE: a previously-loose "Dear/Hi/Hello <Capitalized words>" name rule
+    // false-matched headings such as "New Requirement Details" / "Buyer
+    // Details". We now only accept EXPLICIT name labels ("Query from <name>",
+    // "Buyer Name:", "Name:") to avoid inventing a name from a heading.
+    // Phone numbers are written with optional separators between digits
+    // (IndiaMART formats like "+91 98201 23456" / "919824112398").
+    const SEP = '[\\s.-]?';
+    const MOBILE = `([6-9](?:${SEP}\\d){9})`; // 10 digits, separators optional
     const patterns = {
-      // Name patterns - various IndiaMART formats
-      name: /(?:Dear\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?|Query\s+from\s+(.+?)(?:\n|$)|Buyer\s+Name[:\s]*(.+?)(?:\n|$))/i,
-      // Phone patterns - multiple formats including +91, 0, spaces, dashes
-      phone: /(?:\+?91[\s.-]?)?([6-9]\d{9})/g,
+      // Name: only explicit labels (no loose greeting/heading capture)
+      name: /Query\s+from\s+([A-Za-z]+(?:\s+[A-Za-z]+){0,3})|Buyer\s+Name[:\s]*(.+?)(?:\n|$)|Name[:\s]*(.+?)(?:\n|$)/,
+      // Phone: optional +91 prefix, then a 10-digit Indian mobile (separators ok)
+      phone: new RegExp(`(?:\\+?91${SEP})?${MOBILE}`, 'g'),
       // Email pattern
       email: /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
       // Product pattern - multiple formats
       product: /(?:Requirement\s+for|Inquiry\s+for|Interested\s+in|Product|looking\s+for|Product\s+Name)[:\s]*(.+?)(?:\n|$)/i,
-      // Requirement/Message pattern
-      requirement: /(?:Requirement|Query|Details|Message|Description|Customer\s+Requirement)[:\s]*(.+?)(?:\n\n|$)/is,
-      // City/Location pattern
-      city: /(?:City|Location|From|Buyer\s+City)[:\s]*([A-Za-z\s]+?)(?:\n|$)/i,
+      // Requirement/Message pattern - stops at the next labelled field.
+      // Bare "Requirement:" (not "Requirement for"/"Requirement Details", which
+      // are product/known sub-labels) is treated as the requirement text.
+      requirement: new RegExp(`(?:Requirement\\s+Details?|Requirement(?!\\s+for)(?!\\s+Details)[:\\s]*|Message|Description|Customer\\s+Requirement)[:\\s]*([\\s\\S]*?)(?:\\n\\s*(?:City|Location|State|Country|Buyer|Sender|Email|Mobile|Phone|Product|Name)\\s*[:,\\n]|\\n\\n|$)`, 'is'),
+      // City/Location pattern - requires an explicit label followed by ':'
+      city: /(?:City|Location|From|Buyer\s+City)\s*[:]\s*([A-Za-z\s]+?)(?:\n|$)/i,
       // IndiaMART specific patterns
       indiamartBuyer: /Buyer\s+Details?:?\s*\n([\s\S]*?)(?:\n\n|Product)/i,
       indiamartProduct: /Product\s+Details?:?\s*\n([\s\S]*?)(?:\n\n|Buyer)/i,
+      // Common IndiaMART labelled templates
+      buyerMobile: new RegExp(`Buyer\\s+Mobile[:\\s]*(?:\\+?91${SEP})?${MOBILE}`, 'i'),
+      senderContact: new RegExp(`(?:Sender\\s+contact|Contact\\s+Number|Contact\\s+No)[:\\s]*(?:\\+?91${SEP})?${MOBILE}`, 'i'),
+      requirementDetails: /Requirement\s+Details?[:\s]*([\s\S]*?)(?:\n\n|\n(?:City|Location|State|Country|Buyer|Sender)|$)/i,
+      productName: /Product\s+Name[:\s]*(.+?)(?:\n|$)/i,
     };
 
     const result = {
@@ -49,23 +64,33 @@ export class IndiaMARTEmailService {
       city: '',
     };
 
-    // Extract name - try multiple patterns
+    // Extract name - try multiple patterns.
+    // Capture groups (in order): 1="Query from <name>", 2="Buyer Name:", 3="Name:".
     const nameMatch = content.match(patterns.name);
     if (nameMatch) {
       result.name = (nameMatch[1] || nameMatch[2] || nameMatch[3] || '').trim();
     }
 
-    // Extract phone (get first valid Indian mobile)
-    const phones = content.match(patterns.phone);
-    if (phones) {
-      // Clean and validate phone
-      for (const p of phones) {
+    // Extract phone (first valid 10-digit Indian mobile). Spaced/grouped
+    // numbers like "+91 98201 23456" are normalised by stripping separators.
+    const phoneMatches = content.match(patterns.phone) || [];
+    if (phoneMatches.length) {
+      for (const p of phoneMatches) {
         const cleanPhone = p.replace(/[\s.-]/g, '');
-        if (cleanPhone.length >= 10) {
+        if (/^[6-9]\d{9}$/.test(cleanPhone)) {
           result.phone = cleanPhone.slice(-10);
           break;
         }
       }
+    }
+    // Prefer explicit labelled phone fields if present (more reliable).
+    const buyerMobileMatch = content.match(patterns.buyerMobile);
+    if (buyerMobileMatch) {
+      result.phone = buyerMobileMatch[1].replace(/[\s.-]/g, '').slice(-10);
+    }
+    const senderContactMatch = content.match(patterns.senderContact);
+    if (senderContactMatch && !result.phone) {
+      result.phone = senderContactMatch[1].replace(/[\s.-]/g, '').slice(-10);
     }
 
     // Extract email
@@ -83,16 +108,24 @@ export class IndiaMARTEmailService {
       }
     }
 
-    // Extract product
+    // Extract product (generic label + explicit Product Name field)
     const productMatch = content.match(patterns.product);
     if (productMatch) {
       result.product = productMatch[1].trim().substring(0, 200);
     }
+    const productNameMatch = content.match(patterns.productName);
+    if (productNameMatch && !result.product) {
+      result.product = productNameMatch[1].trim().substring(0, 200);
+    }
 
-    // Extract requirement
+    // Extract requirement (generic + explicit Requirement Details field)
     const reqMatch = content.match(patterns.requirement);
     if (reqMatch) {
       result.requirement = reqMatch[1].trim().substring(0, 500);
+    }
+    const reqDetailsMatch = content.match(patterns.requirementDetails);
+    if (reqDetailsMatch && !result.requirement) {
+      result.requirement = reqDetailsMatch[1].trim().substring(0, 500);
     }
 
     // Extract city

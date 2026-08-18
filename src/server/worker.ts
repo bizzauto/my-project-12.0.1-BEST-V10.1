@@ -7,9 +7,12 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { workers, shutdownWorkers } from './workers/index.js';
+import { workers, shutdownWorkers, startIndiaMARTAutosync } from './workers/index.js';
 
 console.log('🚀 Starting background job workers...');
+
+// Auto-pull IndiaMART enquiry emails into the CRM (every 5 min, per-business throttled)
+startIndiaMARTAutosync();
 
 // Log worker status
 Object.keys(workers).forEach((workerName) => {
