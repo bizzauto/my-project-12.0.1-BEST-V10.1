@@ -61,6 +61,7 @@ await esbuild.build({
   format: 'esm',
   sourcemap: true,
   minify: false,
+  resolveExtensions: ['.ts', '.js', '.json'],
 });
 console.log('✅ Server built successfully');
 
@@ -76,5 +77,6 @@ await esbuild.build({
   format: 'esm',
   sourcemap: true,
   minify: false,
+  resolveExtensions: ['.ts', '.js', '.json'],
 });
 console.log('✅ Worker built successfully');
