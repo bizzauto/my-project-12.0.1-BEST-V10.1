@@ -154,6 +154,21 @@ const BillingPage: React.FC = () => {
     );
   }
 
+  // Phase E.2 — Billing usage warning banner when any resource exceeds 80% of limit
+  const overLimitItems = usage.filter((u: any) => u.limit > 0 && u.pct > 80);
+  const warningBanner = overLimitItems.length > 0 && (
+    <div className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-4 flex items-start gap-3">
+      <AlertCircle className="text-amber-600 mt-0.5 shrink-0" size={20} />
+      <div>
+        <p className="font-semibold text-amber-800 dark:text-amber-300">Usage limit warning</p>
+        <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
+          You've used over 80% of: {overLimitItems.map((u: any) => `${u.label} (${u.pct}%)`).join(', ')}.
+          Consider upgrading your plan to avoid service interruptions.
+        </p>
+      </div>
+    </div>
+  );
+
   // Toast
   const toastEl = toast && (
     <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white flex items-center gap-2 ${
@@ -179,6 +194,7 @@ const BillingPage: React.FC = () => {
   return (
     <div className="p-4 sm:p-5 md:p-6 lg:p-8">
       {toastEl}
+      {warningBanner}
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3"><CreditCard className="text-blue-600" size={32} />Billing & Subscription</h1>

@@ -54,7 +54,6 @@ import ecommerceRoutes from './routes/ecommerce.js';
 import emailRoutes from './routes/email.js';
 import evolutionRoutes from './routes/evolution.js';
 import googleBusinessRoutes from './routes/google-business.js';
-import healthRoutes from './routes/health.js';
 import indiamartEmailRoutes from './routes/indiamart-email.js';
 import integrationsRoutes from './routes/integrations.js';
 import intelligenceRoutes from './routes/intelligence.js';
