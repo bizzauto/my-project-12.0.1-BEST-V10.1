@@ -1,7 +1,6 @@
 import { prisma } from '../db.js';
 import { WhatsAppRateLimiter } from './whatsapp-rate-limiter.service.js';
-import { WhatsAppService } from './whatsapp.service.js';
-import { EvolutionApiService } from './evolution.service.js';
+import { WhatsAppSendRouter } from './whatsapp-send-router.service.js';
 
 /**
  * Hot Lead Auto-Processing Service
@@ -195,7 +194,7 @@ export class HotLeadProcessor {
         try {
           const canSend = await WhatsAppRateLimiter.canSend(businessId, member.phone);
           if (canSend.allowed) {
-            await WhatsAppService.sendTextMessage(businessId, member.phone, message);
+            await WhatsAppSendRouter.sendText(businessId, member.phone, message);
             WhatsAppRateLimiter.recordSend(businessId, member.phone);
           } else {
             // Queue for later

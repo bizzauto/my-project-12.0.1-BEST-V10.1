@@ -1,25 +1,15 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { prisma } from '../db.js';
-import { WhatsAppService } from '../services/whatsapp.service.js';
-import { EvolutionApiService } from '../services/evolution.service.js';
+import { WhatsAppSendRouter } from '../services/whatsapp-send-router.service.js';
 import { FollowUpEngineService } from '../services/followup-engine.service.js';
 import { createRedisConnection } from '../utils/redis-connection.js';
 
 /**
- * Smart send: detects which WhatsApp channel is configured and routes accordingly.
+ * Smart send: routes through the unified WhatsApp send router
+ * (prefers Meta if configured, falls back to Evolution).
  */
 async function smartSendText(businessId: string, to: string, message: string): Promise<any> {
-  const evoIntegration = await prisma.integration.findFirst({
-    where: { businessId, type: 'evolution_api', isActive: true },
-  });
-  if (evoIntegration) {
-    try {
-      return await EvolutionApiService.sendText(businessId, to, message);
-    } catch (e) {
-      console.warn('[Worker] Evolution API failed, falling back to Meta');
-    }
-  }
-  return await WhatsAppService.sendTextMessage(businessId, to, message);
+  return WhatsAppSendRouter.sendText(businessId, to, message);
 }
 
 const redisConnection = createRedisConnection({ bullMQ: true });

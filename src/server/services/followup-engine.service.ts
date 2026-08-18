@@ -1,19 +1,13 @@
 import { prisma } from '../db.js';
 import { AIService } from './ai.service.js';
-import { WhatsAppService } from './whatsapp.service.js';
-import { EvolutionApiService } from './evolution.service.js';
+import { WhatsAppSendRouter } from './whatsapp-send-router.service.js';
 
 /**
- * Smart send: detects which WhatsApp channel is configured and routes accordingly.
+ * Smart send: routes through the unified WhatsApp send router
+ * (prefers Meta if configured, falls back to Evolution).
  */
 async function smartSendText(businessId: string, to: string, message: string): Promise<any> {
-  const evoIntegration = await prisma.integration.findFirst({
-    where: { businessId, type: 'evolution_api', isActive: true },
-  });
-  if (evoIntegration) {
-    return await EvolutionApiService.sendText(businessId, to, message);
-  }
-  return await WhatsAppService.sendTextMessage(businessId, to, message);
+  return WhatsAppSendRouter.sendText(businessId, to, message);
 }
 
 interface FollowUpRule {
