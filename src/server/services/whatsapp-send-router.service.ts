@@ -122,7 +122,29 @@ export class WhatsAppSendRouter {
     const { channel } = await this.resolveChannel(businessId);
 
     if (channel === 'evolution') {
-      return EvolutionApiService.sendTemplate(businessId, to, templateData, {
+      // Evolution sendTemplate expects { text, footer?, buttons? }. If the caller
+      // passed a Meta-style templateData ({ templateName, variables, ... }) or a
+      // plain string, degrade gracefully to a text send so the message never
+      // silently fails.
+      const isButtonTemplate =
+        templateData && typeof templateData === 'object' && 'text' in templateData && 'buttons' in templateData;
+      if (isButtonTemplate) {
+        return EvolutionApiService.sendTemplate(businessId, to, templateData, {
+          delay: opts.delay,
+        });
+      }
+      const text =
+        typeof templateData === 'string'
+          ? templateData
+          : templateData?.text ||
+            templateData?.body ||
+            templateData?.templateName ||
+            templateData?.name ||
+            '';
+      if (!text) {
+        throw new Error('WhatsApp not configured: template has no text content');
+      }
+      return EvolutionApiService.sendText(businessId, to, text, {
         delay: opts.delay,
       });
     }
@@ -165,6 +187,35 @@ export class WhatsAppSendRouter {
         rateLimit: opts.rateLimit,
         useProxy: opts.useProxy,
         campaignId: opts.campaignId,
+      });
+    }
+
+    throw new Error('WhatsApp not configured for this business');
+  }
+
+  /**
+   * Send a media message (image/video/document/audio), routed to the resolved channel.
+   */
+  static async sendMedia(
+    businessId: string,
+    to: string,
+    mediaUrl: string,
+    mediaType: 'image' | 'video' | 'document' | 'audio',
+    caption?: string,
+    opts: { delay?: number; useProxy?: boolean } = {}
+  ): Promise<any> {
+    const { channel } = await this.resolveChannel(businessId);
+
+    if (channel === 'evolution') {
+      return EvolutionApiService.sendMedia(businessId, to, mediaUrl, mediaType, caption, {
+        delay: opts.delay,
+      });
+    }
+
+    if (channel === 'meta') {
+      const { WhatsAppService } = await import('./whatsapp.service.js');
+      return WhatsAppService.sendMedia(businessId, to, mediaUrl, mediaType, caption, {
+        useProxy: opts.useProxy,
       });
     }
 
