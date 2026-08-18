@@ -4,7 +4,7 @@ import { prisma } from '../db.js';
 import { authenticate, AuthRequest, validateWebhook, generateWebhookSecret } from '../middleware/auth.js';
 import { cacheResponse } from '../middleware/cache.js';
 import { LeadCaptureService } from '../services/lead-capture.service.js';
-import { WhatsAppService } from '../services/whatsapp.service.js';
+import { WhatsAppSendRouter } from '../services/whatsapp-send-router.service.js';
 import { EmailService } from '../services/email.service.js';
 import { handleLeadCapture as triggerLeadWorkflows } from '../services/ai-auto-reply.service.js';
 import rateLimit from 'express-rate-limit';
@@ -511,8 +511,7 @@ router.post('/bulk-reply', authenticate, async (req: AuthRequest, res: Response)
     for (const contact of contacts) {
       try {
         if (channel === 'whatsapp' && contact.phone) {
-          const { WhatsAppService } = await import('../services/whatsapp.service.js');
-          await WhatsAppService.sendTextMessage(businessId, contact.phone, message, { messageId: contact.id });
+          await WhatsAppSendRouter.sendText(businessId, contact.phone, message, { messageId: contact.id });
           sent++;
         } else if (channel === 'email' && contact.email) {
           const { EmailService } = await import('../services/email.service.js');
@@ -524,8 +523,7 @@ router.post('/bulk-reply', authenticate, async (req: AuthRequest, res: Response)
           sent++;
         } else if (channel === 'sms' && contact.phone) {
           // SMS via WhatsApp as fallback (or integrate Twilio later)
-          const { WhatsAppService } = await import('../services/whatsapp.service.js');
-          await WhatsAppService.sendTextMessage(businessId, contact.phone, message, { messageId: contact.id });
+          await WhatsAppSendRouter.sendText(businessId, contact.phone, message, { messageId: contact.id });
           sent++;
         }
       } catch (err: any) {
@@ -696,7 +694,7 @@ router.post('/capture/:businessId', publicLeadLimiter, validateWebhook, async (r
         });
         const msg = business?.autoReplyMessage ||
           `Hi ${name || 'there'}! 👋\n\nThank you for your inquiry about ${product || 'our products'}.\n\nWe've received your requirement and our team will get back to you shortly.\n\nBest regards,\n${business?.name || 'Our Team'}`;
-        await WhatsAppService.sendTextMessage(businessId, phone, msg, { messageId: contact.id });
+        await WhatsAppSendRouter.sendText(businessId, phone, msg, { messageId: contact.id });
       } catch (e: any) {
         console.error('Auto-reply WhatsApp failed:', e.message);
       }

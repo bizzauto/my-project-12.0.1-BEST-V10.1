@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma } from '../db.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
+import { WhatsAppSendRouter } from '../services/whatsapp-send-router.service.js';
 
 const router = Router();
 
@@ -327,8 +328,7 @@ router.post('/:id/remind', authenticate, async (req: AuthRequest, res: Response)
 
     try {
       if (reminderChannel === 'whatsapp' && contact.phone) {
-        const { WhatsAppService } = await import('../services/whatsapp.service.js');
-        await WhatsAppService.sendTextMessage(businessId, contact.phone, defaultMessage, { messageId: cart.id });
+        await WhatsAppSendRouter.sendText(businessId, contact.phone, defaultMessage, { messageId: cart.id });
         sendSuccess = true;
       } else if (reminderChannel === 'email' && contact.email) {
         const { EmailService } = await import('../services/email.service.js');
@@ -339,8 +339,7 @@ router.post('/:id/remind', authenticate, async (req: AuthRequest, res: Response)
         );
         sendSuccess = true;
       } else if (reminderChannel === 'sms' && contact.phone) {
-        const { WhatsAppService } = await import('../services/whatsapp.service.js');
-        await WhatsAppService.sendTextMessage(businessId, contact.phone, defaultMessage, { messageId: cart.id });
+        await WhatsAppSendRouter.sendText(businessId, contact.phone, defaultMessage, { messageId: cart.id });
         sendSuccess = true;
       } else {
         sendError = `No valid contact info for channel "${reminderChannel}"`;

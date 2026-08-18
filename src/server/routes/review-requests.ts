@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma } from '../db.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
+import { WhatsAppSendRouter } from '../services/whatsapp-send-router.service.js';
 
 const router = Router();
 
@@ -190,8 +191,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     // Attempt to send immediately
     try {
       if (channel === 'whatsapp') {
-        const { WhatsAppService } = await import('../services/whatsapp.service.js');
-        await WhatsAppService.sendTextMessage(req.user.businessId, contact.phone, defaultMessage);
+        await WhatsAppSendRouter.sendText(req.user.businessId, contact.phone, defaultMessage);
         await prisma.reviewRequest.update({
           where: { id: request.id },
           data: { status: 'sent', sentAt: new Date() },
@@ -290,8 +290,7 @@ router.post('/bulk', authenticate, async (req: AuthRequest, res: Response) => {
 
       try {
         if (channel === 'whatsapp') {
-          const { WhatsAppService } = await import('../services/whatsapp.service.js');
-          await WhatsAppService.sendTextMessage(req.user.businessId, contact.phone, defaultMessage);
+          await WhatsAppSendRouter.sendText(req.user.businessId, contact.phone, defaultMessage);
           await prisma.reviewRequest.update({
             where: { id: request.id },
             data: { status: 'sent', sentAt: new Date() },
@@ -629,8 +628,7 @@ router.post('/campaigns/:id/trigger', authenticate, async (req: AuthRequest, res
     // Attempt to send
     try {
       if (campaign.channel === 'whatsapp') {
-        const { WhatsAppService } = await import('../services/whatsapp.service.js');
-        await WhatsAppService.sendTextMessage(req.user.businessId, contact.phone, message);
+        await WhatsAppSendRouter.sendText(req.user.businessId, contact.phone, message);
         await prisma.reviewRequest.update({
           where: { id: request.id },
           data: { status: 'sent', sentAt: new Date() },

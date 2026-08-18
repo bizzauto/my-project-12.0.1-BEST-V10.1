@@ -1,6 +1,6 @@
 import '../dns-config.js'; // MUST be first: forces IPv4-first DNS so GBP/Google calls don't time out on broken IPv6 egress
 import { Queue, Worker, Job } from 'bullmq';
-import { WhatsAppService } from '../services/whatsapp.service.js';
+import { WhatsAppSendRouter } from '../services/whatsapp-send-router.service.js';
 import { EmailService } from '../services/email.service.js';
 import { GoogleSheetsService } from '../services/google-sheets.service.js';
 import { LeadCaptureService } from '../services/lead-capture.service.js';
@@ -85,19 +85,21 @@ whatsappWorker = new Worker(
         let result;
         if (scheduled.type === 'text') {
 
-          result = await WhatsAppService.sendTextMessage(businessId, scheduled.phone, scheduled.content || '', {
+          result = await WhatsAppSendRouter.sendText(businessId, scheduled.phone, scheduled.content || '', {
             messageId: scheduled.contactId || undefined,
           });
         } else if (scheduled.type === 'template') {
 
-          result = await WhatsAppService.sendTemplate(
-            businessId, scheduled.phone, scheduled.templateName || '',
-            scheduled.templateLanguage || 'en',
-            (scheduled.templateVars as unknown as string[]) || [],
+          result = await WhatsAppSendRouter.sendTemplate(
+            businessId, scheduled.phone, {
+              templateName: scheduled.templateName || '',
+              language: scheduled.templateLanguage || 'en',
+              variables: (scheduled.templateVars as unknown as string[]) || [],
+            }
           );
         } else if (scheduled.type === 'media') {
 
-          result = await WhatsAppService.sendMedia(
+          result = await WhatsAppSendRouter.sendMedia(
             businessId, scheduled.phone,
             scheduled.mediaUrl || '', (scheduled.mediaType || 'image') as 'image' | 'video' | 'document' | 'audio',
             scheduled.content || undefined,
@@ -131,17 +133,21 @@ whatsappWorker = new Worker(
     const { businessId, to, type, content, templateName, variables, contactId, useProxy } = job.data;
 
     if (type === 'text') {
-      return await WhatsAppService.sendTextMessage(businessId, to, content, {
+      return await WhatsAppSendRouter.sendText(businessId, to, content, {
         messageId: contactId,
         useProxy,
       });
     } else if (type === 'template') {
-      return await WhatsAppService.sendTemplate(businessId, to, templateName, 'en', variables, {
+      return await WhatsAppSendRouter.sendTemplate(businessId, to, {
+        templateName,
+        language: 'en',
+        variables,
+      }, {
         useProxy,
       });
     } else if (type === 'media') {
       const { mediaUrl, mediaType, caption } = job.data;
-      return await WhatsAppService.sendMedia(businessId, to, mediaUrl, mediaType, caption, {
+      return await WhatsAppSendRouter.sendMedia(businessId, to, mediaUrl, mediaType, caption, {
         useProxy,
       });
     }

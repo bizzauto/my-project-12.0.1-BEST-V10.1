@@ -1,5 +1,5 @@
 import { prisma } from '../db.js';
-import { WhatsAppService } from './whatsapp.service.js';
+import { WhatsAppSendRouter } from './whatsapp-send-router.service.js';
 import { EmailService } from './email.service.js';
 
 /**
@@ -232,7 +232,7 @@ Need help? Reply to this message or call us.
 Thank you for choosing BizzAuto! 🙏`;
 
     try {
-      await WhatsAppService.sendTextMessage('default', contact.phone, message);
+      await WhatsAppSendRouter.sendText('default', contact.phone, message);
     } catch (error: any) {
       console.error(`[AutoOnboarding] WhatsApp error:`, error.message);
     }
@@ -373,7 +373,7 @@ Thank you for choosing BizzAuto! 🙏`;
       });
 
       if (contact?.phone) {
-        await WhatsAppService.sendTextMessage(
+        await WhatsAppSendRouter.sendText(
           'default',
           contact.phone,
           `✅ Your subscription has been renewed!\n\nAmount: ₹${subscriptionData.amount / 100}\nValid until: ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}\n\nThank you for continuing with BizzAuto!`

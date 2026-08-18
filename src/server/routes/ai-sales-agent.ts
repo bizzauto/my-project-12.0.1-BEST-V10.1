@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma } from '../db.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
+import { WhatsAppSendRouter } from '../services/whatsapp-send-router.service.js';
 
 const router = Router();
 
@@ -285,8 +286,7 @@ router.post('/follow-ups/:id/send', authenticate, async (req: AuthRequest, res: 
 
     try {
       if (followUp.channel === 'whatsapp' && contact.phone) {
-        const { WhatsAppService } = await import('../services/whatsapp.service.js');
-        await WhatsAppService.sendTextMessage(businessId, contact.phone, followUp.message, { messageId: followUp.id });
+        await WhatsAppSendRouter.sendText(businessId, contact.phone, followUp.message, { messageId: followUp.id });
         sendSuccess = true;
       } else if (followUp.channel === 'email' && contact.email) {
         const { EmailService } = await import('../services/email.service.js');
@@ -297,8 +297,7 @@ router.post('/follow-ups/:id/send', authenticate, async (req: AuthRequest, res: 
         );
         sendSuccess = true;
       } else if (followUp.channel === 'sms' && contact.phone) {
-        const { WhatsAppService } = await import('../services/whatsapp.service.js');
-        await WhatsAppService.sendTextMessage(businessId, contact.phone, followUp.message, { messageId: followUp.id });
+        await WhatsAppSendRouter.sendText(businessId, contact.phone, followUp.message, { messageId: followUp.id });
         sendSuccess = true;
       } else {
         sendError = `No valid contact info for channel "${followUp.channel}"`;

@@ -1,6 +1,6 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { prisma } from '../db.js';
-import { WhatsAppService } from '../services/whatsapp.service.js';
+import { WhatsAppSendRouter } from '../services/whatsapp-send-router.service.js';
 import { EvolutionApiService } from '../services/evolution.service.js';
 import { WhatsAppRateLimiter } from '../services/whatsapp-rate-limiter.service.js';
 import { createRedisConnection } from '../utils/redis-connection.js';
@@ -37,7 +37,7 @@ async function smartSendText(businessId: string, to: string, message: string): P
       console.warn('[Scheduled Worker] Evolution API failed, falling back to Meta');
     }
   }
-  return await WhatsAppService.sendTextMessage(businessId, to, message);
+  return await WhatsAppSendRouter.sendText(businessId, to, message);
 }
 
 // Scheduled message worker

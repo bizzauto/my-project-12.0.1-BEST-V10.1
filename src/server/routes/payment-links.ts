@@ -4,7 +4,7 @@ import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createPaymentLinkSchema } from '../validations/remaining-schemas.js';
 import { verifyPaymentSignature } from '../services/razorpay.service.js';
-import { WhatsAppService } from '../services/whatsapp.service.js';
+import { WhatsAppSendRouter } from '../services/whatsapp-send-router.service.js';
 import crypto from 'crypto';
 
 const router = Router();
@@ -513,7 +513,7 @@ router.post('/:id/send', async (req: AuthRequest, res: Response) => {
       'Thank you!',
     ].filter(Boolean).join('\n');
 
-    await WhatsAppService.sendTextMessage(
+    await WhatsAppSendRouter.sendText(
       req.user.businessId,
       link.contact.phone,
       message,
