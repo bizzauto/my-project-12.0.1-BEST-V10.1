@@ -551,6 +551,77 @@ router.post('/bulk-reply', authenticate, async (req: AuthRequest, res: Response)
 });
 
 /**
+ * POST /api/leads/:id/convert
+ * Convert a captured lead (contact) into a deal, linked to the same contact.
+ * This closes the full lead -> pipeline loop: the lead's contact record is
+ * promoted to a deal (dealStage set) and an activity is logged tying the
+ * deal to the originating contact.
+ */
+router.post('/:id/convert', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { stage, stageId, pipelineId, value } = req.body as {
+      stage?: string;
+      stageId?: string;
+      pipelineId?: string;
+      value?: number | string;
+    };
+    const businessId = req.user.businessId;
+
+    const contact = await prisma.contact.findFirst({
+      where: { id, businessId },
+    });
+
+    if (!contact) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+
+    const dealStage = stage || 'New Lead';
+    const dealValue = value !== undefined ? parseFloat(String(value)) || 0 : (contact.dealValue || 0);
+
+    const updated = await prisma.contact.update({
+      where: { id, businessId },
+      data: {
+        dealStage,
+        stage: dealStage,
+        ...(stageId !== undefined && { stageId }),
+        ...(pipelineId !== undefined && { pipelineId }),
+        ...(value !== undefined && { dealValue }),
+      },
+    });
+
+    await prisma.activity.create({
+      data: {
+        businessId,
+        contactId: id,
+        type: 'lead_converted_to_deal',
+        title: 'Lead converted to deal',
+        description: `Lead "${contact.name}" converted to a deal (${dealStage})`,
+        dealValue: dealValue || undefined,
+        stageTo: dealStage,
+        createdBy: req.user.id,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Lead converted to deal',
+      data: {
+        id: updated.id,
+        contactId: updated.id,
+        dealStage: updated.dealStage,
+        stageId: updated.stageId,
+        pipelineId: updated.pipelineId,
+        dealValue: updated.dealValue,
+      },
+    });
+  } catch (error: any) {
+    console.error('Convert lead error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * DELETE /api/leads/:id
  * Delete a lead/contact
  */

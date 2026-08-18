@@ -187,6 +187,8 @@ export const leadsAPI = {
   get: (id: string) => apiClient.get(`/leads/${id}`),
   create: (data: any) => apiClient.post('/leads/manual', data),
   delete: (id: string) => apiClient.delete(`/leads/${id}`),
+  convert: (id: string, data?: { stage?: string; stageId?: string; pipelineId?: string; value?: number | string }) =>
+    apiClient.post(`/leads/${id}/convert`, data || {}),
   export: (format: string, data?: any) => apiClient.post(`/leads/export/${format}`, data, { responseType: 'blob' }),
   bulkReply: (data: any) => apiClient.post('/leads/bulk-reply', data),
 };
@@ -366,6 +368,8 @@ export const businessAPI = {
   updateSettings: (data: any) => apiClient.put('/business/settings', data),
   getPipelines: () => apiClient.get('/business/pipelines'),
   createPipeline: (data: any) => apiClient.post('/business/pipelines', data),
+  updateOnboarding: (data: { onboardingCompleted?: boolean; onboardingStep?: number }) =>
+    apiClient.put('/business/onboarding', data),
 };
 
 // Subscriptions API

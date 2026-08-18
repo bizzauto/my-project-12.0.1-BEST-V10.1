@@ -358,6 +358,39 @@ router.put('/:id', authenticate, requireRole('OWNER', 'ADMIN'), validate(updateD
   }
 });
 
+// DELETE /api/deals/:id - Delete a deal (clears deal fields, keeps the contact) — OWNER/ADMIN only
+router.delete('/:id', authenticate, requireRole('OWNER', 'ADMIN'), async (req: AuthRequest, res: any) => {
+  try {
+    const { id } = req.params;
+    const businessId = req.user.businessId;
+
+    const contact = await prisma.contact.findFirst({
+      where: { id, businessId },
+    });
+
+    if (!contact) {
+      return res.status(404).json({ success: false, error: 'Deal not found' });
+    }
+
+    // Clear deal fields — the contact remains as a regular CRM contact
+    await prisma.contact.update({
+      where: { id, businessId },
+      data: {
+        dealStage: null,
+        stage: null,
+        stageId: null,
+        pipelineId: null,
+        dealValue: 0,
+      },
+    });
+
+    res.json({ success: true, message: 'Deal deleted' });
+  } catch (error: any) {
+    console.error('Delete deal error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete deal' });
+  }
+});
+
 function getProbability(stage: string | null | undefined): number {
   const normalized = (stage || '').toLowerCase().trim();
   if (normalized.includes('new') || normalized.includes('lead inbox')) return 10;

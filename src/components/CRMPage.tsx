@@ -5,7 +5,7 @@ import {
   BarChart3, Target, Award, AlertCircle, Users, MapPin,
   Globe, List, Grid, Columns, Printer, Send, Brain, Flag, Zap
 } from 'lucide-react';
-import { contactsAPI, appointmentsAPI, ledgerAPI, dealsAPI, crmInvoicesAPI, goalsAPI } from '../lib/api';
+import { contactsAPI, appointmentsAPI, ledgerAPI, dealsAPI, crmInvoicesAPI, goalsAPI, leadsAPI } from '../lib/api';
 import { useToast } from './Toast';
 import PipelineViewEnhanced from './PipelineViewEnhanced';
 
@@ -510,6 +510,25 @@ export default function CRMPage() {
     }
     setShowDealModal(false);
     showToast(`New deal created: ${dealData.title}`);
+  };
+
+  // Convert a captured lead (contact) into a deal — closes the lead -> pipeline loop
+  const handleConvertLead = async (contactId: string, contactName: string) => {
+    try {
+      const res = await leadsAPI.convert(contactId, { stage: 'New Lead' });
+      if (res?.data?.success) {
+        showToast(`Lead "${contactName}" converted to a deal!`);
+        // Refresh deals list so the new deal appears in the pipeline
+        const dealsRes = await dealsAPI.list({ limit: 200 }).catch(() => null);
+        if (dealsRes?.data?.data?.deals) {
+          setDeals(dealsRes.data.data.deals);
+        }
+      } else {
+        showToast('Failed to convert lead to deal', 'error');
+      }
+    } catch {
+      showToast('Failed to convert lead to deal', 'error');
+    }
   };
 
   // Create Invoice
@@ -1294,7 +1313,11 @@ export default function CRMPage() {
 
       {/* ================== CONTACT DETAIL MODAL ================== */}
       {selectedContact && (
-        <ContactDetailModal contact={contacts.find(c => c.id === selectedContact.id) || selectedContact} onClose={() => setSelectedContact(null)} />
+        <ContactDetailModal
+          contact={contacts.find(c => c.id === selectedContact.id) || selectedContact}
+          onClose={() => setSelectedContact(null)}
+          onConvert={handleConvertLead}
+        />
       )}
 
       {/* ================== QUICK NOTE MODAL ================== */}
@@ -1340,7 +1363,7 @@ export default function CRMPage() {
 // CONTACT DETAIL MODAL
 // ============================================================
 
-const ContactDetailModal: React.FC<{ contact: Contact; onClose: () => void }> = ({ contact, onClose }) => {
+const ContactDetailModal: React.FC<{ contact: Contact; onClose: () => void; onConvert?: (contactId: string, contactName: string) => void }> = ({ contact, onClose, onConvert }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'tasks' | 'activities' | 'deals'>('overview');
   const { info } = useToast();
 
@@ -1397,6 +1420,15 @@ const ContactDetailModal: React.FC<{ contact: Contact; onClose: () => void }> = 
                 <div><p className="text-xs text-gray-500 uppercase mb-1">Source</p><p className="font-medium">{contact.source || 'Direct'}</p></div>
                 <div><p className="text-xs text-gray-500 uppercase mb-1">Created</p><p className="font-medium">{contact.createdAt}</p></div>
               </div>
+
+              {onConvert && (
+                <button
+                  onClick={() => onConvert(contact.id, contact.name)}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:opacity-90 transition-all"
+                >
+                  <Target size={18} /> Convert to Deal
+                </button>
+              )}
 
               {contact.tags.length > 0 && (
                 <div>
