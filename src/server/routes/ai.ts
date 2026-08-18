@@ -193,7 +193,7 @@ async function callAIProvider(model: any, prompt: string) {
   try {
     if (model.provider === 'openrouter') {
       const apiKey = process.env.OPENROUTER_API_KEY;
-      if (!apiKey || apiKey === 'your_openrouter_api_key') {
+      if (!apiKey || /^(your[_-]?openrouter[_-]?key|sk-or-|)$/i.test(apiKey) || apiKey.includes('your-openrouter') || apiKey.includes('your_openrouter')) {
         throw new Error('AI service not configured');
       }
       const response = await axios.post(
@@ -208,7 +208,7 @@ async function callAIProvider(model: any, prompt: string) {
       const grokKey = process.env.GROK_API_KEY;
       if (!grokKey || grokKey === 'your_grok_api_key') {
         const openrouterKey = process.env.OPENROUTER_API_KEY;
-        if (!openrouterKey || openrouterKey === 'your_openrouter_api_key') {
+        if (!openrouterKey || /^(your[_-]?openrouter[_-]?key|sk-or-|)$/i.test(openrouterKey) || openrouterKey.includes('your-openrouter') || openrouterKey.includes('your_openrouter')) {
           throw new Error('AI service not configured');
         }
         const response = await axios.post(
