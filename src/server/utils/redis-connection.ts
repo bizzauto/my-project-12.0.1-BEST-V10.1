@@ -1,20 +1,13 @@
 import IORedis from 'ioredis';
+import logger from './logger.js';
 
 let redisDisabled = false;
+let connectionAttempted = false;
 /** Global — once set, ALL Redis activity stops immediately with no retries */
 let redisUnreachable = false;
 
 export function isRedisDisabled(): boolean {
   return redisDisabled || redisUnreachable;
-}
-
-/**
- * True once ANY ioredis client has successfully connected.
- * ioredis sets `redisUnreachable`/`redisDisabled` on the shared module state,
- * which is what every call site should check — NOT a per-import snapshot.
- */
-export function isRedisOperational(): boolean {
-  return !redisDisabled && !redisUnreachable;
 }
 
 function maskUrl(url: string): string {
@@ -27,14 +20,15 @@ function maskUrl(url: string): string {
   }
 }
 
-export function createRedisConnection(opts?: { bullMQ?: boolean }): IORedis | null {
+export function createRedisConnection() {
   // IMMEDIATE FAIL FAST: If already unreachable, don't even check env vars
   if (redisUnreachable) {
     return null;
   }
-  if (redisDisabled) {
+  if (redisDisabled || connectionAttempted) {
     return null;
   }
+  connectionAttempted = true;
 
   const redisUrl = process.env.REDIS_URL;
   const redisPassword = process.env.REDIS_PASSWORD;
@@ -96,7 +90,7 @@ export function createRedisConnection(opts?: { bullMQ?: boolean }): IORedis | nu
       return null;
     }
     console.log(`[Redis] Connecting via URL: ${maskUrl(effectiveUrl)}`);
-    return connectToRedis(effectiveUrl, opts);
+    return connectToRedis(effectiveUrl);
   }
 
   if (redisPassword) {
@@ -104,7 +98,7 @@ export function createRedisConnection(opts?: { bullMQ?: boolean }): IORedis | nu
     const port = process.env.REDIS_PORT || '6379';
     const url = `redis://:${redisPassword}@${host}:${port}`;
     console.log(`[Redis] Connecting via password to ${host}:${port}...`);
-    return connectToRedis(url, opts);
+    return connectToRedis(url);
   }
 
   if (redisHost) {
@@ -122,7 +116,7 @@ function getTimeoutConfig() {
   return { commandTimeout: cmdTimeout, connectTimeout: connTimeout };
 }
 
-function connectToRedis(url: string, opts?: { bullMQ?: boolean }) {
+function connectToRedis(url: string) {
   // FAIL FAST: If already marked unreachable, don't even attempt
   if (redisUnreachable || redisDisabled) {
     console.log('[Redis] Already unreachable — skipping connection attempt');
@@ -130,35 +124,24 @@ function connectToRedis(url: string, opts?: { bullMQ?: boolean }) {
   }
   const { commandTimeout, connectTimeout } = getTimeoutConfig();
 
-  // BullMQ relies on LONG-POLLING blocking commands (BRPOP/BLPOP) that sit idle
-  // for seconds waiting for the next job. A commandTimeout here fires on every
-  // idle wait and floods the logs with "Command timed out" (see workers/index.ts).
-  // BullMQ manages its own blocking-command timeout, so we MUST NOT set one for
-  // the queue/worker connection. Only the request-path cache client gets it.
-  const isBullMQ = !!opts?.bullMQ;
-  const effectiveCommandTimeout = isBullMQ ? undefined : commandTimeout;
-
-  console.log(`[Redis] Timeouts — connect: ${connectTimeout}ms, command: ${isBullMQ ? 'NONE (BullMQ blocking-safe)' : `${commandTimeout}ms`}. Set REDIS_CONNECT_TIMEOUT / REDIS_COMMAND_TIMEOUT env vars to override.`);
+  console.log(`[Redis] Timeouts — connect: ${connectTimeout}ms, command: ${commandTimeout}ms. Set REDIS_CONNECT_TIMEOUT / REDIS_COMMAND_TIMEOUT env vars to override.`);
 
   const client = new IORedis(url, {
     maxRetriesPerRequest: null,
     retryStrategy(times: number) {
-      // IMPORTANT: never return null here. Returning null permanently kills the
-      // client, and a dropped connection (Redis container restart, network blip)
-      // would then leave BullMQ workers dead in a crash loop with
-      // "Stream isn't writeable and enableOfflineQueue options is false".
-      // Keep retrying with exponential backoff instead — ioredis reconnects
-      // automatically and BullMQ resumes blocking pops once the stream is live.
+      // Allow 3 retries with exponential backoff before giving up
+      if (times > 3) {
+        console.log(`[Redis] ⛔ Connection failed after ${times} attempts — marking Redis as unreachable.`);
+        redisUnreachable = true;
+        return null;
+      }
       const delay = Math.min(times * 1000, 5000);
-      console.log(`[Redis] Reconnect attempt ${times + 1} in ${delay}ms...`);
+      console.log(`[Redis] Retry attempt ${times + 1} in ${delay}ms...`);
       return delay;
     },
-    // MUST be true (BullMQ default) so commands issued during a reconnect gap
-    // are buffered and flushed on reconnect instead of throwing
-    // "Stream isn't writeable" and crashing the worker.
     enableOfflineQueue: true,
     connectTimeout,
-    commandTimeout: effectiveCommandTimeout,
+    commandTimeout,
     lazyConnect: true,
   });
 
@@ -176,13 +159,14 @@ function connectToRedis(url: string, opts?: { bullMQ?: boolean }) {
 
   client.on('error', (err: any) => {
     if (handleNoAuth('error event')(err)) return;
-    // Transient errors (ECONNRESET, "Stream isn't writeable", broken pipe, etc.)
-    // are EXPECTED during a Redis restart/network blip. Do NOT mark Redis
-    // unreachable here — ioredis's retryStrategy (above) keeps reconnecting and
-    // the worker resumes automatically. Only genuine auth failures disable it
-    // (handled by handleNoAuth). A command timeout is normal for BullMQ
-    // blocking pops, so it is also just logged, not fatal.
-    console.error(`[Redis] Connection error (transient — retrying): ${err.message}`);
+    if (err?.message?.includes('timed out')) {
+      console.error(`[Redis] ⏱ Command timed out after ${commandTimeout}ms. Redis marked UNREACHABLE — no further Redis activity. Error: ${err.message}`);
+      redisUnreachable = true;
+      redisDisabled = true;
+      try { client.quit(); } catch {}
+    } else {
+      console.error(`[Redis] Connection error: ${err.message}`);
+    }
   });
 
   client.on('connect', () => {
@@ -203,21 +187,22 @@ function connectToRedis(url: string, opts?: { bullMQ?: boolean }) {
   client.on('reconnected', () => {
     console.log('[Redis] ✅ Reconnected successfully — queues are operational again');
     redisDisabled = false;
-    redisUnreachable = false;
   });
 
   client.on('close', () => {
-    // Connection closed (Redis restart, keepalive drop). This is transient —
-    // ioredis will reconnect automatically. Do NOT mark unreachable.
-    console.log('[Redis] Connection closed (will auto-reconnect via retryStrategy)');
+    console.log('[Redis] Connection closed');
   });
 
   client.connect().catch((err: any) => {
     if (handleNoAuth('on connect')(err)) return;
-    // Transient connect failure (Redis not up yet, DNS, blip). Do NOT quit the
-    // client or mark it disabled — ioredis will keep retrying via retryStrategy
-    // and the 'ready'/'reconnected' events will reset the flags on success.
-    console.error(`[Redis] Initial connect failed (will retry automatically): ${err.message}`);
+    if (err?.message?.includes('timed out') || err?.message?.includes('ETIMEDOUT')) {
+      console.error(`[Redis] ⏱ Connection timed out after ${connectTimeout}ms. Redis marked UNREACHABLE — no further Redis activity. Check that Redis is running and reachable. Set REDIS_ENABLED=false in env vars to fully disable. Error: ${err.message}`);
+      redisUnreachable = true;
+    } else {
+      console.error(`[Redis] Connect failed: ${err.message}`);
+    }
+    redisDisabled = true;
+    try { client.quit(); } catch {}
   });
 
   return client;
